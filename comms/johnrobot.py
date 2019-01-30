@@ -14,9 +14,9 @@ class JohnRobot(object):
         from 0 to 255, with 255 being the fastest."""
         # Use -1 as first element to broadcast to all robots
         robot_id = -1
-        f = int(np.clip(forward, 0, 255))
-        l = int(np.clip(lateral, 0, 255))
-        w = int(np.clip(w, 0, 255))
+        f = int(np.clip(forward, -255, 255))
+        l = int(np.clip(lateral, -255, 255))
+        w = int(np.clip(w, -255, 255))
         cmd = "{},{},{},{}".format(robot_id, f, l, w)
         self.comms.send(cmd)
 

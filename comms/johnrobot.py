@@ -17,6 +17,6 @@ class JohnRobot(object):
         f = int(np.clip(forward, -255, 255))
         l = int(np.clip(lateral, -255, 255))
         w = int(np.clip(w, -255, 255))
-        cmd = "{},{},{},{}".format(robot_id, f, l, w)
+        cmd = "{},{},{},{}".format(robot_id, l, f, w)
         self.comms.send(cmd)
 

@@ -1,0 +1,51 @@
+"""XBee communications class for omniwheel robocup devices. Read the following for setting up
+the XBee device we are using and common troubleshooting errors.
+
+802.15.4 devices
+    Click Load default firmware settings in the Radio Configuration toolbar to load the default values for the device firmware.
+    Make sure API mode (API1 or API2) is enabled. To do so, set the AP parameter value to 1 (API mode without escapes) or 2 (API mode with escapes).
+    Configure ID (PAN ID) setting to CAFE.
+    Configure CH (Channel setting) to C.
+    Click Write radio settings in the Radio Configuration toolbar to apply the new values to the module.
+    Once you have configured both modules, check to make sure they can see each other. Click Discover radio modules in the same network, the second button of the device panel in the Radio Modules view. The other device must be listed in the Discovering remote devices dialog.
+
+Troubleshooting:
+    If you are getting the error
+    Could not open port "/dev/USBXXX", permission denied
+    then make sure that your user has usb port access without sudo
+    you can do this by adding user into dialout group. Google this.
+"""
+from digi.xbee.devices import XBeeDevice
+import time
+
+DEFAULT_PORT = "/dev/ttyUSB0"
+DEFAULT_BAUD_RATE = 9600
+
+class OmniComms(object):
+
+    def __init__(self, port=DEFAULT_PORT, baud_rate=DEFAULT_BAUD_RATE):
+        # Find our XBee device connected to this computer
+        self.device = XBeeDevice(port, baud_rate)
+
+        try:
+            self.device.open()
+
+            # Obtain the remote XBee devices from the XBee network.
+            xbee_network = self.device.get_network()
+
+            # Try to find devices
+            xbee_network.start_discovery_process()
+            time.sleep(3)  # wait a few seconds to find all of the xbees
+            xbee_network.stop_discovery_process()
+            self.net_devs = xbee_network.get_devices()
+            if not self.net_devs:
+                raise RuntimeError("Cound not find any XBEE devices on network")
+  
+        finally:
+            if self.device is not None and self.device.is_open():
+                self.device.close()
+
+    def send(self, command):
+        for remote_device in self.found_devs:
+            for _ in range(10):
+                self.device.send_data(remote_device, command + '\n')

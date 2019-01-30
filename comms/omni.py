@@ -27,25 +27,19 @@ class OmniComms(object):
         # Find our XBee device connected to this computer
         self.device = XBeeDevice(port, baud_rate)
 
-        try:
-            self.device.open()
+        self.device.open()
 
-            # Obtain the remote XBee devices from the XBee network.
-            xbee_network = self.device.get_network()
+        # Obtain the remote XBee devices from the XBee network.
+        xbee_network = self.device.get_network()
 
-            # Try to find devices
-            xbee_network.start_discovery_process()
-            time.sleep(3)  # wait a few seconds to find all of the xbees
-            xbee_network.stop_discovery_process()
-            self.net_devs = xbee_network.get_devices()
-            if not self.net_devs:
-                raise RuntimeError("Cound not find any XBEE devices on network")
-  
-        finally:
-            if self.device is not None and self.device.is_open():
-                self.device.close()
+        # Try to find devices
+        xbee_network.start_discovery_process()
+        time.sleep(3)  # wait a few seconds to find all of the xbees
+        xbee_network.stop_discovery_process()
+        self.net_devs = xbee_network.get_devices()
+        if not self.net_devs:
+            raise RuntimeError("Cound not find any XBEE devices on network")
 
     def send(self, command):
-        for remote_device in self.found_devs:
-            for _ in range(10):
-                self.device.send_data(remote_device, command + '\n')
+        for remote_device in self.net_devs:
+            self.device.send_data(remote_device, command + '\n')

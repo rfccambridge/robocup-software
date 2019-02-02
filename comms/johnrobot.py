@@ -1,5 +1,8 @@
 from omni import OmniComms
 import numpy as np
+import time
+import threading
+
 
 class JohnRobot(object):
     """Class that controls John's old robot he made in high school. Essentially
@@ -19,4 +22,15 @@ class JohnRobot(object):
         w = int(np.clip(w, -255, 255))
         cmd = "{},{},{},{}".format(robot_id, l, f, w)
         self.comms.send(cmd)
+
+    def move_time(self, forward, lateral, w, dt):
+        def _move_loop():
+            start = time.time()
+            while True:
+                if time.time() - start > dt:
+                    break
+                self.move(forward, lateral, w)
+        b = threading.Thread(name='background', target=_move_loop)
+        b.start()
+
 

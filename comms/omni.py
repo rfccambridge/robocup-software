@@ -43,3 +43,13 @@ class OmniComms(object):
     def send(self, command):
         for remote_device in self.net_devs:
             self.device.send_data(remote_device, command + '\n')
+
+
+if __name__ == '__main__':
+    test = OmniComms()
+    for _ in range(5):
+        test.send('-1,50,50,0,500')  # go diagonally for 500 ms
+        test.send('-1,-50,50,0,500')  # go diagonally for 500 ms
+        test.send('-1,-50,-50,0,500')  # go diagonally for 500 ms
+        test.send('-1,50,-50,0,500')  # go diagonally for 500 ms
+

@@ -44,6 +44,10 @@ class OmniComms(object):
         for remote_device in self.net_devs:
             self.device.send_data(remote_device, command + '\n')
 
+    def close(self):
+        if self.device.is_open():
+            self.device.close()
+
 
 if __name__ == '__main__':
     test = OmniComms()

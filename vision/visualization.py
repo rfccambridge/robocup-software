@@ -1,11 +1,13 @@
 import pyglet
 import time
+import numpy as np
 from gym.envs.classic_control import rendering
 from data_providers import SSLVisionDataProvider
 
 # The size of our current field in ROBOCUP
 FIELD_W = 3200
 FIELD_H = 2400
+ROBOT_SIZE = 12
 
 # Scale for the display window, or else it gets too large...
 SCALE = 0.25
@@ -25,7 +27,7 @@ class GameState(object):
     def update_robot(self, robot_id, loc):
         """Update location of robot_id. Expects the following format:
         robot_id (int): ID of robot on our team for now
-        loc (np.array): numpy array of size 2, in format [x_coord, y_coord]"""
+        loc (np.array): numpy array of size 3, in format [x_coord, y_coord, rotation]"""
         self._robots[robot_id] = loc
 
     def update_trajectory(self, robot_id, traj):
@@ -37,21 +39,28 @@ class GameState(object):
 
     def render(self):
         if self.viewer is None:
-            self.viewer = rendering.Viewer(FIELD_W * SCALE, FIELD_H * SCALE)
+            self.viewer = rendering.Viewer(int(FIELD_W * SCALE), int(FIELD_H * SCALE))
 
         # Draw all of the robots as separate entities for robot_id, loc in self._robots: # If the robot hasn't been drawn yet, add it as a separate draw object. if robot_id not in self._drawn_robots:
-        for robot_id, loc in self._robots:
+        for robot_id, loc in self._robots.items():
             if robot_id not in self._drawn_robot_txs:
-                print("Adding a new robot into our drawn game state")
-                drawn_robot = rendering.FilledPolygon([(-5, 0), (0, 5), (5, 0), (0, -5)])
+                # print("Adding a new robot into our drawn game state")
+                robot_points = [
+                    (ROBOT_SIZE, 0), (0, -ROBOT_SIZE), (-ROBOT_SIZE, 0),
+                    (0, ROBOT_SIZE), (ROBOT_SIZE, 0), (0, 0)]
+                drawn_robot = rendering.make_polyline(robot_points)
+                # drawn_robot.set_linewidth(5)
                 self._drawn_robot_txs[robot_id] = rendering.Transform()
                 drawn_robot.add_attr(self._drawn_robot_txs[robot_id])
+                
+                drawn_robot.set_color(0.0, 0.8, 0.9)
                 self.viewer.add_geom(drawn_robot)
             
             # use the transform object to "move" the robot on-screen
-            scaled_x, scaled_y = loc * SCALE
+            loc *= np.array([SCALE, SCALE, 1.0])
+            scaled_x, scaled_y, w = loc[0], loc[1], loc[2]
             self._drawn_robot_txs[robot_id].set_translation(scaled_x, scaled_y)
-            self._drawn_robot_txs[robot_id].set_translation(scaled_x, scaled_y)
+            self._drawn_robot_txs[robot_id].set_rotation(w)
 
             # if we have a trajectory object, we can draw that
             if robot_id in self._trajectories:
@@ -73,6 +82,8 @@ if __name__ == '__main__':
     ROBOT_ID = 9  # John's testing robot is ID 9
     for _ in range(100):
         loc = data.get_robot_position(ROBOT_ID)
-        x, y = loc.x, loc.y
-        gs.update_robot(ROBOT_ID, np.array([x, y]))
-        gs.render()
+        if loc:
+            x, y, w = loc.x, loc.y, loc.orientation
+            gs.update_robot(ROBOT_ID, np.array([x, y, w]))
+            gs.render()
+

@@ -23,7 +23,9 @@ class GameState(object):
         self._robots = dict()  # Dict of Robot ID (int) to x, y coord (numpy)
         self._drawn_robot_txs = dict()  # Dict that deals with drawing robot transforms and rotations
         self._trajectories = dict()  # Dict of current trajectory plans for robot_id
-
+        self._drawn_trajectories = dict()
+        self._waypoints = dict()  # Dict of current trajectory plans for robot_id
+        self._drawn_waypoints = dict()
     def update_robot(self, robot_id, loc):
         """Update location of robot_id. Expects the following format:
         robot_id (int): ID of robot on our team for now
@@ -36,6 +38,14 @@ class GameState(object):
         traj (np.array): numpy array of size 2, in format [forward_direction, 
             lateral_direction (right)]"""
         self._trajectories[robot_id] = traj
+
+    def update_waypoint(self, robot_id, waypoint):
+        """Update trajectory of robot_id. Expects the following format:
+        robot_id (int): ID of robot on our team for now
+        traj (np.array): numpy array of size 2, in format [forward_direction, 
+            lateral_direction (right)]"""
+        self._waypoints[robot_id] = waypoint
+
 
     def render(self):
         if self.viewer is None:
@@ -65,7 +75,11 @@ class GameState(object):
             # if we have a trajectory object, we can draw that
             if robot_id in self._trajectories:
                 pass
+            
+            if robot_id in self._waypoints:
+                pass
     
+
         return self.viewer.render()
 
     def close(self):

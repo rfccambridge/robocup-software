@@ -1,4 +1,4 @@
-from omni import OmniComms
+from .omni import OmniComms
 import numpy as np
 import time
 import threading

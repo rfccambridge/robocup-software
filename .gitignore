@@ -6,3 +6,8 @@
 *.ipynb_checkpoint
 *__pycache__*
 *__pycache__
+
+# Misc
+*.txt
+*.dmp
+*.pkl

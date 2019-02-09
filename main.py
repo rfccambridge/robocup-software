@@ -29,9 +29,11 @@ if __name__ == '__main__':
     trans = RealWorldCoordTransformer()
 
     new_x = 2000
-    new_y = 300
+    new_y = 2000
     ROBOT_ID = 9
-    SPEED = 100
+    # proportional scaling constant for distance differences
+    SPEED_SCALE = .25
+    MAX_SPEED = 50
     VERBOSE = False
 
     gs = GameState()
@@ -50,16 +52,26 @@ if __name__ == '__main__':
             new_y, new_x = gs.user_click_field
             gs.update_waypoint(ROBOT_ID, np.array([new_x, new_y]))
 
+        # update ball
+        ball_data = data.get_ball_position()
+        if ball_data and ball_data.confidence > .9:
+            ball_pos = ball_data.x, ball_data.y
+            gs.update_ball(ball_pos)
+            new_x, new_y = ball_pos
+
         gs.update_robot(ROBOT_ID, np.array([og_x, og_y, og_w]))
-        dest = (new_x - og_x, new_y - og_y)
-        robot_x, robot_y = trans.transform(og_w, dest)
+        delta = (new_x - og_x, new_y - og_y)
+        # normalized offsets from robot's perspective
+        robot_x, robot_y = trans.transform(og_w, delta)
 
         if VERBOSE:
             print("Original coordinates", og_x, og_y, og_w)
-            print('Dest {}'.format(dest))
-            print('Robot X %f Robot Y %f' % (robot_x, robot_y))
+            print('Delta {}'.format(delta))
+            print('(normalized diff) Robot X %f Robot Y %f' % (robot_x, robot_y))
 
-        robot.move(SPEED * robot_x, SPEED * robot_y, 0, 0.2)
+        speed = min(trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
+
+        robot.move(speed * robot_x, speed * robot_y, 0, 0.2)
         gs.render()
 
     robot.die()

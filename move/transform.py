@@ -6,7 +6,7 @@ class RealWorldCoordTransformer(object):
         pass
 
     def transform(self, w_robot, dest):
-        """Transforms real world vector and transforms it into a normaliszed vector in the
+        """Transforms real world vector and transforms it into a normalized vector in the
         reference frame of the robot"""
         if dest == (0, 0):
             return dest
@@ -23,6 +23,10 @@ class RealWorldCoordTransformer(object):
         
         # x, y = np.sin(new_angle), np.cos(new_angle)
         # return x, y
+
+    def magnitude(self, v):
+        x, y = v
+        return (x**2 + y**2) ** .5
 
 
 if __name__=="__main__":

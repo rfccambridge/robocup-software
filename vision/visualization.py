@@ -8,6 +8,7 @@ from data_providers import SSLVisionDataProvider
 FIELD_W = 3200
 FIELD_H = 2400
 ROBOT_SIZE = 12
+BALL_SIZE = 50
 
 # Scale for the display window, or else it gets too large...
 SCALE = 0.25
@@ -20,6 +21,7 @@ class GameState(object):
     
     def __init__(self):
         self.viewer = None
+        self._ball = None # ball position
         self._robots = dict()  # Dict of Robot ID (int) to x, y coord (numpy)
         self._drawn_robot_txs = dict()  # Dict that deals with drawing robot transforms and rotations
         self._trajectories = dict()  # Dict of current trajectory plans for robot_id
@@ -29,6 +31,9 @@ class GameState(object):
         self.user_click = None
         self.user_click_field = None
 
+    def update_ball(self, loc):
+        """Update ball location"""
+        self._ball = loc
 
     def update_robot(self, robot_id, loc):
         """Update location of robot_id. Expects the following format:
@@ -50,7 +55,6 @@ class GameState(object):
             lateral_direction (right)]"""
         self._waypoints[robot_id] = waypoint
 
-
     def render(self):
         if self.viewer is None:
             self.viewer = rendering.Viewer(int(FIELD_W * SCALE), int(FIELD_H * SCALE))
@@ -66,6 +70,13 @@ class GameState(object):
             b = rendering.make_circle(50)
 
         print('Last button clicked: %s' % str(self.user_click))
+
+        # Draw the ball - IN PROGRESS
+        #if self._ball:
+            #ball_graphic = rendering.make_circle(BALL_SIZE)
+            # ball_graphic.set_color(255, 180, 0)
+            #self.viewer.add_geom(ball_graphic)
+            #loc *= np.array([SCALE, SCALE, 1.0])
 
         # Draw all of the robots as separate entities for robot_id, loc in self._robots: # If the robot hasn't been drawn yet, add it as a separate draw object. if robot_id not in self._drawn_robots:
         for robot_id, loc in self._robots.items():

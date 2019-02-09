@@ -9,20 +9,25 @@ class JohnRobot(object):
     the same as robocup except larger, slightly different wheels, and different
     arduino used to control. Commands should still be in the same format"""
 
-    def __init__(self):
+    def __init__(self, command_delay=0.15):
         self.comms = OmniComms()
+        self.last_command_time = time.time()
+        self.last_command_delay = command_delay
 
-    def move(self, forward, lateral, w, time=0.5):
+
+    def move(self, forward, lateral, w, ttl=0.5):
         """Move forward, laterally, and rotation. Should be given as a int
         from 0 to 255, with 255 being the fastest."""
         # Use -1 as first element to broadcast to all robots
-        robot_id = -1
-        f = int(np.clip(forward, -255, 255))
-        l = int(np.clip(lateral, -255, 255))
-        w = int(np.clip(w, -255, 255))
-        time_ms = int(time * 1000.0)
-        cmd = "{},{},{},{},{}".format(robot_id, l, f, w, time_ms)
-        self.comms.send(cmd)
+        if time.time() - self.last_command_time > self.last_command_delay:
+            self.last_command_time = time.time()
+            robot_id = -1
+            f = int(np.clip(forward, -255, 255))
+            l = int(np.clip(lateral, -255, 255))
+            w = int(np.clip(w, -255, 255))
+            time_ms = int(ttl * 1000.0)
+            cmd = "{},{},{},{},{}".format(robot_id, l, f, w, time_ms)
+            self.comms.send(cmd)
 
     def die(self):
         self.comms.close()

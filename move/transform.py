@@ -12,7 +12,7 @@ class RealWorldCoordTransformer(object):
             return dest
         x_dest, y_dest = dest
         w_rot = np.arctan2(x_dest, y_dest) + w_robot - np.pi / 2
-        return (np.cos(w_rot), np.sin(w_rot))
+        return (np.cos(w_rot), -np.sin(w_rot))
         # x_dest, y_dest = dest
         # o_angle = np.arctan2(y_dest, x_dest)
         # new_angle = w_robot - o_angle

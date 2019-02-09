@@ -2,7 +2,9 @@ import socket
 import sslclient
 import threading
 import time
+import logging
 
+logger = logging.getLogger(__name__)
 '''
 A class to provide robot position data from the cameras
 '''
@@ -37,7 +39,7 @@ class DataThread(threading.Thread):
         super(DataThread, self).__init__()
         self._stop_event = threading.Event()
         self.geometry_cache = {}
-        self.detection_cache = {}
+        self.detection_cache = sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame()
         self._client = client
 
 
@@ -86,14 +88,16 @@ class SSLVisionDataProvider(PositionDataProvider):
         return self._thread.geometry_cache
 
     def get_robot_position(self, robot_id, team='blue'):
-        data = {}
+        raw_data = self.get_raw_detection_data()
         if team == 'blue':
-            data = self.get_raw_detection_data().robots_blue
+            data = raw_data.robots_blue
         else:
-            data = self.get_raw_detection_data().robots_yellow
+            data = raw_data.robots_yellow
+
         for robot_data in data:
             if robot_data.robot_id == robot_id:
                 return robot_data
+        logger.debug("No vision data found for robot id %d" % robot_id)
         return None
 
     def get_ball_position(self):

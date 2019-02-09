@@ -16,6 +16,7 @@ Troubleshooting:
     you can do this by adding user into dialout group. Google this.
 """
 from digi.xbee.devices import XBeeDevice
+from digi.xbee.exception import XBeeException
 import time
 
 DEFAULT_PORT = "/dev/ttyUSB0"
@@ -42,7 +43,11 @@ class OmniComms(object):
 
     def send(self, command):
         for remote_device in self.net_devs:
-            self.device.send_data(remote_device, command + '\n')
+            try:
+                self.device.send_data(remote_device, command + '\n')
+            except XBeeException as xbee_exp:
+                print(str(xbee_exp))
+
 
     def close(self):
         if self.device.is_open():

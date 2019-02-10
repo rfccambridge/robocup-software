@@ -24,13 +24,13 @@ if __name__ == '__main__':
 
     data = SSLVisionDataProvider()
     data.start()
-    robot = JohnRobot()
+    # robot = JohnRobot()
     print("a;")
     trans = RealWorldCoordTransformer()
 
     new_x = 2000
     new_y = 2000
-    ROBOT_ID = 9
+    ROBOT_ID = 8 # this can change if coordinates are flipped in ssl-vision!
     # proportional scaling constant for distance differences
     SPEED_SCALE = .25
     MAX_SPEED = 50
@@ -54,10 +54,11 @@ if __name__ == '__main__':
 
         # update ball
         ball_data = data.get_ball_position()
-        if ball_data and ball_data.confidence > .9:
+        if ball_data:
             ball_pos = ball_data.x, ball_data.y
             gs.update_ball(ball_pos)
-            new_x, new_y = ball_pos
+            # tell robot to follow ball
+            # new_x, new_y = ball_pos
 
         gs.update_robot(ROBOT_ID, np.array([og_x, og_y, og_w]))
         delta = (new_x - og_x, new_y - og_y)
@@ -71,8 +72,8 @@ if __name__ == '__main__':
 
         speed = min(trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
 
-        robot.move(speed * robot_x, speed * robot_y, 0, 0.2)
+        # robot.move(speed * robot_x, speed * robot_y, 0, 0.2)
         gs.render()
 
-    robot.die()
+    # robot.die()
     data.stop()

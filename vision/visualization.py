@@ -8,7 +8,9 @@ from data_providers import SSLVisionDataProvider
 FIELD_W = 3200
 FIELD_H = 2400
 ROBOT_SIZE = 12
-BALL_SIZE = 50
+BALL_SIZE = 5
+
+BALL_COLOR = (1, .5, 0)
 
 # Scale for the display window, or else it gets too large...
 SCALE = 0.25
@@ -22,6 +24,7 @@ class GameState(object):
     def __init__(self):
         self.viewer = None
         self._ball = None # ball position
+        self._drawn_ball = None
         self._robots = dict()  # Dict of Robot ID (int) to x, y coord (numpy)
         self._drawn_robot_txs = dict()  # Dict that deals with drawing robot transforms and rotations
         self._trajectories = dict()  # Dict of current trajectory plans for robot_id
@@ -57,9 +60,9 @@ class GameState(object):
 
     def render(self):
         if self.viewer is None:
+            # for single cam, viewer window boundaries should correspond to cam
             self.viewer = rendering.Viewer(int(FIELD_W * SCALE), int(FIELD_H * SCALE))
-            a = rendering.make_circle(50)
-            self.viewer.add_geom(a)
+
             # Traps your mouse inside the screen
             # self.viewer.window.set_exclusive_mouse(True)
             def on_mouse_press(x, y, button, modifiers):
@@ -67,16 +70,14 @@ class GameState(object):
                 self.user_click_field = int(x / SCALE), int(y / SCALE)
 
             self.viewer.window.on_mouse_press = on_mouse_press
-            b = rendering.make_circle(50)
 
-        print('Last button clicked: %s' % str(self.user_click))
+        # print('Last button clicked: %s' % str(self.user_click))
 
-        # Draw the ball - IN PROGRESS
-        #if self._ball:
-            #ball_graphic = rendering.make_circle(BALL_SIZE)
-            # ball_graphic.set_color(255, 180, 0)
-            #self.viewer.add_geom(ball_graphic)
-            #loc *= np.array([SCALE, SCALE, 1.0])
+        # Draw the ball
+        if self._ball:
+            ball_screen_loc = self._ball * np.array([SCALE, SCALE])
+            t = rendering.Transform(translation=ball_screen_loc)
+            self.viewer.draw_circle(BALL_SIZE, 20, color=BALL_COLOR).add_attr(t)
 
         # Draw all of the robots as separate entities for robot_id, loc in self._robots: # If the robot hasn't been drawn yet, add it as a separate draw object. if robot_id not in self._drawn_robots:
         for robot_id, loc in self._robots.items():
@@ -95,7 +96,7 @@ class GameState(object):
             
             # use the transform object to "move" the robot on-screen
             loc *= np.array([SCALE, SCALE, 1.0])
-            scaled_y, scaled_x, w = loc[0], loc[1], loc[2]
+            scaled_x, scaled_y, w = loc[0], loc[1], loc[2]
             self._drawn_robot_txs[robot_id].set_translation(scaled_x, scaled_y)
             self._drawn_robot_txs[robot_id].set_rotation(np.pi / 2 - w)
 
@@ -111,11 +112,8 @@ class GameState(object):
                     self.viewer.add_geom(waypt)
                 
                 loc = self._waypoints[robot_id]
-                # Our coordinate system is brutally fucked, x and y are flipped
-                # this is john's fault.
-                y, x = int(loc[0] * SCALE), int(loc[1] * SCALE)
+                x, y = int(loc[0] * SCALE), int(loc[1] * SCALE)
                 self._drawn_waypoints[robot_id].set_translation(x, y)
-
     
         return self.viewer.render()
 

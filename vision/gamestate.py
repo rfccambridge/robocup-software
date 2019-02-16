@@ -53,16 +53,17 @@ class GameState(object):
         self._data_provider.start()
         self._updating = True
         self._data_thread = threading.Thread(target=self.update_loop)
+        self._data_thread.start()
 
     def update_loop(self):
-        ROBOT_ID = 9  # John's testing robot is ID 9
+        ROBOT_ID = 8  # John's testing robot is ID 9
         while self._updating:
-            loc = self._data.get_robot_position(ROBOT_ID)
+            loc = self._data_provider.get_robot_position(ROBOT_ID)
             if loc:
                 x, y, w = loc.x, loc.y, loc.orientation
                 self.update_robot(ROBOT_ID, np.array([x, y, w]))
 
-            ball_data = self._data.get_ball_position()
+            ball_data = self._data_provider.get_ball_position()
             if ball_data:
                 ball_pos = ball_data.x, ball_data.y
                 self.update_ball(ball_pos)

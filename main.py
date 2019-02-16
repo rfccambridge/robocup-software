@@ -2,13 +2,14 @@ import sys
 import time
 import numpy as np
 import logging
+import threading
 sys.path.append('./vision')
 sys.path.append('./move')
 
 from transform import RealWorldCoordTransformer
 from comms import JohnRobot
 from data_providers import SSLVisionDataProvider
-from vision import GameState
+from vision import GameState, Visualizer
 
 
 
@@ -22,14 +23,12 @@ def get_random_point():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)
 
-    data = SSLVisionDataProvider()
-    data.start()
     # robot = JohnRobot()
     print("a;")
     trans = RealWorldCoordTransformer()
 
-    new_x = 2000
-    new_y = 2000
+    goal_x = 2000
+    goal_y = 2000
     ROBOT_ID = 8 # this can change if coordinates are flipped in ssl-vision!
     # proportional scaling constant for distance differences
     SPEED_SCALE = .25
@@ -37,43 +36,37 @@ if __name__ == '__main__':
     VERBOSE = False
 
     gs = GameState()
-    gs.render()
-    gs.update_waypoint(ROBOT_ID, np.array([new_x, new_y]))
+    viz = Visualizer(gs)
+    viz.render()
+    gs.update_waypoint(ROBOT_ID, np.array([goal_x, goal_y]))
+
+    # spin up separate thread for gs.start() to poll from data
+    
+    gs.start_updating()
     while True:
-        pos = data.get_robot_position(ROBOT_ID)
-        if not pos:
-            continue
-        # print(pos)
-        og_x, og_y, og_w = pos.x, pos.y, pos.orientation
-
-
-        if gs.user_click_field:
+        # tell robot to go to click
+        if viz.user_click_field:
             # y and x are flipped for shits
-            new_y, new_x = gs.user_click_field
-            gs.update_waypoint(ROBOT_ID, np.array([new_x, new_y]))
+            goal_x, goal_y = viz.user_click_field
 
-        # update ball
-        ball_data = data.get_ball_position()
-        if ball_data:
-            ball_pos = ball_data.x, ball_data.y
-            gs.update_ball(ball_pos)
-            # tell robot to follow ball
-            # new_x, new_y = ball_pos
+        # tell robot to go to goal position
+        if ROBOT_ID in gs._robots:
+            gs.update_waypoint(ROBOT_ID, np.array([goal_x, goal_y]))
+            pos = gs._robots[ROBOT_ID]
+            og_x, og_y, og_w = pos.x, pos.y, pos.orientation
+            delta = (goal_x - og_x, goal_y - og_y)
+            # normalized offsets from robot's perspective
+            robot_x, robot_y = trans.transform(og_w, delta)
 
-        gs.update_robot(ROBOT_ID, np.array([og_x, og_y, og_w]))
-        delta = (new_x - og_x, new_y - og_y)
-        # normalized offsets from robot's perspective
-        robot_x, robot_y = trans.transform(og_w, delta)
+            if VERBOSE:
+                print("Original coordinates", og_x, og_y, og_w)
+                print('Delta {}'.format(delta))
+                print('(normalized diff) Robot X %f Robot Y %f' % (robot_x, robot_y))
 
-        if VERBOSE:
-            print("Original coordinates", og_x, og_y, og_w)
-            print('Delta {}'.format(delta))
-            print('(normalized diff) Robot X %f Robot Y %f' % (robot_x, robot_y))
+            speed = min(trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
 
-        speed = min(trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
+            #robot.move(speed * robot_x, speed * robot_y, 0, 0.2)
+        viz.render()
 
-        # robot.move(speed * robot_x, speed * robot_y, 0, 0.2)
-        gs.render()
-
-    # robot.die()
-    data.stop()
+    #robot.die()
+    gs.stop_updating()

@@ -11,18 +11,8 @@ class RealWorldCoordTransformer(object):
         if dest == (0, 0):
             return dest
         x_dest, y_dest = dest
-        w_rot = np.arctan2(x_dest, y_dest) + w_robot - np.pi / 2
-        return (np.cos(w_rot), -np.sin(w_rot))
-        # x_dest, y_dest = dest
-        # o_angle = np.arctan2(y_dest, x_dest)
-        # new_angle = w_robot - o_angle
-        # if new_angle > np.pi:
-        #     new_angle -= 2 * np.pi
-        # elif new_angle < -np.pi:
-        #     new_angle += 2 * np.pi
-        
-        # x, y = np.sin(new_angle), np.cos(new_angle)
-        # return x, y
+        w_rot = w_robot - np.arctan2(y_dest, x_dest)
+        return (np.sin(w_rot), np.cos(w_rot))
 
     def magnitude(self, v):
         x, y = v

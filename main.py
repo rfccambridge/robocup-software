@@ -62,8 +62,13 @@ if __name__ == '__main__':
 
             # move with speed proportional to delta
             speed = min(trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
-            # robot.move(speed * robot_x, speed * robot_y, 0, 0.2)
-        viz.render()
+            robot.move(speed * robot_y, speed * robot_x, 0, 1.0)
+        
+        start_time = time.time()
+        #viz.render()
+        end_time = time.time()
+        print("Visualization overhead: %s s" % str(end_time - start_time))
+
 
     robot.die()
     gs.stop_updating()

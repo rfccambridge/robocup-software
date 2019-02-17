@@ -65,7 +65,7 @@ if __name__ == '__main__':
             robot.move(speed * robot_y, speed * robot_x, 0, 1.0)
         
         start_time = time.time()
-        #viz.render()
+        viz.render()
         end_time = time.time()
         print("Visualization overhead: %s s" % str(end_time - start_time))
 

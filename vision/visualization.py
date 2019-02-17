@@ -36,12 +36,14 @@ class Visualizer(object):
         self.user_click_field = None
 
         self.transform_ball = None
+        self.transform_waypoint = None
         self.transform_robots = {} 
 
 
     def scale_pos(self, tup):
         return tuple([int(SCALE * n) for n in tup])
-        #STOP LEV GO DO RESEARCH 
+
+
     def render(self):
         if self.viewer is None:
             # for single cam, viewer window boundaries should correspond to cam
@@ -61,16 +63,19 @@ class Visualizer(object):
             self.transform_ball = ball_tx
             self.viewer.draw_circle(BALL_SIZE, 20, color=BALL_COLOR).add_attr(ball_tx)
 
-            # Robot objects and transform
+            # Waypoint
+            self.transform_waypoint = rendering.Transform()
+            self.viewer.draw_circle(WAYPOINT_SIZE, color=WAYPOINT_COLOR).add_attr(self.transform_waypoint)
 
 
         # Draw the ball
         if self.gamestate._ball:
-            print(self.transform_ball)
-            self.transform_ball.set_translation(self.scale_pos(self.gamestate._ball))
+            # print(self.transform_ball)
+            self.transform_ball.set_translation(*self.scale_pos(self.gamestate._ball))
             self.transform_ball.set_rotation(0)
 
         # Draw all of the robots as separate entities:
+        # print(self.gamestate._robots)
         for robot_id, loc in self.gamestate._robots.items():
             # draw robot at screen-scaled location for this frame if robot has
             # not yet been drawn so far, otherwise just set the location
@@ -86,7 +91,8 @@ class Visualizer(object):
             x, y, w = loc
             robot_screen_loc = self.scale_pos((x, y))
             robot_rotation = w
-            self.transform_robots[robot_id].set_translation(robot_screen_loc)
+            print(robot_screen_loc)
+            self.transform_robots[robot_id].set_translation(*robot_screen_loc)
             self.transform_robots[robot_id].set_rotation(robot_rotation)
 
             # TODO: draw any trajectories for this robot
@@ -94,12 +100,9 @@ class Visualizer(object):
                 pass
             
             # draw any waypoints for this robot TODO: and line from robot to it?
-            """
             if robot_id in self.gamestate._waypoints:
                 waypoint_screen_loc = self.scale_pos(self.gamestate._waypoints[robot_id])
-                t = rendering.Transform(translation=waypoint_screen_loc)
-                self.viewer.draw_circle(WAYPOINT_SIZE, color=WAYPOINT_COLOR).add_attr(t)
-            """
+                self.transform_waypoint.set_translation(*waypoint_screen_loc)
 
 
         return self.viewer.render()

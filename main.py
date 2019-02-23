@@ -25,20 +25,21 @@ if __name__ == '__main__':
     print("a;")
     trans = RealWorldCoordTransformer()
 
-    goal_x = 2000
-    goal_y = 2000
+    goal_x = 500
+    goal_y = 500
     ROBOT_ID = 8 # this can change if coordinates are flipped in ssl-vision!
     # proportional scaling constant for distance differences
     SPEED_SCALE = .25
     MAX_SPEED = 50
-    VERBOSE = False
+    VERBOSE = True
 
     gs = GameState()
     viz = Visualizer(gs)
-    viz.render()
 
     # spin up separate thread for gamestate to poll data
     gs.start_updating()
+    # spin up separat thread for visualization
+    viz.start_visualizing()
 
     while True:
         # tell robot to go to click
@@ -62,13 +63,10 @@ if __name__ == '__main__':
 
             # move with speed proportional to delta
             speed = min(trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
-            robot.move(speed * robot_y, speed * robot_x, 0, 1.0)
-        
-        start_time = time.time()
-        viz.render()
-        end_time = time.time()
-        print("Visualization overhead: %s s" % str(end_time - start_time))
+            robot.move(speed * robot_y, speed * robot_x, 0, .2)
+        else:
+            print("no robot seen")
 
-
+    viz.stop_visualizing()
     robot.die()
     gs.stop_updating()

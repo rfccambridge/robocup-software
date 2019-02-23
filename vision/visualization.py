@@ -1,6 +1,7 @@
 import pyglet
 import time
 import numpy as np
+import threading
 from gym.envs.classic_control import rendering
 
 # The size of our current field in ROBOCUP
@@ -27,9 +28,6 @@ class Visualizer(object):
     of when any new information gets transmitted."""
     
     def __init__(self, gamestate):
-        self.drawn_ball = None
-        self.drawn_robots = {}
-        self.drawn_waypoints = {}
         self.gamestate = gamestate
         self.viewer = None
         self.user_click = None
@@ -39,10 +37,28 @@ class Visualizer(object):
         self.transform_waypoint = None
         self.transform_robots = {} 
 
+        self._updating = False
+        self._visualization_thread = None
 
     def scale_pos(self, tup):
         return tuple([int(SCALE * n) for n in tup])
 
+    def start_visualizing(self):
+        self._updating = True
+        self._visualization_thread = threading.Thread(target=self.visualization_loop)
+        self._visualization_thread.start()
+
+    def visualization_loop(self):
+        while self._updating:
+            start_time = time.time()
+            self.render()
+            end_time = time.time()
+            print("Visualization overhead: %s s" % str(end_time - start_time))
+
+    def stop_visualizing(self):
+        self._updating = False
+        self._visualization_thread.join()
+        self._visualization_thread = None
 
     def render(self):
         if self.viewer is None:
@@ -59,20 +75,23 @@ class Visualizer(object):
             self.viewer.window.on_mouse_press = on_mouse_press
 
             # Ball object and transform.
-            ball_tx = rendering.Transform()
-            self.transform_ball = ball_tx
-            self.viewer.draw_circle(BALL_SIZE, 20, color=BALL_COLOR).add_attr(ball_tx)
+            drawn_ball = rendering.make_circle(BALL_SIZE)
+            self.transform_ball = rendering.Transform()
+            drawn_ball.add_attr(self.transform_ball)
+            drawn_ball.set_color(*BALL_COLOR)
+            self.viewer.add_geom(drawn_ball)
 
             # Waypoint
+            drawn_waypoint = rendering.make_circle(WAYPOINT_SIZE)
             self.transform_waypoint = rendering.Transform()
-            self.viewer.draw_circle(WAYPOINT_SIZE, color=WAYPOINT_COLOR).add_attr(self.transform_waypoint)
-
+            drawn_waypoint.add_attr(self.transform_waypoint)
+            drawn_waypoint.set_color(*WAYPOINT_COLOR)
+            self.viewer.add_geom(drawn_waypoint)
 
         # Draw the ball
         if self.gamestate._ball:
             # print(self.transform_ball)
             self.transform_ball.set_translation(*self.scale_pos(self.gamestate._ball))
-            self.transform_ball.set_rotation(0)
 
         # Draw all of the robots as separate entities:
         # print(self.gamestate._robots)
@@ -84,8 +103,14 @@ class Visualizer(object):
                 self.transform_robots[robot_id] = rendering.Transform()
                 robot_points = [(ROBOT_SIZE, 0), (0, -ROBOT_SIZE), (-ROBOT_SIZE, 0),
                                 (0, ROBOT_SIZE), (ROBOT_SIZE, 0), (0, 0)]
-                self.viewer.draw_polyline(robot_points, color=ROBOT_COLOR).add_attr(
-                    self.transform_robots[robot_id])            
+
+                drawn_robot = rendering.make_polyline(robot_points)
+                # drawn_robot.set_linewidth(5)
+                self.transform_robots[robot_id] = rendering.Transform()
+                drawn_robot.add_attr(self.transform_robots[robot_id])
+
+                drawn_robot.set_color(*ROBOT_COLOR)
+                self.viewer.add_geom(drawn_robot)           
             
             # Place the rendered robot in the correct location
             x, y, w = loc
@@ -103,7 +128,6 @@ class Visualizer(object):
             if robot_id in self.gamestate._waypoints:
                 waypoint_screen_loc = self.scale_pos(self.gamestate._waypoints[robot_id])
                 self.transform_waypoint.set_translation(*waypoint_screen_loc)
-
 
         return self.viewer.render()
 

@@ -44,9 +44,6 @@ class GameState(object):
             lateral_direction (right)]"""
         self._waypoints[robot_id] = waypoint
 
-    def scale_pos(self, tup):
-        return tuple([int(SCALE * n) for n in tup])
-
     def start_updating(self):
         if not self._data_provider:
             self._data_provider = SSLVisionDataProvider()

@@ -105,7 +105,8 @@ class SSLVisionDataProvider(PositionDataProvider):
         if len(balls) == 0:
             return None
         elif len(balls) > 1:
-            print('More than one ball detected')
+            pass
+            # print('More than one ball detected')
             # raise RuntimeError('More than one ball detected')
         return balls[0]
 

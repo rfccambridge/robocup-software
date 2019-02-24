@@ -87,6 +87,17 @@ class SSLVisionDataProvider(PositionDataProvider):
     def get_raw_geometry_data(self):
         return self._thread.geometry_cache
 
+    def get_robot_positions(self, team='blue'):
+        raw_data = self.get_raw_detection_data()
+        if team == 'blue':
+            team_data = raw_data.robots_blue
+        else:
+            team_data = raw_data.robots_yellow
+        robot_positions = {}
+        for robot_data in team_data:
+            robot_positions[robot_data.robot_id] = robot_data
+        return robot_positions
+
     def get_robot_position(self, robot_id, team='blue'):
         raw_data = self.get_raw_detection_data()
         if team == 'blue':

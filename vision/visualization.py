@@ -116,7 +116,6 @@ class Visualizer(object):
             x, y, w = loc
             robot_screen_loc = self.scale_pos((x, y))
             robot_rotation = w
-            print(robot_screen_loc)
             self.transform_robots[robot_id].set_translation(*robot_screen_loc)
             self.transform_robots[robot_id].set_rotation(robot_rotation)
 

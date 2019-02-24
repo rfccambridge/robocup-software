@@ -21,7 +21,7 @@ def get_random_point():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)
 
-    robot = JohnRobot()
+    #robot = JohnRobot()
     print("a;")
     trans = RealWorldCoordTransformer()
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # proportional scaling constant for distance differences
     SPEED_SCALE = .25
     MAX_SPEED = 50
-    VERBOSE = True
+    VERBOSE = False
 
     gs = GameState()
     viz = Visualizer(gs)
@@ -63,10 +63,10 @@ if __name__ == '__main__':
 
             # move with speed proportional to delta
             speed = min(trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
-            robot.move(speed * robot_y, speed * robot_x, 0, .2)
+            #robot.move(speed * robot_y, speed * robot_x, 0, .2)
         else:
             print("no robot seen")
 
     viz.stop_visualizing()
-    robot.die()
+    #robot.die()
     gs.stop_updating()

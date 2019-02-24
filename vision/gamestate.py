@@ -53,12 +53,15 @@ class GameState(object):
         self._data_thread.start()
 
     def update_loop(self):
-        ROBOT_ID = 8  # John's testing robot is ID 9
         while self._updating:
-            loc = self._data_provider.get_robot_position(ROBOT_ID)
-            if loc:
-                x, y, w = loc.x, loc.y, loc.orientation
-                self.update_robot(ROBOT_ID, np.array([x, y, w]))
+            # update positions of all (blue team) robots seen by data feed
+            # TODO: store both teams robots
+            robot_positions = self._data_provider.get_robot_positions()
+            for robot_id, robot_data in robot_positions.items():
+                loc = robot_data
+                if loc:
+                    x, y, w = loc.x, loc.y, loc.orientation
+                    self.update_robot(robot_id, np.array([x, y, w]))
 
             ball_data = self._data_provider.get_ball_position()
             if ball_data:

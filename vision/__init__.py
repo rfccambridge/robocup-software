@@ -1,2 +1,1 @@
-from .gamestate import GameState
-from .visualization import Visualizer
+from .data_providers import SSLVisionDataProvider

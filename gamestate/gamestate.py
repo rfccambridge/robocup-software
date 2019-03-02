@@ -2,14 +2,12 @@ import pyglet
 import time
 import numpy as np
 import threading
-from data_providers import SSLVisionDataProvider
+from vision import SSLVisionDataProvider
 
 
 class GameState(object):
-    """Robocup homegrown visualization library that essentially does the same
-    as the modules in OpenAI gym. We will store the game state here for
-    convenience, so we can choose whether or not to render all at once instead
-    of when any new information gets transmitted."""
+    """We will store the game state here to have the most up to date information
+	available at all times."""
     
     def __init__(self):
         self._updating = False

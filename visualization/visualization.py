@@ -23,9 +23,7 @@ SCALE = 0.25
 
 class Visualizer(object):
     """Robocup homegrown visualization library that essentially does the same
-    as the modules in OpenAI gym. We will store the game state here for
-    convenience, so we can choose whether or not to render all at once instead
-    of when any new information gets transmitted."""
+    as the modules in OpenAI gym."""
     
     def __init__(self, gamestate):
         self.gamestate = gamestate
@@ -53,7 +51,7 @@ class Visualizer(object):
             start_time = time.time()
             self.render()
             end_time = time.time()
-            print("Visualization overhead: %s s" % str(end_time - start_time))
+            print("Total Render Overhead: %s s" % str(end_time - start_time))
 
     def stop_visualizing(self):
         self._updating = False
@@ -61,6 +59,7 @@ class Visualizer(object):
         self._visualization_thread = None
 
     def render(self):
+        start_time = time.time()
         if self.viewer is None:
             # for single cam, viewer window boundaries should correspond to cam
             self.viewer = rendering.Viewer(int(FIELD_W * SCALE), int(FIELD_H * SCALE))
@@ -87,12 +86,10 @@ class Visualizer(object):
             drawn_waypoint.add_attr(self.transform_waypoint)
             drawn_waypoint.set_color(*WAYPOINT_COLOR)
             self.viewer.add_geom(drawn_waypoint)
-
         # Draw the ball
         if self.gamestate._ball:
             # print(self.transform_ball)
             self.transform_ball.set_translation(*self.scale_pos(self.gamestate._ball))
-
         # Draw all of the robots as separate entities:
         # print(self.gamestate._robots)
         for robot_id, loc in self.gamestate._robots.items():
@@ -127,7 +124,7 @@ class Visualizer(object):
             if robot_id in self.gamestate._waypoints:
                 waypoint_screen_loc = self.scale_pos(self.gamestate._waypoints[robot_id])
                 self.transform_waypoint.set_translation(*waypoint_screen_loc)
-
+        print("Viz prep overhead: %s s" % str(time.time() - start_time))
         return self.viewer.render()
 
     def close(self):

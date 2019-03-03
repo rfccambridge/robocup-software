@@ -1,17 +1,19 @@
 from comms import JohnRobot
 from .transform import RealWorldCoordTransformer
 
-ROBOT_ID = 8 # this can change if coordinates are flipped in ssl-vision!
-# proportional scaling constant for distance differences
+ROBOT_ID = 8
+
+# default proportional scaling constant for distance differences
 SPEED_SCALE = .25
 MAX_SPEED = 50
+# how long a command can be run without being updated
 COMMAND_DURATION = .2
 
 class Commands(object):
-    """Interface for sending basic commands to the robots, such as orienting the
-    robot, kicking, or ref commands. Has access to all robot comms."""
+    """Interface for sending basic commands to the robots, such as moving or
+    orienting robots, and kicking. Has access to all robot comms."""
 
-    # TODO: connect to all robots that are available
+    # TODO: when we get multiple comms, connect to all robots that are available
     def __init__(self, gamestate):
         self.gamestate = gamestate
         self.robots = {}
@@ -21,7 +23,7 @@ class Commands(object):
         for robot in self.robots:
             robot.die()
 
-    # TODO: orient rotation, parameterize constants such as speed
+    # TODO: orient rotation
     # tell specific robot to move towards given location
     def move_robot(self, robot_id, goal_pos):
         trans = RealWorldCoordTransformer()
@@ -29,11 +31,12 @@ class Commands(object):
             print("robot not available")
             return False
         
-        if robot_id not in self.gamestate._robots:
+        if robot_id not in self.gamestate.robots:
             print("robot not seen")
             return False
-
-        pos = self.gamestate._robots[robot_id]
+        
+        robot = self.robots[robot_id]
+        pos = self.gamestate.robots[robot_id]
         og_x, og_y, og_w = pos
         goal_x, goal_y = goal_pos
         delta = (goal_x - og_x, goal_y - og_y)
@@ -47,5 +50,6 @@ class Commands(object):
 
         # move with speed proportional to delta
         speed = min(trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
-        #robot.move(speed * robot_y, speed * robot_x, 0, COMMAND_DURATION)
+        self.gamestate.update_waypoint(robot_id, goal_pos)
+        robot.move(speed * robot_y, speed * robot_x, 0, COMMAND_DURATION)
         return True

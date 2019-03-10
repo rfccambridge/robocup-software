@@ -8,7 +8,7 @@ from vision import SSLVisionDataProvider
 class GameState(object):
     """We will store the game state here to have the most up to date information
 	available at all times."""
-    
+    # TODO: eventually include game play states/events as well, such as kickoff?
     def __init__(self):
         self.ball = None # ball position
         self.robots = dict()  # Dict of Robot ID (int) to x, y coord (numpy)
@@ -73,6 +73,13 @@ class GameState(object):
         self._data_thread.join()
         self._data_thread = None
 
+    def is_obstacle(self, pos):
+        """ Returns whether or not a robot can pass through a point
+            Obstacles should include:
+            - Other robots
+            - Illegal areas of the field
+        """
+        return False;
     
     
 

@@ -18,15 +18,16 @@ class Commands(object):
         self.gamestate = gamestate
         self.robots = {}
         self.robots[ROBOT_ID] = JohnRobot()
+        # TODO: why is this a class? can we move to a shared utilities folder? - Kendall
+        self._trans = RealWorldCoordTransformer()
 
     def die(self):
         for robot in self.robots:
             robot.die()
 
-    # TODO: orient rotation
-    # tell specific robot to move towards given location
+    # TODO: orient rotation?
+    # tell specific robot to move straight towards given location
     def move_robot(self, robot_id, goal_pos):
-        trans = RealWorldCoordTransformer()
         if robot_id not in self.robots:
             print("robot not available")
             return False
@@ -41,7 +42,7 @@ class Commands(object):
         goal_x, goal_y = goal_pos
         delta = (goal_x - og_x, goal_y - og_y)
         # normalized offsets from robot's perspective
-        robot_x, robot_y = trans.transform(og_w, delta)
+        robot_x, robot_y = self._trans.transform(og_w, delta)
 
         if False:
             print("Original coordinates", og_x, og_y, og_w)
@@ -49,7 +50,14 @@ class Commands(object):
             print('(normalized diff) Robot X %f Robot Y %f' % (robot_x, robot_y))
 
         # move with speed proportional to delta
-        speed = min(trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
+        speed = min(self._trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
         self.gamestate.update_waypoint(robot_id, goal_pos)
         robot.move(speed * robot_y, speed * robot_x, 0, COMMAND_DURATION)
+        return True
+
+    # tell robot to move towards goal pos greedily while avoiding obstacles
+    # TODO: eventually factor things into different libraries?
+    def greedy_path_find(self, robot_id, goal_pos):
+        waypoint = goal_pos
+        self.move_robot(robot_id, waypoint)
         return True

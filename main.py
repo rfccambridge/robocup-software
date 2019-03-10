@@ -28,12 +28,14 @@ if __name__ == '__main__':
     while True:
         # set goal pos to click location on visualization window
         if viz.user_click_field:
-            # y and x are flipped for shits
             goal_x, goal_y = viz.user_click_field
 
-        # tell robot to go to goal position
-        # TO TEST: replace all below code with commands.move
+        # tell robot to go straight towards goal position
         commands.move_robot(8, (goal_x, goal_y))
+        # TO TEST: tell robot to greedily pathfind to goal position
+        # TODO: discuss parameters + more advanced pathfinding options: 
+        # A*, time projection, RRT (see old c# codebase)
+        # commands.greedy_path_find(8, (goal_x, goal_y))
 
     # clean up comms
     commands.die()

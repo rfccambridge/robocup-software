@@ -18,7 +18,7 @@ print('Connecting to robot...')
 robot = JohnRobot()
 print('Connected to robot.')
 
-SPEED = 80 
+SPEED = 120 
 ROTATION_SPEED = 60
 COMMAND_TTL = 0.2
 COMMAND_DELAY = 0.1

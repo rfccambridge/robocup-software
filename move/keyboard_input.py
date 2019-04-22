@@ -10,8 +10,8 @@ print('Connecting to robot...')
 robot = JohnRobot()
 print('Connected to robot.')
 
-SPEED = 60
-ROTATION_SPEED = 60
+SPEED = 120
+ROTATION_SPEED = 40
 COMMAND_TTL = 0.2
 COMMAND_DELAY = 0.1
 
@@ -38,5 +38,7 @@ while True:
             robot.move(0, 0, -ROTATION_SPEED, COMMAND_TTL)
         elif event.code == "KEY_E":
             robot.move(0, 0, ROTATION_SPEED, COMMAND_TTL)
+        elif event.code == "KEY_F":
+            robot.move(0, 0, 0, COMMAND_TTL)
         else:
             pass

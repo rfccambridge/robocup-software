@@ -3,6 +3,8 @@ import numpy as np
 import time
 import threading
 
+CMD_MOVE = 0
+CMD_DRIBBLE = 1
 
 class JohnRobot(object):
     """Class that controls John's old robot he made in high school. Essentially
@@ -13,7 +15,6 @@ class JohnRobot(object):
         self.comms = OmniComms()
         self.last_command_time = time.time()
         self.last_command_delay = command_delay
-
 
     def move(self, forward, lateral, w, ttl=0.5):
         """Move forward, laterally, and rotation. Should be given as a int
@@ -26,7 +27,15 @@ class JohnRobot(object):
             l = int(np.clip(lateral, -255, 255))
             w = int(np.clip(w, -255, 255))
             time_ms = int(ttl * 1000.0)
-            cmd = "{},{},{},{},{}".format(robot_id, l, f, w, time_ms)
+            cmd = "{},{},{},{},{},{}".format(robot_id, CMD_MOVE, l, f, w, time_ms)
+            self.comms.send(cmd)
+
+    def dribble(self, power):
+        # Use -1 as first element to broadcast to all robots
+        if time.time() - self.last_command_time > self.last_command_delay:
+            self.last_command_time = time.time()
+            robot_id = -1
+            cmd = "{},{},{}".format(robot_id, CMD_DRIBBLE, power)
             self.comms.send(cmd)
 
     def die(self):

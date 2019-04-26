@@ -18,10 +18,11 @@ print('Connecting to robot...')
 robot = JohnRobot()
 print('Connected to robot.')
 
-SPEED = 120 
-ROTATION_SPEED = 60
-COMMAND_TTL = 0.2
-COMMAND_DELAY = 0.1
+SPEED = 10 
+ROTATION_SPEED = 10
+COMMAND_TTL = 0.3
+COMMAND_DELAY = 0.15
+dribbler_speed = 255
 
 last_command_sent = time.time()
 
@@ -45,9 +46,29 @@ while True:
     b = js.get_axis(1)
     c = js.get_axis(2)
     d = js.get_axis(3)
+    # Button mapping
+    # 0 - X   1 - A    2 - B   
+    # 3 - Y   4 - Lb    5 - Rb   
+    button_x = js.get_button(0)
+    button_a = js.get_button(1)
+    button_b = js.get_button(2)
+    button_y = js.get_button(3)
+    button_lb = js.get_button(4)
+    button_rb = js.get_button(5)
     speed_x, speed_y = a * SPEED, b * SPEED
     print("Going with vector ({},{})".format(speed_x, speed_y))
 
+    if button_lb:
+        dribbler_speed = max(dribbler_speed - 1, 0)
+        robot.dribble(dribbler_speed)
+        continue
 
-    robot.move(SPEED * a, SPEED*b, 0, COMMAND_TTL)
+    if button_rb:
+        dribbler_speed = min(dribbler_speed + 1, 255)
+        robot.dribble(dribbler_speed)
+        continue
+        
+
+
+    robot.move(SPEED * a, SPEED * b, 0, COMMAND_TTL)
 

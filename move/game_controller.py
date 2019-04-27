@@ -22,6 +22,7 @@ SPEED = 200
 ROTATION_SPEED = 130
 COMMAND_TTL = 0.3
 COMMAND_DELAY = 0.15
+DRIBBLER_SPEED_INCREMENT = 20
 dribbler_speed = 255
 
 last_command_sent = time.time()
@@ -59,16 +60,18 @@ while True:
     print("Going with vector ({},{})".format(speed_x, speed_y))
 
     if button_lb:
-        dribbler_speed = max(dribbler_speed - 1, 0)
+        dribbler_speed = max(dribbler_speed - DRIBBLER_SPEED_INCREMENT, 0)
         robot.dribble(dribbler_speed)
         continue
 
     if button_rb:
-        dribbler_speed = min(dribbler_speed + 1, 255)
+        dribbler_speed = min(dribbler_speed + DRIBBLER_SPEED_INCREMENT, 255)
         robot.dribble(dribbler_speed)
         continue
-        
 
+    if button_y:
+        robot.kill()
+        continue
 
     robot.move(SPEED * a, SPEED * b, 0, COMMAND_TTL)
 

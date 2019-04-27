@@ -5,16 +5,22 @@ import threading
 
 CMD_MOVE = 0
 CMD_DRIBBLE = 1
+CMD_KILL = 2
 
 class JohnRobot(object):
     """Class that controls John's old robot he made in high school. Essentially
     the same as robocup except larger, slightly different wheels, and different
-    arduino used to control. Commands should still be in the same format"""
+    arduino used to control. Commands shoul
+    d still be in the same format"""
 
     def __init__(self, command_delay=0.15):
         self.comms = OmniComms()
         self.last_command_time = time.time()
         self.last_command_delay = command_delay
+
+    def kill(self):
+        robot_id = -1
+        cmd = "{},{}".format(robot_id, CMD_KILL)
 
     def move(self, forward, lateral, w, ttl=0.5):
         """Move forward, laterally, and rotation. Should be given as a int

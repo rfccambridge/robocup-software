@@ -71,6 +71,7 @@ while True:
 
     if button_y:
         robot.kill()
+        print("KILL KILL KILL")
         continue
 
     robot.move(SPEED * a, SPEED * b, 0, COMMAND_TTL)

@@ -21,6 +21,7 @@ class JohnRobot(object):
     def kill(self):
         robot_id = -1
         cmd = "{},{}".format(robot_id, CMD_KILL)
+        self.comms.send(cmd)
 
     def move(self, forward, lateral, w, ttl=0.5):
         """Move forward, laterally, and rotation. Should be given as a int
@@ -43,6 +44,13 @@ class JohnRobot(object):
             robot_id = -1
             cmd = "{},{},{}".format(robot_id, CMD_DRIBBLE, power)
             self.comms.send(cmd)
+
+    def kick(self):
+        raise NotImplementedError
+
+    def charge(self):
+        """IMMA CHARGIN MY KICKER!!!!!"""
+        raise NotImplementedError
 
     def die(self):
         self.comms.close()

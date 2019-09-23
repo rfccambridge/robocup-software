@@ -10,6 +10,8 @@ Axis 2 and 3 are right and down respectively on RIGHT joystick
 ranges from -1 to 1
 0 is always the neutral position
 """
+import sys
+sys.path.append('..')
 from johnrobot import JohnRobot
 import pygame
 import time

@@ -1,4 +1,7 @@
-from omni import OmniComms
+try:
+    from .omni import OmniComms
+except SystemError:
+    from omni import OmniComms
 import numpy as np
 import time
 import threading

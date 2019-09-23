@@ -8,6 +8,9 @@ from commands import Commands
 from gamestate import GameState
 from visualization import Visualizer
 
+sys.path.append('commands')
+sys.path.append('comms')
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)
     VERBOSE = False

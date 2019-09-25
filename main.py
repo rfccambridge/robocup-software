@@ -22,11 +22,16 @@ if __name__ == '__main__':
     viz = Visualizer(gs)
     viz.start_visualizing()
 
+    only_viz = True
+    if only_viz:
+        while True:
+            pass
+    
     # intialize robots command interface
     commands = Commands(gs)
 
-    goal_x = 1000
-    goal_y = 500
+    goal_x = 3000
+    goal_y = 1000
 
     while True:
         # set goal pos to click location on visualization window

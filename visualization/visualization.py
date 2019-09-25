@@ -4,9 +4,10 @@ import numpy as np
 import threading
 from gym.envs.classic_control import rendering
 
-# The size of our current field in ROBOCUP
-FIELD_W = 3200
-FIELD_H = 2400
+# The size of the field (should match location data from ssl-vision)
+FIELD_W = 9000
+FIELD_H = 6000
+CENTER_CIRCLE_RADIUS = 495
 
 # rendering constants
 ROBOT_SIZE = 12
@@ -18,8 +19,8 @@ BALL_COLOR = (1, .5, 0)
 WAYPOINT_SIZE = 3
 WAYPOINT_COLOR = (0, 0, 0)
 
-# Scale for the display window, or else it gets too large...
-SCALE = 0.25
+# Scale for the display window, or else it gets too large... (pixels/mm)
+SCALE = 0.15
 
 class Visualizer(object):
     """Robocup homegrown visualization library that essentially does the same
@@ -39,6 +40,10 @@ class Visualizer(object):
         self._visualization_thread = None
 
     def scale_pos(self, tup):
+        # shift position so (0, 0) becomes the center of the field, as in ssl-vision
+        assert(len(tup) == 2)
+        tup = (tup[0] + FIELD_W / 2, tup[1] + FIELD_H / 2)
+        # scale for display
         return tuple([int(SCALE * n) for n in tup])
 
     def start_visualizing(self):
@@ -63,6 +68,26 @@ class Visualizer(object):
         if self._viewer is None:
             # for single cam, viewer window boundaries should correspond to cam
             self._viewer = rendering.Viewer(int(FIELD_W * SCALE), int(FIELD_H * SCALE))
+
+            # draw field landmarks
+            center_circle = rendering.make_circle(CENTER_CIRCLE_RADIUS * SCALE)
+            circle_transform = rendering.Transform()
+            circle_transform.set_translation(*self.scale_pos((0, 0)))
+            center_circle.add_attr(circle_transform)
+            center_circle.set_color(.9, .9, .9)
+            self._viewer.add_geom(center_circle)
+            hw, hh = FIELD_W / 2, FIELD_H / 2
+            corner_points = [(-hw, -hh), (-hw, hh),
+                             (0, hh), (0, -hh), (0, hh),
+                             (hw, hh), (hw, -hh), (-hw, -hh)]
+            scaled_corner_points = [self.scale_pos(p) for p in corner_points]            
+            boundary_lines = rendering.make_polyline(scaled_corner_points)
+            boundary_lines_transform = rendering.Transform()
+            boundary_lines_transform.set_translation(*self.scale_pos((-hw, -hh)))
+            boundary_lines.add_attr(boundary_lines_transform)
+            boundary_lines.set_linewidth(2)
+            boundary_lines.set_color(0, 0, 0)
+            self._viewer.add_geom(boundary_lines)
 
             # Traps your mouse inside the screen
             # self.viewer.window.set_exclusive_mouse(True)
@@ -91,7 +116,7 @@ class Visualizer(object):
             # print(self._transform_ball)
             self._transform_ball.set_translation(*self.scale_pos(self._gamestate.ball))
         # Draw all of the robots as separate entities:
-        # print(self.gamestate.robots)
+        # print(self._gamestate.robots)
         for robot_id, loc in self._gamestate.robots.items():
             # draw robot at screen-scaled location for this frame if robot has
             # not yet been drawn so far, otherwise just set the location
@@ -100,7 +125,6 @@ class Visualizer(object):
                 self._transform_robots[robot_id] = rendering.Transform()
                 robot_points = [(ROBOT_SIZE, 0), (0, -ROBOT_SIZE), (-ROBOT_SIZE, 0),
                                 (0, ROBOT_SIZE), (ROBOT_SIZE, 0), (0, 0)]
-
                 drawn_robot = rendering.make_polyline(robot_points)
                 # drawn_robot.set_linewidth(5)
                 self._transform_robots[robot_id] = rendering.Transform()
@@ -124,8 +148,8 @@ class Visualizer(object):
             if robot_id in self._gamestate.waypoints:
                 waypoint_screen_loc = self.scale_pos(self._gamestate.waypoints[robot_id])
                 self._transform_waypoint.set_translation(*waypoint_screen_loc)
-        print("Viz prep overhead: %s s" % str(time.time() - start_time))
-        return self._viewer.render()
+        self._viewer.render()
+        return True
 
     def close(self):
         if self._viewer is not None:

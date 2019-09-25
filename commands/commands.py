@@ -4,8 +4,8 @@ from .transform import RealWorldCoordTransformer
 ROBOT_ID = 8
 
 # default proportional scaling constant for distance differences
-SPEED_SCALE = .25
-MAX_SPEED = 50
+SPEED_SCALE = .35
+MAX_SPEED = 150
 # how long a command can be run without being updated
 COMMAND_DURATION = .2
 

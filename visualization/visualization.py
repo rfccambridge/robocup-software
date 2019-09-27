@@ -14,11 +14,14 @@ FIELD_LINE_WIDTH = 3
 FIELD_COLOR = (0, 255, 0)
 LINE_COLOR = (255, 255, 255)
 
-ROBOT_SIZE = 12
+ROBOT_SIZE = 90 # mm
 ROBOT_COLOR = (0, 0, 0)
 
-BALL_SIZE = 5
+BALL_SIZE = 21 # mm
 BALL_COLOR = (255, 125, 0)
+
+USER_CLICK_SIZE = 5
+USER_CLICK_COLOR = (255, 0, 0)
 
 WAYPOINT_SIZE = 3
 WAYPOINT_COLOR = (0, 0, 0)
@@ -124,18 +127,6 @@ class Visualizer(object):
             FIELD_LINE_WIDTH
         )
 
-        # Draw ball
-        pygame.draw.circle(
-            self._viewer,
-            BALL_COLOR,
-            self.scale_pos(self._gamestate.ball),
-            BALL_SIZE
-        )
-
-        # draw user click location
-        if self.user_click:
-            pygame.draw.circle(self._viewer, (0, 0, 0), self.user_click, 5)
-            
         # Draw all the robots
         for robot_id, loc in self._gamestate.robots.items():
             (x, y, w) = loc
@@ -143,22 +134,48 @@ class Visualizer(object):
                 self._viewer,
                 ROBOT_COLOR,
                 self.scale_pos((x, y)),
-                ROBOT_SIZE
+                int(ROBOT_SIZE * SCALE)
             )
             # indicate direction of robot
-            arrow_scale = ROBOT_SIZE * 6
+            arrow_scale = int(ROBOT_SIZE * SCALE) * 5
             pygame.draw.line(
                 self._viewer,
                 (255, 0, 0),
                 self.scale_pos((x, y)),
                 self.scale_pos((x + math.cos(w) * arrow_scale, y + math.sin(w) * arrow_scale)),
-                1
+                2
             )
 
             # TODO: draw any trajectories for this robot
             if robot_id in self._gamestate.trajectories:
                 pass
-            
+
+
+        # Draw ball
+        pygame.draw.circle(
+            self._viewer,
+            BALL_COLOR,
+            self.scale_pos(self._gamestate.ball),
+            int(BALL_SIZE * SCALE)
+        )
+
+        # draw user click location with an 'X'
+        if self.user_click:
+            pygame.draw.line(
+                self._viewer,
+                USER_CLICK_COLOR,
+                (self.user_click[0] - USER_CLICK_SIZE, self.user_click[1] - USER_CLICK_SIZE),
+                (self.user_click[0] + USER_CLICK_SIZE, self.user_click[1] + USER_CLICK_SIZE),
+                2
+            )
+            pygame.draw.line(
+                self._viewer,
+                USER_CLICK_COLOR,
+                (self.user_click[0] - USER_CLICK_SIZE, self.user_click[1] + USER_CLICK_SIZE),
+                (self.user_click[0] + USER_CLICK_SIZE, self.user_click[1] - USER_CLICK_SIZE),
+                2
+            )
+                                  
     def close(self):
         if self._viewer is not None:
             self._viewer.close()

@@ -32,12 +32,12 @@ class Commands(object):
             print("robot not available")
             return False
         
-        if robot_id not in self.gamestate.robots:
+        if robot_id not in self.gamestate.robot_positions:
             print("robot not seen")
             return False
         
         robot = self.robots[robot_id]
-        pos = self.gamestate.robots[robot_id]
+        pos = self.gamestate.robot_positions[robot_id]
         og_x, og_y, og_w = pos
         goal_x, goal_y = goal_pos
         delta = (goal_x - og_x, goal_y - og_y)
@@ -51,7 +51,7 @@ class Commands(object):
 
         # move with speed proportional to delta
         speed = min(self._trans.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
-        self.gamestate.update_waypoint(robot_id, goal_pos)
+        self.gamestate.robot_waypoints[robot_id] = [goal_pos]
         robot.move(speed * robot_y, speed * robot_x, 0, COMMAND_DURATION)
         return True
 

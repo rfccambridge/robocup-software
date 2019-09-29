@@ -20,9 +20,6 @@ ROBOT_COLOR = (0, 0, 0)
 BALL_SIZE = 21 # mm
 BALL_COLOR = (255, 125, 0)
 
-USER_CLICK_SIZE = 5
-USER_CLICK_COLOR = (255, 0, 0)
-
 WAYPOINT_SIZE = 3
 WAYPOINT_COLOR = (0, 0, 0)
 
@@ -128,7 +125,7 @@ class Visualizer(object):
         )
 
         # Draw all the robots
-        for robot_id, loc in self._gamestate.robots.items():
+        for robot_id, loc in self._gamestate.robot_positions.items():
             (x, y, w) = loc
             pygame.draw.circle(
                 self._viewer,
@@ -146,38 +143,35 @@ class Visualizer(object):
                 2
             )
 
-            # TODO: draw any trajectories for this robot
-            if robot_id in self._gamestate.trajectories:
-                pass
+            # TODO: draw commanded or perceived movements for this robot
 
 
         # Draw ball
-        pygame.draw.circle(
-            self._viewer,
-            BALL_COLOR,
-            self.scale_pos(self._gamestate.ball),
-            int(BALL_SIZE * SCALE)
-        )
+        if self._gamestate.ball_position:
+            pygame.draw.circle(
+                self._viewer,
+                BALL_COLOR,
+                self.scale_pos(self._gamestate.ball),
+                int(BALL_SIZE * SCALE)
+            )
 
-        # draw user click location with an 'X'
+        # draw user click location with a red 'X'
         if self.user_click:
-            pygame.draw.line(
-                self._viewer,
-                USER_CLICK_COLOR,
-                (self.user_click[0] - USER_CLICK_SIZE, self.user_click[1] - USER_CLICK_SIZE),
-                (self.user_click[0] + USER_CLICK_SIZE, self.user_click[1] + USER_CLICK_SIZE),
-                2
-            )
-            pygame.draw.line(
-                self._viewer,
-                USER_CLICK_COLOR,
-                (self.user_click[0] - USER_CLICK_SIZE, self.user_click[1] + USER_CLICK_SIZE),
-                (self.user_click[0] + USER_CLICK_SIZE, self.user_click[1] - USER_CLICK_SIZE),
-                2
-            )
+            self.draw_X(self.user_click, (255, 0, 0), 5, 2)
                                   
     def close(self):
         if self._viewer is not None:
             self._viewer.close()
             self._viewer = None
+
+    # drawing helper functions
+    def draw_X(self, pos, color, size, width):
+        top_left = (pos[0] - size, pos[1] - size)
+        bottom_right = (pos[0] + size, pos[1] + size)
+        top_right = (pos[0] + size, pos[1] - size)
+        bottom_left = (pos[0] - size, pos[1] + size)
+        pygame.draw.line(self._viewer, color, top_left, bottom_right, width)
+        pygame.draw.line(self._viewer, color, bottom_left, top_right, width)
+
+
 

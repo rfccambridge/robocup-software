@@ -23,6 +23,9 @@ BALL_COLOR = (255, 125, 0)
 WAYPOINT_SIZE = 3
 WAYPOINT_COLOR = (0, 0, 0)
 
+VECTOR_SCALE = 10 # px / (mm/s) ?
+TRAJECTORY_COLOR = (255, 0, 0)
+
 # Scale for the display window, or else it gets too large... (pixels/mm)
 SCALE = 0.15
 # how much space to include outside the field
@@ -71,6 +74,15 @@ class Visualizer(object):
         # shift position so that center becomes (0, 0)
         pos = (pos[0] - FIELD_W / 2, pos[1] - FIELD_H / 2)
         return pos
+
+    # map vector in ssl-vision coordinates to vector in x,y viewer pixels
+    def scale_vector(self, vector):
+        assert(len(vector) == 2 and type(vector) == tuple)
+        # scale for display
+        vector = (int(vector[0] * VECTOR_SCALE), int(vector[1] * VECTOR_SCALE))
+        # y becomes axis inverted in pygame (top left screen is 0,0)
+        vector = (vector[0], -vector[1])
+        return vector    
 
     def start_visualizing(self):
         self._updating = True
@@ -143,16 +155,26 @@ class Visualizer(object):
                 2
             )
 
-            # TODO: draw commanded or perceived movements for this robot
+            # TODO: draw commands + analyzed trajectories for this robot
 
 
         # Draw ball
         if self._gamestate.ball_position:
+            x, y = self.scale_pos(self._gamestate.ball_position)
             pygame.draw.circle(
                 self._viewer,
                 BALL_COLOR,
-                self.scale_pos(self._gamestate.ball),
+                (x, y),
                 int(BALL_SIZE * SCALE)
+            )
+            # draw ball trajectory
+            dx, dy = self.scale_vector(self._gamestate.ball_trajectory)
+            pygame.draw.line(
+                self._viewer,
+                TRAJECTORY_COLOR,
+                (x, y),
+                (x + dx, y + dy),
+                1
             )
 
         # draw user click location with a red 'X'

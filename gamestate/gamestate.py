@@ -24,7 +24,7 @@ class GameState(object):
         self.robot_kicks = dict()  # Dict of kicker discharging (bool) for robot_id
 
         # TODO: analysis data (i.e. ball trajectory)
-        ball_trajectory = None
+        self.ball_trajectory = None
         
         # gamestate thread is for doing analysis on raw data (i.e. trajectory calcuations, etc.)
         self._is_analyzing = False
@@ -41,7 +41,7 @@ class GameState(object):
     def analysis_loop(self):
         while self._is_analyzing:
             # TODO: calculate from the position history
-            ball_trajectory = (1, 1)
+            self.ball_trajectory = (1, 1)
 
     def stop_analyzing(self):
         self._is_analyzing = False

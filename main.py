@@ -4,8 +4,9 @@ import numpy as np
 import logging
 import threading
 
-from commands import Commands
 from gamestate import GameState
+from vision import SSLVisionDataProvider
+from commands import Commands
 from visualization import Visualizer
 
 sys.path.append('commands')
@@ -15,11 +16,16 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)
     VERBOSE = False
 
-    # spin up gamestate to poll data
-    gs = GameState()
-    gs.start_updating()
+    # initialize gamestate
+    gamestate = GameState()
+    gamestate.start_analyzing()
+    
+    # spin up ssl-vision data polling to update gamestate
+    vision = SSLVisionDataProvider(gamestate)
+    vision.start()
+    
     # spin up visualization to show robots on screen
-    viz = Visualizer(gs)
+    viz = Visualizer(gamestate)
     viz.start_visualizing()
 
     only_viz = True
@@ -28,7 +34,7 @@ if __name__ == '__main__':
             pass
     
     # intialize robots command interface
-    commands = Commands(gs)
+    commands = Commands(gamestate)
 
     goal_x = 3000
     goal_y = 1000
@@ -50,4 +56,4 @@ if __name__ == '__main__':
 
     # clean up threads
     viz.stop_visualizing()
-    gs.stop_updating()
+    gamestate.stop_updating()

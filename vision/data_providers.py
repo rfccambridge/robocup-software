@@ -42,7 +42,6 @@ class DataThread(threading.Thread):
         self.detection_cache = sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame()
         self._client = client
 
-
     def run(self):
         while not self._stop_event.is_set():
             #received decoded package
@@ -60,32 +59,52 @@ class DataThread(threading.Thread):
         return self._stop_event.is_set()
 
 class SSLVisionDataProvider(PositionDataProvider):
-    _client = None
-    _thread = None
-
-    def __init__(self, HOST='224.5.23.2', PORT=10006):
+    def __init__(self, gamestate, HOST='224.5.23.2', PORT=10006):        
         self.HOST = HOST
         self.PORT = PORT
 
+        self._ssl_vision_client = None
+        self._ssl_vision_client_thread = None
+        
+        self._gamestate = gamestate
+        self._gamestate_update_thread = None
+        self._is_running = False
 
+    def gamestate_update_loop(self):
+        while self._is_running:
+            # update positions of all (blue team) robots seen by data feed
+            robot_positions = self.get_robot_positions()
+            for robot_id, pos in robot_positions.items():
+                self._gamestate.robot_positions[robot_id] = pos.x, pos.y, pos.orientation
+            # update position of the ball
+            ball_data = self.get_ball_position()
+            if ball_data:
+                self._gamestate.ball_position = ball_data.x, ball_data.y
+        
     def start(self):
-        self._client = sslclient.client()
-        self._client.connect()
-        self._thread = DataThread(self._client)
-        self._thread.start()
+        self._is_running = True
+        self._ssl_vision_client = sslclient.client()
+        self._ssl_vision_client.connect()
+        self._ssl_vision_client_thread = DataThread(self._ssl_vision_client)
+        self._ssl_vision_client_thread.start()
         # BUG: sensible defaults when data hasn't loaded yet (@dinge)
         time.sleep(0.1)
+        self._gamestate_update_thread = threading.Thread(target=self.gamestate_update_loop)
+        self._gamestate_update_thread.start()
 
     def stop(self):
-        self._thread.stop()
-        self._thread.join()
-        self._client = None
+        self._is_running = False
+        self._gamestate_update_hread.join()
+        self._gamestate_update_thread = None
+        self._ssl_vision_client_thread.stop()
+        self._ssl_vision_client_thread.join()
+        self._ssl_vision_client = None
 
     def get_raw_detection_data(self):
-        return self._thread.detection_cache
+        return self._ssl_vision_client_thread.detection_cache
 
     def get_raw_geometry_data(self):
-        return self._thread.geometry_cache
+        return self._ssl_vision_client_thread.geometry_cache
 
     def get_robot_positions(self, team='blue'):
         raw_data = self.get_raw_detection_data()

@@ -12,12 +12,12 @@ ranges from -1 to 1
 """
 import sys
 sys.path.append('..')
-from johnrobot import JohnRobot
+from robot import Robot
 import pygame
 import time
 
 print('Connecting to robot...')
-robot = JohnRobot()
+robot = Robot()
 print('Connected to robot.')
 
 SPEED = 200 

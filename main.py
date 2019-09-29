@@ -6,11 +6,8 @@ import threading
 
 from gamestate import GameState
 from vision import SSLVisionDataProvider
-from commands import Commands
+from strategy import Strategy
 from visualization import Visualizer
-
-sys.path.append('commands')
-sys.path.append('comms')
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)
@@ -34,7 +31,7 @@ if __name__ == '__main__':
             pass
     
     # intialize robots command interface
-    commands = Commands(gamestate)
+    strategy = Strategy(gamestate)
 
     goal_x = 3000
     goal_y = 1000
@@ -45,14 +42,14 @@ if __name__ == '__main__':
             goal_x, goal_y = viz.user_click_field
 
         # tell robot to go straight towards goal position
-        commands.move_robot(8, (goal_x, goal_y))
+        strategy.move_robot(8, (goal_x, goal_y))
         # TO TEST: tell robot to greedily pathfind to goal position
         # TODO: discuss parameters + more advanced pathfinding options: 
         # A*, time projection, RRT (see old c# codebase)
-        # commands.greedy_path_find(8, (goal_x, goal_y))
+        # strategy.greedy_path_find(8, (goal_x, goal_y))
 
     # clean up comms
-    commands.die()
+    strategy.die()
 
     # clean up threads
     viz.stop_visualizing()

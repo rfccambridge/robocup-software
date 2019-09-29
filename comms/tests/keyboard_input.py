@@ -4,12 +4,12 @@ PermissionError, you will need to add the current user to the input group.
 Then, log out and log back in to make sure the permissions have refreshed."""
 import sys
 sys.path.append('..')
-from johnrobot import JohnRobot
+from robot import Robot
 import inputs
 import time
 
 print('Connecting to robot...')
-robot = JohnRobot()
+robot = Robot()
 print('Connected to robot.')
 
 SPEED = 2

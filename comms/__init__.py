@@ -1,2 +1,2 @@
-from .johnrobot import JohnRobot
+from .robot import Robot
 from .omni import OmniComms

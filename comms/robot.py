@@ -10,12 +10,9 @@ CMD_MOVE = 0
 CMD_DRIBBLE = 1
 CMD_KILL = 2
 
-class JohnRobot(object):
-    """Class that controls John's old robot he made in high school. Essentially
-    the same as robocup except larger, slightly different wheels, and different
-    arduino used to control. Commands shoul
-    d still be in the same format"""
-
+class Robot(object):
+    """Class that controls a robot - contains basic logic for moving to a point, 
+    but mostly just interfaces with firmware through xbee radio"""
     def __init__(self, command_delay=0.15):
         self.comms = OmniComms()
         self.last_command_time = time.time()
@@ -60,7 +57,7 @@ class JohnRobot(object):
 
 
 if __name__ == '__main__':
-    test = JohnRobot()
+    test = Robot()
     for _ in range(3):
         test.move(30, 0, 0, time=1.0)
         time.sleep(0.9)

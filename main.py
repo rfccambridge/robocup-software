@@ -8,6 +8,7 @@ from gamestate import GameState
 from vision import SSLVisionDataProvider
 from strategy import Strategy
 from visualization import Visualizer
+from comms import Comms
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)
@@ -20,12 +21,16 @@ if __name__ == '__main__':
     # spin up ssl-vision data polling to update gamestate
     vision = SSLVisionDataProvider(gamestate)
     vision.start()
+
+    # spin up comms to send commands to robots
+    comms = Comms(gamestate)
+    comms.start_sending()
     
     # spin up visualization to show robots on screen
     viz = Visualizer(gamestate)
     viz.start_visualizing()
 
-    only_viz = True
+    only_viz = False
     if only_viz:
         while True:
             pass
@@ -42,7 +47,7 @@ if __name__ == '__main__':
             goal_x, goal_y = viz.user_click_field
 
         # tell robot to go straight towards goal position
-        strategy.move_robot(8, (goal_x, goal_y))
+        strategy.move_straight(8, (goal_x, goal_y))
         # TO TEST: tell robot to greedily pathfind to goal position
         # TODO: discuss parameters + more advanced pathfinding options: 
         # A*, time projection, RRT (see old c# codebase)

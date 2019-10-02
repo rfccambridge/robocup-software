@@ -1,4 +1,5 @@
 import threading
+import time
 from .robot import Robot
 from .transform import RealWorldCoordTransformer
 
@@ -21,6 +22,7 @@ class Comms(object):
         self._thread = None
         # TODO: why is this a class? can we move to a shared utilities folder? - Kendall
         self._trans = RealWorldCoordTransformer()
+        self._last_sent_time = time.time()
 
     def die(self):
         for robot in self._robots:
@@ -48,7 +50,7 @@ class Comms(object):
                 # normalized offsets from robot's perspective
                 robot_x, robot_y = self._trans.transform(og_w, delta)
 
-                if False:
+                if True:
                     print("Original coordinates", og_x, og_y, og_w)
                     print('Delta {}'.format(delta))
                     print('(normalized diff) Robot X %f Robot Y %f' % (robot_x, robot_y))
@@ -58,6 +60,12 @@ class Comms(object):
                 robot.move(speed * robot_y, speed * robot_x, 0, COMMAND_DURATION)
 
                 # TODO: send other commands for dribbler and kicking
+            delta = time.time() - self._last_sent_time
+            if delta > .3:
+                print("Comms loop unexpectedly large delay: " + str(delta))
+            self._last_sent_time = time.time()
+            # yield to other threads
+            time.sleep(0)
 
     def stop_sending(self):
         self._is_sending = False

@@ -52,6 +52,10 @@ if __name__ == '__main__':
         # TODO: discuss parameters + more advanced pathfinding options: 
         # A*, time projection, RRT (see old c# codebase)
         # strategy.greedy_path_find(8, (goal_x, goal_y))
+        
+        # yield to other threads
+        time.sleep(0)
+
 
     # clean up comms
     strategy.die()

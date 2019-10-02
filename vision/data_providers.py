@@ -69,6 +69,7 @@ class SSLVisionDataProvider(PositionDataProvider):
         self._gamestate = gamestate
         self._gamestate_update_thread = None
         self._is_running = False
+        self._last_update_time = time.time()
 
     def gamestate_update_loop(self):
         while self._is_running:
@@ -80,6 +81,14 @@ class SSLVisionDataProvider(PositionDataProvider):
             ball_data = self.get_ball_position()
             if ball_data:
                 self._gamestate.ball_position = ball_data.x, ball_data.y
+                
+            delta = time.time() - self._last_update_time
+            if delta > .1:
+                print("SSL-vision data loop unexpectedly large delay: " + str(delta))
+            self._last_update_time = time.time()            
+            
+            # yield to other threads
+            time.sleep(0)
         
     def start(self):
         self._is_running = True

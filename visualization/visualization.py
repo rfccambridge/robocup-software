@@ -105,7 +105,10 @@ class Visualizer(object):
             self._viewer.fill(FIELD_COLOR)
             self.render()
             pygame.display.flip()
+            # yield to other threads
+            time.sleep(0)
             self._clock.tick(20)
+
         pygame.quit()        
 
     def stop_visualizing(self):

@@ -16,6 +16,7 @@ LINE_COLOR = (255, 255, 255)
 
 ROBOT_SIZE = 90 # mm
 ROBOT_COLOR = (0, 0, 0)
+ROBOT_LOST_COLOR = (200, 200, 200)
 
 BALL_SIZE = 21 # mm
 BALL_COLOR = (255, 125, 0)
@@ -141,10 +142,13 @@ class Visualizer(object):
 
         # Draw all the robots
         for robot_id, loc in self._gamestate.robot_positions.items():
+            robot_color = ROBOT_COLOR
+            if self._gamestate.is_robot_lost(robot_id):
+                robot_color = ROBOT_LOST_COLOR
             (x, y, w) = loc
             pygame.draw.circle(
                 self._viewer,
-                ROBOT_COLOR,
+                robot_color,
                 self.scale_pos((x, y)),
                 int(ROBOT_SIZE * SCALE)
             )

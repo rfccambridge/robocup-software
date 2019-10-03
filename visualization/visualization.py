@@ -141,7 +141,8 @@ class Visualizer(object):
         )
 
         # Draw all the robots
-        for robot_id, loc in self._gamestate.robot_positions.items():
+        for robot_id in self._gamestate.robot_positions:
+            loc = self._gamestate.get_robot_position(robot_id)
             robot_color = ROBOT_COLOR
             if self._gamestate.is_robot_lost(robot_id):
                 robot_color = ROBOT_LOST_COLOR

@@ -42,7 +42,7 @@ class Comms(object):
                 # TODO: if close enough to first waypoint, delete and move to next one
                 robot = self._robots[robot_id]
 
-                pos = self._gamestate.robot_positions[robot_id]
+                pos = self._gamestate.get_robot_position(robot_id)
                 # stop the robot if we've lost track of it
                 if self._gamestate.is_robot_lost(robot_id):
                     robot.move(0, 0, 0, COMMAND_DURATION)

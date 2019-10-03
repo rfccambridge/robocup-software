@@ -8,7 +8,7 @@ class Strategy(object):
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):
         if robot_id not in self._gamestate.robot_positions:
-            print("robot not seen")
+            print("strategy.move_straight: robot not seen")
             return False
         self._gamestate.robot_waypoints[robot_id] = [goal_pos]
         

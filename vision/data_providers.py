@@ -89,8 +89,8 @@ class SSLVisionDataProvider(PositionDataProvider):
                     print("SSL-vision data loop unexpectedly large delay: " + str(delta))
             self._last_update_time = time.time()            
             
-            # yield to other threads
-            time.sleep(0)
+            # yield to other threads - run this loop at most 100 times per second
+            time.sleep(.01)
         
     def start(self):
         self._is_running = True

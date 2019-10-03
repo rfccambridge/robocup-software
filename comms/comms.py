@@ -67,8 +67,8 @@ class Comms(object):
                 if delta > .3:
                     print("Comms loop unexpectedly large delay: " + str(delta))
             self._last_sent_time = time.time()
-            # yield to other threads
-            time.sleep(0)
+            # yield to other threads - run this loop at most 20 times per second
+            time.sleep(.05)
 
     def stop_sending(self):
         self._is_sending = False

@@ -81,7 +81,7 @@ class SSLVisionDataProvider(PositionDataProvider):
             # update position of the ball
             ball_data = self.get_ball_position()
             if ball_data:
-                self._gamestate.ball_position = ball_data.x, ball_data.y
+                self._gamestate.update_ball_position((ball_data.x, ball_data.y))
                 
             if self._last_update_time is not None:                
                 delta = time.time() - self._last_update_time

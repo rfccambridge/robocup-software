@@ -141,12 +141,12 @@ class Visualizer(object):
         )
 
         # Draw all the robots
-        for robot_id in self._gamestate.robot_positions:
-            loc = self._gamestate.get_robot_position(robot_id)
+        for robot_id in self._gamestate.get_blue_team_robot_ids():
+            pos = self._gamestate.get_robot_position(robot_id)
             robot_color = ROBOT_COLOR
             if self._gamestate.is_robot_lost(robot_id):
                 robot_color = ROBOT_LOST_COLOR
-            (x, y, w) = loc
+            (x, y, w) = pos
             pygame.draw.circle(
                 self._viewer,
                 robot_color,
@@ -167,8 +167,8 @@ class Visualizer(object):
 
 
         # Draw ball
-        if self._gamestate.ball_position:
-            x, y = self.scale_pos(self._gamestate.ball_position)
+        if not self._gamestate.is_ball_lost():
+            x, y = self.scale_pos(self._gamestate.get_ball_position())
             pygame.draw.circle(
                 self._viewer,
                 BALL_COLOR,

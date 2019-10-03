@@ -5,17 +5,17 @@ import threading
 from collections import deque
 from vision import SSLVisionDataProvider
 
-BALL_POS_HISTORY_LENGTH = 10
+BALL_POS_HISTORY_LENGTH = 20
 BALL_LOST_TIME = .1
-ROBOT_POS_HISTORY_LENGTH = 10
+ROBOT_POS_HISTORY_LENGTH = 20
 ROBOT_LOST_TIME = .2
 
 class GameState(object):
     """Game state contains all the relevant information in one place. Many
        threads can edit or use the game state at once, cuz Python GIL"""
     def __init__(self):
-        # NOTE: fields with underscores are "private" so should only be accessed
-        # or updated through methods
+        # NOTE: in general fields with underscores are "private" so
+        # should only be accessed through getter and setter methods
 
         # Raw Position Data (updated by vision data or simulator)
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH) # queue of (time, pos)        
@@ -46,6 +46,8 @@ class GameState(object):
         while self._is_analyzing:
             # TODO: calculate from the position history
             self.ball_trajectory = (1, 1)
+            # yield to other threads - run this loop at most 20 times per second
+            time.sleep(.05)
 
     def stop_analyzing(self):
         self._is_analyzing = False
@@ -90,7 +92,6 @@ class GameState(object):
         if robot_id not in self._robot_positions:
             self._robot_positions[robot_id] = deque([], ROBOT_POS_HISTORY_LENGTH)
         self._robot_positions[robot_id].appendleft((time.time(), pos))
-        print(self._robot_positions)
     
     def get_robot_last_update_time(self, robot_id):
         if robot_id not in self._robot_positions:

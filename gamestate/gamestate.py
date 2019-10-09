@@ -30,8 +30,9 @@ class GameState(object):
         self.robot_charges = dict()  # Dict of kicker charging (bool) for robot_id
         self.robot_kicks = dict()  # Dict of kicker discharging (bool) for robot_id
 
-        # TODO: analysis data (i.e. ball trajectory)
-        self.ball_trajectory = None
+        # TODO: cached analysis data (i.e. ball trajectory)
+        # this can be later, for now just build the functions
+        self.ball_velocity = None
         
         # gamestate thread is for doing analysis on raw data (i.e. trajectory calcuations, etc.)
         self._is_analyzing = False
@@ -108,3 +109,16 @@ class GameState(object):
         if last_update_time is None:
             return True
         return time.time() - last_update_time > ROBOT_LOST_TIME
+
+    # ANALYSIS FUNCTIONS
+    # TODO - calculate based on robot locations and rules
+    def is_position_open(self, pos):
+        return True
+    
+    # TODO - calculate based on history
+    def get_ball_velocity(self):
+        return (1, 0)
+
+    # TODO - calculate based on trajectory
+    def get_ball_pos_future(self, seconds):
+        return self.get_ball_position()

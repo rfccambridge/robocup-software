@@ -176,7 +176,7 @@ class Visualizer(object):
                 int(BALL_SIZE * SCALE)
             )
             # draw ball trajectory
-            dx, dy = self.scale_vector(self._gamestate.ball_trajectory)
+            dx, dy = self.scale_vector(self._gamestate.get_ball_velocity())
             pygame.draw.line(
                 self._viewer,
                 TRAJECTORY_COLOR,
@@ -184,6 +184,7 @@ class Visualizer(object):
                 (x + dx, y + dy),
                 1
             )
+            
 
         # draw user click location with a red 'X'
         if self.user_click:

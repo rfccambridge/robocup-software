@@ -25,7 +25,7 @@ class GameState(object):
         # TODO: include game states/events, such as time, score and ref events (see docs)
         
         # Commands data (desired robot actions)
-        self.robot_waypoints = dict()  # Dict of current movement plans for robot_id
+        self.robot_waypoints = dict()  # Robot ID: [pos]
         self.robot_dribblers = dict()  # Dict of dribbler speeds for robot_id
         self.robot_charges = dict()  # Dict of kicker charging (bool) for robot_id
         self.robot_kicks = dict()  # Dict of kicker discharging (bool) for robot_id
@@ -74,11 +74,14 @@ class GameState(object):
         return timestamp
     
     def is_ball_lost(self):
-        return time.time() - self.get_ball_last_update_time() > BALL_LOST_TIME
+        last_update_time = self.get_ball_last_update_time()
+        if last_update_time is None:
+            return True        
+        return time.time() - last_update_time > BALL_LOST_TIME
 
     def get_blue_team_robot_ids(self):
         # UDPATE WHEN INCLUDE YELLOW TEAM
-        return self._robot_positions.keys()
+        return tuple(self._robot_positions.keys())
     
     # returns position robot was last seen at
     def get_robot_position(self, robot_id):
@@ -101,4 +104,7 @@ class GameState(object):
         return timestamp
         
     def is_robot_lost(self, robot_id):
-        return time.time() - self.get_robot_last_update_time(robot_id) > ROBOT_LOST_TIME
+        last_update_time = self.get_robot_last_update_time(robot_id)
+        if last_update_time is None:
+            return True
+        return time.time() - last_update_time > ROBOT_LOST_TIME

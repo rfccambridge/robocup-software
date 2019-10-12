@@ -20,8 +20,8 @@ print('Connecting to robot...')
 robot = Robot()
 print('Connected to robot.')
 
-SPEED = 200 
-ROTATION_SPEED = 130
+SPEED = 5
+ROTATION_SPEED = 1
 COMMAND_TTL = 0.3
 COMMAND_DELAY = 0.15
 DRIBBLER_SPEED_INCREMENT = 20
@@ -58,8 +58,8 @@ while True:
     button_y = js.get_button(3)
     button_lb = js.get_button(4)
     button_rb = js.get_button(5)
-    speed_x, speed_y = a * SPEED, b * SPEED
-    print("Going with vector ({},{})".format(speed_x, speed_y))
+    speed_lateral, speed_forward = a * SPEED, -b * SPEED
+    print("Going with forward, lateral ({},{})".format(speed_forward, speed_lateral))
 
     if button_lb:
         dribbler_speed = max(dribbler_speed - DRIBBLER_SPEED_INCREMENT, 0)
@@ -76,5 +76,5 @@ while True:
         print("KILL KILL KILL")
         continue
 
-    robot.move(SPEED * a, SPEED * b, 0, COMMAND_TTL)
+    robot.move(speed_forward, speed_lateral, 0, COMMAND_TTL)
 

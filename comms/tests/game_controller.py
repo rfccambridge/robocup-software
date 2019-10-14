@@ -20,8 +20,8 @@ print('Connecting to robot...')
 robot = Robot()
 print('Connected to robot.')
 
-SPEED = 5
-ROTATION_SPEED = 1
+SPEED = 10
+ROTATION_SPEED = 3
 COMMAND_TTL = 0.3
 COMMAND_DELAY = 0.15
 DRIBBLER_SPEED_INCREMENT = 20

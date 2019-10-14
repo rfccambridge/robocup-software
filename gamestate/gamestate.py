@@ -25,7 +25,7 @@ class GameState(object):
         # TODO: include game states/events, such as time, score and ref events (see docs)
         
         # Commands data (desired robot actions)
-        self.robot_waypoints = dict()  # Robot ID: [pos]
+        self.robot_waypoints = dict()  # Robot ID: [pos], or (x, y, w, min_speed, max_speed)
         self.robot_dribblers = dict()  # Dict of dribbler speeds for robot_id
         self.robot_charges = dict()  # Dict of kicker charging (bool) for robot_id
         self.robot_kicks = dict()  # Dict of kicker discharging (bool) for robot_id

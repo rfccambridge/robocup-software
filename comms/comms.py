@@ -5,10 +5,10 @@ import numpy as np
 from .robot import Robot
 
 # default proportional scaling constant for distance differences
-SPEED_SCALE = .05
+SPEED_SCALE = .01
 ROTATION_SPEED_SCALE = 0
-MAX_SPEED = 150
-MIN_SPEED = 0
+DEFAULT_MAX_SPEED = 15
+DEFAULT_MIN_SPEED = 1
 # how long a command can be run without being updated
 COMMAND_DURATION = .2
 
@@ -55,19 +55,22 @@ class Comms(object):
                 # if close enough to first waypoint, delete and move to next one
                 while len(waypoints) > 1 and self.close_enough(pos, waypoints[0]):
                     waypoints.pop(0)
-                goal_x, goal_y, goal_w = waypoints[0]
+                goal = waypoints[0]
+                # allow waypoints to specify min and max speed, if desired
+                try:
+                    goal_x, goal_y, goal_w, min_speed, max_speed = goal
+                except ValueError:
+                    goal_x, goal_y, goal_w = goal
+                    min_speed = DEFAULT_MIN_SPEED
+                    max_speed = DEFAULT_MAX_SPEED
                 delta = (goal_x - og_x, goal_y - og_y)
                 # normalized offsets from robot's perspective
                 norm_x, norm_y = self.normalize(og_w, delta)
                 norm_w = self.trim_angle(goal_w - og_w)
-                if False:
-                    print("Original coordinates", og_x, og_y, og_w)
-                    print('Delta {}'.format(delta))
-                    print('Normalized X %f Y %f W %f' % (norm_x, norm_y, norm_w))
-
+                
                 # move with speed proportional to delta
-                linear_speed = min(self.magnitude(delta) * SPEED_SCALE, MAX_SPEED)
-                linear_speed = max(linear_speed, MIN_SPEED)
+                linear_speed = self.magnitude(delta) * SPEED_SCALE
+                linear_speed = min(min_speed + linear_speed, max_speed)
                 robot.move(linear_speed * norm_y,
                            linear_speed * norm_x * 2,
                            norm_w * ROTATION_SPEED_SCALE,

@@ -20,6 +20,10 @@ class Comms(object):
     def __init__(self, gamestate):
         self._gamestate = gamestate
         self._robots = dict() # dict from id to robot (comms class)
+        # store previously sent commands to reduce redundant commands
+        self._robot_dribblers = dict()  # Dict of previously sent dribbler speeds for robot_id
+        self._robot_chargings = dict()  # Dict of previously sent kicker chargings for robot_id
+        
         self._is_sending = False
         self._thread = None
         self._last_sent_time = None
@@ -75,6 +79,12 @@ class Comms(object):
                            linear_speed * norm_x * 2,
                            norm_w * ROTATION_SPEED_SCALE,
                            COMMAND_DURATION)
+                
+            for robot_id, dribbler_speed in self._gamestate.robot_dribblers.items():
+                robot = self._robots[robot_id]
+                if dribbler_speed != self._robot_dribblers[robot_id]:
+                    self._robot_dribblers[robot_id] = dribbler_speed
+                    robot.dribble(dribbler_speed)
 
                 # TODO: send other commands for dribbler and kicking
             if self._last_sent_time is not None:

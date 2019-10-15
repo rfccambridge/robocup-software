@@ -27,8 +27,8 @@ class GameState(object):
         # Commands data (desired robot actions)
         self.robot_waypoints = dict()  # Robot ID: [pos], or (x, y, w, min_speed, max_speed)
         self.robot_dribblers = dict()  # Dict of dribbler speeds for robot_id
-        self.robot_charges = dict()  # Dict of kicker charging (bool) for robot_id
-        self.robot_kicks = dict()  # Dict of kicker discharging (bool) for robot_id
+        self.robot_chargings = dict()  # Dict of kicker charging (bool) for robot_id
+        self.robot_kicks = dict()  # Dict of kicker discharging commands (bool) for robot_id
 
         # TODO: cached analysis data (i.e. ball trajectory)
         # this can be later, for now just build the functions

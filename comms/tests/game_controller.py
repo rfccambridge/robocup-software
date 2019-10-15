@@ -10,17 +10,21 @@ Axis 2 and 3 are right and down respectively on RIGHT joystick
 ranges from -1 to 1
 0 is always the neutral position
 """
-import sys
-sys.path.append('..')
-from robot import Robot
 import pygame
 import time
+import sys
+# TODO: weird import fails also when running with python - use python3!!!
+try:
+    sys.path.append('..')
+    from robot import Robot
+except SystemError:
+    raise Exception('run from inside the folder pls (is there a nice fix for this?)')
 
 print('Connecting to robot...')
 robot = Robot()
 print('Connected to robot.')
 
-SPEED = 10
+SPEED = 5
 ROTATION_SPEED = 3
 COMMAND_TTL = 0.3
 COMMAND_DELAY = 0.15
@@ -59,7 +63,8 @@ while True:
     button_lb = js.get_button(4)
     button_rb = js.get_button(5)
     speed_lateral, speed_forward = a * SPEED, -b * SPEED
-    print("Going with forward, lateral ({},{})".format(speed_forward, speed_lateral))
+    speed_rotation = c * ROTATION_SPEED
+    print("x, y, w ({},{},{})".format(speed_lateral, speed_forward, speed_rotation))
 
     if button_lb:
         dribbler_speed = max(dribbler_speed - DRIBBLER_SPEED_INCREMENT, 0)
@@ -76,5 +81,5 @@ while True:
         print("KILL KILL KILL")
         continue
 
-    robot.move(speed_forward, speed_lateral, 0, COMMAND_TTL)
+    robot.move(speed_forward, speed_lateral, speed_rotation, COMMAND_TTL)
 

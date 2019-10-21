@@ -12,20 +12,26 @@ ROBOT_LOST_TIME = .2
 
 class GameState(object):
     """Game state contains all the relevant information in one place. Many
-       threads can edit or use the game state at once, cuz Python GIL"""
+       threads can edit or use the game state at once, cuz Python GIL
+       Since we are using python and types are flexible, a data formats will
+       be unofficially specified in the fields below.
+    """
     def __init__(self):
         # NOTE: in general fields with underscores are "private" so
         # should only be accessed through getter and setter methods
 
-        # Raw Position Data (updated by vision data or simulator)
+        # RAW POSITION DATA (updated by vision data or simulator)
+        # [most recent data is stored at the front of the queue]
+        # ball positions are in the form (x, y)
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH) # queue of (time, pos)
-        # robot positions are x, y, w (rotation)
-        self._robot_positions = dict() # Robot ID: queue of (timestamp, position)
+        # robot positions are (x, y, w) where w = rotation
+        self._robot_positions = dict() # Robot ID: queue of (time, pos)
         # TODO: store both teams robots
         # TODO: include game states/events, such as time, score and ref events (see docs)
 
         # Commands data (desired robot actions)
-        self.robot_waypoints = dict()  # Robot ID: [pos], or (x, y, w, min_speed, max_speed)
+        # waypoint = (pos, min_speed, max_speed)
+        self.robot_waypoints = dict()  # Robot ID: [waypoint] (list of waypoints)
         self.robot_dribblers = dict()  # Dict of dribbler speeds for robot_id
         self.robot_chargings = dict()  # Dict of kicker charging (bool) for robot_id
         self.robot_kicks = dict()  # Dict of kicker discharging commands (bool) for robot_id
@@ -111,18 +117,18 @@ class GameState(object):
         return time.time() - last_update_time > ROBOT_LOST_TIME
 
     # ANALYSIS FUNCTIONS
+    # basic helper functions - should these be elsewhere?
+    def diff_pos(p1, p2):
+        return (p1[0] - p2[0], p1[1] - p2[1])
+
+    def scale_pos(pos, factor):
+        return (pos[0] * factor, pos[1] * factor)
+
     # TODO - calculate based on robot locations and rules
     def is_position_open(self, pos):
         return True
 
-
     # Here we find ball velocities from ball position data
-    def diff_pos(p1, p2):
-        return (p1[0] - p2[0], p1[1] - p2[1])
-
-    def scale(pos, factor):
-        return (pos[0] * factor, pos[1] * factor)
-
     def get_ball_velocity(self):
         positions = self._ball_position
         MIN_TIME_INTERVAL = .05
@@ -133,7 +139,7 @@ class GameState(object):
             i += 1
         delta_pos = diff_pos(positions[0][1], positions[i][1])
         delta_time = (positions[0][0] - positions[i][0])
-        velocity = scale(delta_pos, 1 / delta_time)
+        velocity = scale_pos(delta_pos, 1 / delta_time)
         return velocity
 
     # TODO - calculate based on trajectory

@@ -29,10 +29,17 @@ TRAJECTORY_COLOR = (255, 0, 0)
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
 SCALE = 0.15
+# how much space above the field for UI
+UI_BUFFER_PX = 50
+BUTTON_OFFSET_X = 5
+BUTTON_OFFSET_Y = 5
+BUTTON_WIDTH = 100
+BUTTON_HEIGHT = 40
+
 # how much space to include outside the field
 WINDOW_BUFFER_PX = 20
 TOTAL_SCREEN_WIDTH = int(FIELD_W * SCALE) + WINDOW_BUFFER_PX * 2
-TOTAL_SCREEN_HEIGHT = int(FIELD_H * SCALE) + WINDOW_BUFFER_PX * 2
+TOTAL_SCREEN_HEIGHT = int(FIELD_H * SCALE) + WINDOW_BUFFER_PX * 2 + UI_BUFFER_PX
 
 class Visualizer(object):
     """Robocup homegrown visualization library that essentially does the same
@@ -46,9 +53,23 @@ class Visualizer(object):
         self.user_click_field = None
 
         self._gamestate = gamestate
-
+        
         self._updating = False
         self._visualization_thread = None
+
+        # Buttons for different commands (label : pygame.Rect)
+        def generate_button_rect(n):
+            return pygame.Rect(
+                WINDOW_BUFFER_PX + BUTTON_OFFSET_X * n + BUTTON_WIDTH * (n - 1),
+                BUTTON_OFFSET_Y,
+                BUTTON_WIDTH,
+                BUTTON_HEIGHT
+            )
+        self.buttons = {
+            "timeout" : generate_button_rect(0),
+            "ref" : generate_button_rect(1),
+            "normal" : generate_button_rect(2),
+        }
 
     # map ssl-vision field position to pixel x,y on viewer
     def scale_pos(self, pos):
@@ -69,7 +90,7 @@ class Visualizer(object):
         # revert y axis
         pos = (pos[0], TOTAL_SCREEN_HEIGHT - pos[1])
         # account for buffer space outside of field
-        pos = (pos[0] - WINDOW_BUFFER_PX, pos[1] - WINDOW_BUFFER_PX)
+        pos = (pos[0] - WINDOW_BUFFER_PX, pos[1] - WINDOW_BUFFER_PX - UI_BUFFER_PX)
         # unscale display
         pos = (int(pos[0] / SCALE), int(pos[1] / SCALE))
         # shift position so that center becomes (0, 0)
@@ -101,7 +122,11 @@ class Visualizer(object):
                     self._updating = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.user_click = pygame.mouse.get_pos()
-                    self.user_click_field = self.unscale_pos(self.user_click)                    
+                    self.user_click_field = self.unscale_pos(self.user_click)
+                    for label, rect in self.buttons.items():
+                        if rect.collidepoint(mouse_pos):
+                            # prints current location of mouse
+                            print('button pressed: ' + label)
             start_time = time.time()
             self._viewer.fill(FIELD_COLOR)
             self.render()
@@ -176,12 +201,12 @@ class Visualizer(object):
                 int(BALL_SIZE * SCALE)
             )
             # draw ball trajectory
-            dx, dy = self.scale_vector(self._gamestate.get_ball_velocity())
+            dx, dy = self._gamestate.get_ball_velocity()
             pygame.draw.line(
                 self._viewer,
                 TRAJECTORY_COLOR,
                 (x, y),
-                (x + dx, y + dy),
+                (x + dx*SCALE, y + dy*SCALE),
                 1
             )
             
@@ -189,7 +214,16 @@ class Visualizer(object):
         # draw user click location with a red 'X'
         if self.user_click:
             self.draw_X(self.user_click, (255, 0, 0), 5, 2)
-                                  
+
+        # Draw buttons :)
+        for label, rect in self.buttons.items():
+            #myfont = pygame.font.SysFont('Comic Sans MS', 30)
+            #textsurface = myfont.render(label, False, (0, 0, 0))
+            #self._viewer.blit(textsurface)
+            pygame.draw
+            pygame.draw.rect(self._viewer, [0, 0, 100, 0.1], rect)
+        
+
     def close(self):
         if self._viewer is not None:
             self._viewer.close()

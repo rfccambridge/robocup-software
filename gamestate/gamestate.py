@@ -38,7 +38,7 @@ class GameState(object):
 
         # TODO: cached analysis data (i.e. ball trajectory)
         # this can be later, for now just build the functions
-        self.ball_velocity = None
+        self.ball_velocity = (0,0)
 
         # gamestate thread is for doing analysis on raw data (i.e. trajectory calcuations, etc.)
         self._is_analyzing = False
@@ -65,7 +65,7 @@ class GameState(object):
     # returns position ball was last seen at
     def get_ball_position(self):
         if len(self._ball_position) == 0:
-            print("getting ball position but ball never seen?!?")
+            # print("getting ball position but ball never seen?!?")
             return None
         timestamp, pos = self._ball_position[0]
         return pos
@@ -75,7 +75,7 @@ class GameState(object):
 
     def get_ball_last_update_time(self):
         if len(self._ball_position) == 0:
-            print("getting ball update time but ball never seen?!?")
+            # print("getting ball update time but ball never seen?!?")
             return None
         timestamp, pos = self._ball_position[0]
         return timestamp
@@ -93,7 +93,7 @@ class GameState(object):
     # returns position robot was last seen at
     def get_robot_position(self, robot_id):
         if robot_id not in self._robot_positions:
-            print("getting position of robot never seen?!?")
+            # print("getting position of robot never seen?!?")
             return None
         timestamp, pos = self._robot_positions[robot_id][0]
         return pos
@@ -105,7 +105,7 @@ class GameState(object):
 
     def get_robot_last_update_time(self, robot_id):
         if robot_id not in self._robot_positions:
-            print("getting update time of robot never seen?!?")
+            # print("getting update time of robot never seen?!?")
             return None
         timestamp, pos = self._robot_positions[robot_id][0]
         return timestamp
@@ -118,10 +118,13 @@ class GameState(object):
 
     # ANALYSIS FUNCTIONS
     # basic helper functions - should these be elsewhere?
-    def diff_pos(p1, p2):
-        return (p1[0] - p2[0], p1[1] - p2[1])
+    def diff_pos(self, p1, p2):
+        x = p1[0] - p2[0]
+        y = p1[1] - p2[1]
 
-    def scale_pos(pos, factor):
+        return (x,y)
+
+    def scale_pos(self, pos, factor):
         return (pos[0] * factor, pos[1] * factor)
 
     # TODO - calculate based on robot locations and rules
@@ -130,17 +133,28 @@ class GameState(object):
 
     # Here we find ball velocities from ball position data
     def get_ball_velocity(self):
+        
+        prev_velocity = self.ball_velocity
+        
         positions = self._ball_position
         MIN_TIME_INTERVAL = .05
         i = 0
-        if len(positions) == 0:
+        if len(positions) <= 1:
             return (0, 0)
-        while positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL and i < len(positions):
+        # 0 is most recent!!!
+        while i < len(positions) - 1 and  positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
             i += 1
-        delta_pos = diff_pos(positions[0][1], positions[i][1])
+            
+        delta_pos = self.diff_pos(positions[0][1], positions[i][1])
         delta_time = (positions[0][0] - positions[i][0])
-        velocity = scale_pos(delta_pos, 1 / delta_time)
-        return velocity
+
+        print(delta_pos)
+        print(delta_time)
+
+        self.ball_velocity = self.scale_pos(delta_pos, 1 / delta_time)
+        
+        return self.ball_velocity
+       
 
     # TODO - calculate based on trajectory
     def get_ball_pos_future(self, seconds):

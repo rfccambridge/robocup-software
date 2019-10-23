@@ -17,18 +17,18 @@ if __name__ == '__main__':
     # initialize gamestate
     gamestate = GameState()
     gamestate.start_analyzing()
-    
-    # spin up ssl-vision data polling to update gamestate
-    vision = SSLVisionDataProvider(gamestate)
-    vision.start()
 
     # spin up visualization to show robots on screen
     viz = Visualizer(gamestate)
     viz.start_visualizing()
     
+    # spin up ssl-vision data polling to update gamestate
+    vision = SSLVisionDataProvider(gamestate)
+    vision.start()
+    
     # spin up comms to send commands to robots
-    comms = Comms(gamestate)
-    comms.start_sending()
+#    comms = Comms(gamestate)
+#    comms.start_sending()
     
     # intialize algorithm module
     strategy = Strategy(gamestate)

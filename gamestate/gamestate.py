@@ -124,6 +124,12 @@ class GameState(object):
 
         return (x,y)
 
+    def sum_pos(self, p1, p2):
+        x = p1[0] + p2[0]
+        y = p1[1] + p2[1]
+
+        return (x,y)
+
     def scale_pos(self, pos, factor):
         return (pos[0] * factor, pos[1] * factor)
 
@@ -133,9 +139,9 @@ class GameState(object):
 
     # Here we find ball velocities from ball position data
     def get_ball_velocity(self):
-        
+
         prev_velocity = self.ball_velocity
-        
+
         positions = self._ball_position
         MIN_TIME_INTERVAL = .05
         i = 0
@@ -144,15 +150,19 @@ class GameState(object):
         # 0 is most recent!!!
         while i < len(positions) - 1 and  positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
             i += 1
-            
+
         delta_pos = self.diff_pos(positions[0][1], positions[i][1])
         delta_time = (positions[0][0] - positions[i][0])
 
         self.ball_velocity = self.scale_pos(delta_pos, 1 / delta_time)
-        
-        return self.ball_velocity
-       
 
-    # TODO - calculate based on trajectory
+        return self.ball_velocity
+
+
     def get_ball_pos_future(self, seconds):
-        return self.get_ball_position()
+        accel_constant = (-.5, -.5)
+#This is just a guess at the acceleration due to friction as the ball rolls. This number should be tuned empitically.
+        velocity_initial = ball_velocity(self.ball_positions)
+        predicted_pos_change = sum_pos(scale(accel_constant, seconds * seconds), scale(velocity_initial, seconds))
+        predicted_pos = sum_pos(predicted_pos_change, get_ball_position())
+        return predicted_pos

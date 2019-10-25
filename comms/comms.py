@@ -76,7 +76,7 @@ class Comms(object):
                 linear_speed = self.magnitude(delta) * SPEED_SCALE
                 linear_speed = min(min_speed + linear_speed, max_speed)
                 robot.move(linear_speed * norm_y,
-                           linear_speed * norm_x * 2,
+                           linear_speed * norm_x,
                            norm_w * ROTATION_SPEED_SCALE,
                            COMMAND_DURATION)
                 

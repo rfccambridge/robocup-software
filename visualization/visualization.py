@@ -24,7 +24,7 @@ BALL_COLOR = (255, 125, 0)
 WAYPOINT_SIZE = 3
 WAYPOINT_COLOR = (0, 0, 0)
 
-VECTOR_SCALE = 10 # px / (mm/s) ?
+VECTOR_SCALE = 1 # px / (mm/s) ?
 TRAJECTORY_COLOR = (255, 0, 0)
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
@@ -32,9 +32,11 @@ SCALE = 0.15
 # how much space above the field for UI
 UI_BUFFER_PX = 50
 BUTTON_OFFSET_X = 5
-BUTTON_OFFSET_Y = 5
+BUTTON_OFFSET_Y = 10
 BUTTON_WIDTH = 100
 BUTTON_HEIGHT = 40
+BUTTON_COLOR = (0, 0, 100)
+BUTTON_TEXT_COLOR = (255, 255, 255)
 
 # how much space to include outside the field
 WINDOW_BUFFER_PX = 20
@@ -60,7 +62,7 @@ class Visualizer(object):
         # Buttons for different commands (label : pygame.Rect)
         def generate_button_rect(n):
             return pygame.Rect(
-                WINDOW_BUFFER_PX + BUTTON_OFFSET_X * n + BUTTON_WIDTH * (n - 1),
+                WINDOW_BUFFER_PX + (BUTTON_OFFSET_X + BUTTON_WIDTH) * n,
                 BUTTON_OFFSET_Y,
                 BUTTON_WIDTH,
                 BUTTON_HEIGHT
@@ -90,18 +92,18 @@ class Visualizer(object):
         # revert y axis
         pos = (pos[0], TOTAL_SCREEN_HEIGHT - pos[1])
         # account for buffer space outside of field
-        pos = (pos[0] - WINDOW_BUFFER_PX, pos[1] - WINDOW_BUFFER_PX - UI_BUFFER_PX)
+        pos = (pos[0] - WINDOW_BUFFER_PX, pos[1] - WINDOW_BUFFER_PX)
         # unscale display
         pos = (int(pos[0] / SCALE), int(pos[1] / SCALE))
         # shift position so that center becomes (0, 0)
         pos = (pos[0] - FIELD_W / 2, pos[1] - FIELD_H / 2)
         return pos
 
-    # map vector in ssl-vision coordinates to vector in x,y viewer pixels
+    # map vector in ssl-vision coordinates (mm) to vector in x,y viewer pixels
     def scale_vector(self, vector):
         assert(len(vector) == 2 and type(vector) == tuple)
         # scale for display
-        vector = (int(vector[0] * VECTOR_SCALE), int(vector[1] * VECTOR_SCALE))
+        vector = (int(vector[0] * SCALE), int(vector[1] * SCALE))
         # y becomes axis inverted in pygame (top left screen is 0,0)
         vector = (vector[0], -vector[1])
         return vector    
@@ -124,7 +126,7 @@ class Visualizer(object):
                     self.user_click = pygame.mouse.get_pos()
                     self.user_click_field = self.unscale_pos(self.user_click)
                     for label, rect in self.buttons.items():
-                        if rect.collidepoint(mouse_pos):
+                        if rect.collidepoint(self.user_click):
                             # prints current location of mouse
                             print('button pressed: ' + label)
             start_time = time.time()
@@ -201,12 +203,12 @@ class Visualizer(object):
                 int(BALL_SIZE * SCALE)
             )
             # draw ball trajectory
-            dx, dy = self._gamestate.get_ball_velocity()
+            dx, dy = self.scale_vector(self._gamestate.get_ball_velocity())
             pygame.draw.line(
                 self._viewer,
                 TRAJECTORY_COLOR,
                 (x, y),
-                (x + dx*SCALE, y + dy*SCALE),
+                (x + dx, y + dy),
                 1
             )
             
@@ -217,11 +219,10 @@ class Visualizer(object):
 
         # Draw buttons :)
         for label, rect in self.buttons.items():
-            #myfont = pygame.font.SysFont('Comic Sans MS', 30)
-            #textsurface = myfont.render(label, False, (0, 0, 0))
-            #self._viewer.blit(textsurface)
-            pygame.draw
-            pygame.draw.rect(self._viewer, [0, 0, 100, 0.1], rect)
+            pygame.draw.rect(self._viewer, BUTTON_COLOR, rect)
+            myfont = pygame.font.SysFont('Arial', 30)
+            textsurface = myfont.render(label, False, BUTTON_TEXT_COLOR)
+            self._viewer.blit(textsurface, rect)
         
 
     def close(self):

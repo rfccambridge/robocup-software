@@ -148,9 +148,6 @@ class GameState(object):
         delta_pos = self.diff_pos(positions[0][1], positions[i][1])
         delta_time = (positions[0][0] - positions[i][0])
 
-        print(delta_pos)
-        print(delta_time)
-
         self.ball_velocity = self.scale_pos(delta_pos, 1 / delta_time)
         
         return self.ball_velocity

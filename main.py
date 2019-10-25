@@ -27,8 +27,8 @@ if __name__ == '__main__':
     vision.start()
     
     # spin up comms to send commands to robots
-#    comms = Comms(gamestate)
-#    comms.start_sending()
+    comms = Comms(gamestate)
+    comms.start_sending()
     
     # intialize algorithm module
     strategy = Strategy(gamestate)

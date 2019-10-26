@@ -202,7 +202,7 @@ class Visualizer(object):
                 (x, y),
                 int(BALL_SIZE * SCALE)
             )
-            # draw ball trajectory
+            # draw ball velocity
             dx, dy = self.scale_vector(self._gamestate.get_ball_velocity())
             pygame.draw.line(
                 self._viewer,
@@ -211,7 +211,14 @@ class Visualizer(object):
                 (x + dx, y + dy),
                 1
             )
-            
+            # draw where we think ball will be in 1s
+            x, y = self.scale_pos(self._gamestate.get_ball_pos_future(0))
+            pygame.draw.circle(
+                self._viewer,
+                (255, 0, 0),
+                (x, y),
+                int(BALL_SIZE * SCALE)
+            )     
 
         # draw user click location with a red 'X'
         if self.user_click:

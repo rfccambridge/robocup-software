@@ -23,18 +23,15 @@ class Robot(object):
         cmd = "{},{}".format(robot_id, CMD_KILL)
         self.comms.send(cmd)
 
-    def move(self, forward, lateral, w, ttl=0.5):
-        """Move forward, laterally, and rotation. Should be given as a int
-        from 0 to 255, with 255 being the fastest."""
+    def move(self, x, y, w, ttl=0.5):
+        """Move x, y, and rotation velocity. x, y are mm/s, 
+           and y is radians/s of the robot"""
         # Use -1 as first element to broadcast to all robots
         if time.time() - self.last_command_time > self.last_command_delay:
             self.last_command_time = time.time()
             robot_id = -1
-            f = int(np.clip(forward, -255, 255))
-            l = int(np.clip(lateral, -255, 255))
-            w = int(np.clip(w, -255, 255))
             time_ms = int(ttl * 1000.0)
-            cmd = "{},{},{},{},{},{}".format(robot_id, CMD_MOVE, l, f, w, time_ms)
+            cmd = "{},{},{},{},{},{}".format(robot_id, CMD_MOVE, x, y, w, time_ms)
             self.comms.send(cmd)
 
     def dribble(self, power):

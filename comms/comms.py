@@ -5,9 +5,9 @@ import numpy as np
 from .robot import Robot
 
 # default proportional scaling constant for distance differences
-SPEED_SCALE = .01
-DEFAULT_MAX_SPEED = 10
-DEFAULT_MIN_SPEED = 1
+SPEED_SCALE = 1.5
+DEFAULT_MAX_SPEED = 400
+DEFAULT_MIN_SPEED = 50
 # TODO: make rotation actually work
 ROTATION_SPEED_SCALE = 0
 

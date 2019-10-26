@@ -161,8 +161,8 @@ class GameState(object):
 
     def get_ball_pos_future(self, seconds):
         accel_constant = (-.5, -.5)
-#This is just a guess at the acceleration due to friction as the ball rolls. This number should be tuned empitically.
-        velocity_initial = ball_velocity(self.ball_positions)
+        # acceleration due to friction as the ball rolls. This number should be tuned empitically.
+        velocity_initial = self.get_ball_velocity(self._ball_positions)
         predicted_pos_change = sum_pos(scale(accel_constant, seconds * seconds), scale(velocity_initial, seconds))
         predicted_pos = sum_pos(predicted_pos_change, get_ball_position())
         return predicted_pos

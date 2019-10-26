@@ -130,6 +130,9 @@ class GameState(object):
 
         return (x,y)
 
+    def magnitude(self, veloc)
+        return ((veloc[0] ** 2 + veloc[1] ** 2) ** .5)
+
     def scale_pos(self, pos, factor):
         return (pos[0] * factor, pos[1] * factor)
 
@@ -163,9 +166,17 @@ class GameState(object):
 
 
     def get_ball_pos_future(self, seconds):
-        accel_constant = (-.5, -.5)
+        accel_magnitude = -.5
 #This is just a guess at the acceleration due to friction as the ball rolls. This number should be tuned empitically.
         velocity_initial = ball_velocity(self.ball_positions)
-        predicted_pos_change = sum_pos(scale(accel_constant, seconds * seconds), scale(velocity_initial, seconds))
-        predicted_pos = sum_pos(predicted_pos_change, get_ball_position())
+        accel_direction = scale_pos(velocity_initial, 1 / magnitude(velocity_initial))
+        accel = scale_pos(accel_direction, accel_magnitude)
+        if accel[0] * seconds + velocity_initial[0] < 0:
+            time_to_stop = -1 * velocity_initial[0] / accel[0]
+            get_ball_pos_future(time_to_stop)
+        else:
+            predicted_pos_change = sum_pos(scale(accel, seconds * seconds), scale(velocity_initial, seconds))
+            predicted_pos = sum_pos(predicted_pos_change, get_ball_position())
         return predicted_pos
+
+    

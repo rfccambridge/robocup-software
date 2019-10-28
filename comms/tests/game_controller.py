@@ -81,5 +81,5 @@ while True:
         print("KILL KILL KILL")
         continue
 
-    robot.move(speed_forward, speed_lateral, speed_rotation, COMMAND_TTL)
+    robot.move(speed_lateral, speed_forward, speed_rotation, COMMAND_TTL)
 

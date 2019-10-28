@@ -5,8 +5,8 @@ import numpy as np
 from .robot import Robot
 
 # default proportional scaling constant for distance differences
-SPEED_SCALE = 1.5
-DEFAULT_MAX_SPEED = 400
+SPEED_SCALE = .8
+DEFAULT_MAX_SPEED = 700
 DEFAULT_MIN_SPEED = 50
 # TODO: make rotation actually work
 ROTATION_SPEED_SCALE = 0
@@ -71,12 +71,14 @@ class Comms(object):
                 # normalized offsets from robot's perspective
                 norm_x, norm_y = self.normalize(og_w, delta)
                 norm_w = self.trim_angle(goal_w - og_w)
+
+                #print("dx: {}, dy: {}, dw: {}".format(norm_x, norm_y, norm_w))
                 
                 # move with speed proportional to delta
                 linear_speed = self.magnitude(delta) * SPEED_SCALE
                 linear_speed = min(min_speed + linear_speed, max_speed)
-                robot.move(linear_speed * norm_y,
-                           linear_speed * norm_x,
+                robot.move(linear_speed * norm_x,
+                           linear_speed * norm_y,
                            norm_w * ROTATION_SPEED_SCALE,
                            COMMAND_DURATION)
                 

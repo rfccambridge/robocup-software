@@ -40,6 +40,8 @@ class Comms(object):
         
         self._is_sending = True
         self._thread = threading.Thread(target=self.sending_loop)
+        # set to daemon mode so it will be easily killed
+        self._thread.daemon = True
         self._thread.start()
         
     def sending_loop(self):

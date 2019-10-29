@@ -97,10 +97,14 @@ class SSLVisionDataProvider(PositionDataProvider):
         self._ssl_vision_client = sslclient.client()
         self._ssl_vision_client.connect()
         self._ssl_vision_client_thread = DataThread(self._ssl_vision_client)
+        # set to daemon mode so it will be easily killed
+        self._ssl_vision_client_thread.daemon = True
         self._ssl_vision_client_thread.start()
         # BUG: sensible defaults when data hasn't loaded yet (@dinge)
         time.sleep(0.1)
         self._gamestate_update_thread = threading.Thread(target=self.gamestate_update_loop)
+        # set to daemon mode so it will be easily killed
+        self._gamestate_update_thread.daemon = True
         self._gamestate_update_thread.start()
 
     def stop(self):

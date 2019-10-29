@@ -111,6 +111,8 @@ class Visualizer(object):
     def start_visualizing(self):
         self._updating = True
         self._visualization_thread = threading.Thread(target=self.visualization_loop)
+        # set to daemon mode so it will be easily killed
+        self._visualization_thread.daemon = True
         self._visualization_thread.start()
 
     def visualization_loop(self):

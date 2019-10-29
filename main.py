@@ -23,8 +23,8 @@ if __name__ == '__main__':
     viz.start_visualizing()
     
     # spin up ssl-vision data polling to update gamestate
-    vision = SSLVisionDataProvider(gamestate)
-    vision.start()
+    #vision = SSLVisionDataProvider(gamestate)
+    #vision.start()
     
     # spin up comms to send commands to robots
     #comms = Comms(gamestate)
@@ -37,6 +37,8 @@ if __name__ == '__main__':
     goal_y = 1000
 
     while True:
+        # make sure prints from all threads get flushed to terminal
+        sys.stdout.flush()
         # set goal pos to click location on visualization window
         if viz.user_click_field:
             goal_x, goal_y = viz.user_click_field

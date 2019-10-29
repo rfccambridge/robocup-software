@@ -47,15 +47,17 @@ class GameState(object):
     def start_analyzing(self):
         self._is_analyzing = True
         self._analysis_thread = threading.Thread(target=self.analysis_loop)
+        # set to daemon mode so it will be easily killed
+        self._analysis_thread.daemon = True
         self._analysis_thread.start()
 
     def analysis_loop(self):
         while self._is_analyzing:
             # TODO: calculate from the position history
-            print(self._ball_position)
+            #print(self._ball_position)
             time.sleep(1)
             # yield to other threads - run this loop at most 20 times per second
-            #time.sleep(.05)
+            # time.sleep(.05)
 
     def stop_analyzing(self):
         self._is_analyzing = False

@@ -4,6 +4,7 @@ import numpy as np
 import threading
 from collections import deque
 from enum import Enum
+from .robot_commands import RobotCommands
 
 BALL_POS_HISTORY_LENGTH = 20
 BALL_LOST_TIME = .1
@@ -16,8 +17,8 @@ class GameState(object):
        Since we are using python, data types are specified in the comments below.
     """
     def __init__(self):
-        # NOTE: in general fields with underscores are "private" so
-        # should only be accessed through getter and setter methods
+        # NOTE: Fields starting with _underscore are "private" so
+        # should be accessed through getter and setter methods
 
         # RAW POSITION DATA (updated by vision data or simulator)
         # [most recent data is stored at the front of the queue]
@@ -30,11 +31,8 @@ class GameState(object):
         # TODO: include game states/events, such as time, score and ref events (see docs)
 
         # Commands data (desired robot actions)
-        # waypoint = (pos, min_speed, max_speed)
-        self.robot_waypoints = dict()  # Robot ID: [waypoint] (list of waypoints)
-        self.robot_dribblers = dict()  # Dict of dribbler speeds for robot_id
-        self.robot_chargings = dict()  # Dict of kicker charging (bool) for robot_id
-        self.robot_kicks = dict()  # Dict of kicker discharging commands (bool) for robot_id
+        self._blue_robot_commands = dict() # Robot ID: command object
+        self._yellow_robot_commands = dict() # Robot ID: command object
 
         # TODO: cached analysis data (i.e. ball trajectory)
         # this can be later, for now just build the functions
@@ -128,6 +126,16 @@ class GameState(object):
         if last_update_time is None:
             return True
         return time.time() - last_update_time > ROBOT_LOST_TIME
+
+    def get_robot_commands(self, team, robot_id):
+        if team == 'blue':
+            return self._blue_robot_commands.get(robot_id, RobotCommands())
+        else:
+            assert(team == 'yellow')
+            return self._yellow_robot_commands.get(robot_id, RobotCommands())
+
+    def set_robot_waypoints(self, pos):
+        self._ball_position.appendleft((time.time(), pos))
 
     # ANALYSIS FUNCTIONS
     # basic helper functions - should these be elsewhere?

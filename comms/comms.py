@@ -47,7 +47,9 @@ class Comms(object):
         
     def sending_loop(self):
         while self._is_sending:
-            for robot_id, waypoints in self._gamestate.robot_waypoints.items():
+            for robot_id in self._gamestate.get_robot_ids('blue'):
+                robot_commands = self._gamestate.get_robot_commands('blue', robot_id)
+                waypoints = robot_commands.waypoints
                 if robot_id not in self._robots:
                     print("Commanding a Robot that was not connected when initializing")
                     print("(not seen by vision) - trying to connect now...")
@@ -84,9 +86,9 @@ class Comms(object):
                            linear_speed * norm_y,
                            norm_w * ROTATION_SPEED_SCALE,
                            COMMAND_DURATION)
-                
-            for robot_id, dribbler_speed in self._gamestate.robot_dribblers.items():
-                robot = self._robots[robot_id]
+
+                # send dribbler commands
+                dribbler_speed = robot_commands.dribbler
                 if dribbler_speed != self._robot_dribblers[robot_id]:
                     self._robot_dribblers[robot_id] = dribbler_speed
                     robot.dribble(dribbler_speed)

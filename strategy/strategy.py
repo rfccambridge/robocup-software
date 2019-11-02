@@ -8,12 +8,14 @@ class Strategy(object):
     """Logic for playing the game. Uses data from gamestate to calculate desired
        robot actions, and enters commands into the gamestate to be sent by comms"""
     def __init__(self, gamestate):
+        self._team = 'blue'
         self._gamestate = gamestate
 
     # TODO: orient rotation?
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):
-        self._gamestate.robot_waypoints[robot_id] = [(goal_pos, None, None)]
+        robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        robot_commands.waypoints = [(goal_pos, None, None)]
 
     # tell robot to move towards goal pos greedily while avoiding obstacles
     # TODO: eventually factor things into different libraries?
@@ -54,7 +56,8 @@ class Strategy(object):
             pos = prev[pos]
         path.reverse()
         waypoints = [(pos, None, None) for pos in path]
-        self._gamestate.robot_waypoints[robot_id] = waypoints
+        robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        robot_commands.waypoints = waypoints
 
     def get_nearest_pos(graph, new_pos):
         rtn = None

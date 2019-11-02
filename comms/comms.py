@@ -7,7 +7,10 @@ from .robot import Robot
 
 # default proportional scaling constant for distance differences
 SPEED_SCALE = .8
-DEFAULT_MAX_SPEED = 700
+# Max speed from max power to motors => [free-spinning] 1090 mm/s (see firmware)
+# Reduce that by multiplying by min(sin(theta), cos(theta)) of wheels
+# Goal is to get upper bound on we can send and expect firmware to obey accurately
+DEFAULT_MAX_SPEED = 650 # pretty conservative, maybe we can be more aggressive?
 DEFAULT_MIN_SPEED = 50
 # TODO: make rotation actually work
 ROTATION_SPEED_SCALE = 0

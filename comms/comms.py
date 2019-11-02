@@ -4,6 +4,7 @@ import math
 import numpy as np
 from .robot import Robot
 
+
 # default proportional scaling constant for distance differences
 SPEED_SCALE = .8
 DEFAULT_MAX_SPEED = 700
@@ -35,7 +36,7 @@ class Comms(object):
             robot.die()
 
     def start_sending(self):
-        for robot_id in self._gamestate.get_blue_team_robot_ids():
+        for robot_id in self._gamestate.get_robot_ids('blue'):
             self._robots[robot_id] = Robot()
         
         self._is_sending = True
@@ -54,7 +55,7 @@ class Comms(object):
                     
                 robot = self._robots[robot_id]
 
-                pos = self._gamestate.get_robot_position(robot_id)
+                pos = self._gamestate.get_robot_position(robot_id, 'blue')
                 # stop the robot if we've lost track of it
                 if self._gamestate.is_robot_lost(robot_id):
                     robot.move(0, 0, 0, COMMAND_DURATION)

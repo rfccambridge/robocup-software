@@ -1,6 +1,7 @@
 from comms import JohnRobot
 from .transform import RealWorldCoordTransformer
 
+
 ROBOT_ID = 8
 
 # default proportional scaling constant for distance differences
@@ -32,12 +33,11 @@ class Commands(object):
             print("robot not available")
             return False
         
-        if robot_id not in self.gamestate.robot_positions:
+        if robot_id not in self.gamestate.get_robot_ids('blue')
             print("robot not seen")
             return False
         
-        robot = self.robots[robot_id]
-        pos = self.gamestate.robot_positions[robot_id]
+        pos = self.gamestate.get_robot_position('blue', robot_id)
         og_x, og_y, og_w = pos
         goal_x, goal_y = goal_pos
         delta = (goal_x - og_x, goal_y - og_y)

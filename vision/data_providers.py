@@ -74,10 +74,14 @@ class SSLVisionDataProvider(PositionDataProvider):
     def gamestate_update_loop(self):
         while self._is_running:
             # update positions of all (blue team) robots seen by data feed
-            robot_positions = self.get_robot_positions()
+            robot_positions = self.get_robot_positions(Team.blue)
             for robot_id, pos in robot_positions.items():
                 loc = pos.x, pos.y, pos.orientation
-                self._gamestate.update_robot_position(robot_id, loc)
+                self._gamestate.update_robot_position('blue', robot_id, loc)
+            robot_positions = self.get_robot_positions(Team.yellow)
+            for robot_id, pos in robot_positions.items():
+                loc = pos.x, pos.y, pos.orientation
+                self._gamestate.update_robot_position(Team.yellow, robot_id, loc)  
             # update position of the ball
             ball_data = self.get_ball_position()
             if ball_data:
@@ -126,6 +130,7 @@ class SSLVisionDataProvider(PositionDataProvider):
         if team == 'blue':
             team_data = raw_data.robots_blue
         else:
+            assert(team == 'yellow')
             team_data = raw_data.robots_yellow
         robot_positions = {}
         for robot_data in team_data:

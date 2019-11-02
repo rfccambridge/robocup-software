@@ -3,7 +3,7 @@ import time
 import numpy as np
 import threading
 from collections import deque
-from vision import SSLVisionDataProvider
+from enum import Enum
 
 BALL_POS_HISTORY_LENGTH = 20
 BALL_LOST_TIME = .1
@@ -11,10 +11,9 @@ ROBOT_POS_HISTORY_LENGTH = 20
 ROBOT_LOST_TIME = .2
 
 class GameState(object):
-    """Game state contains all the relevant information in one place. Many
-       threads can edit or use the game state at once, cuz Python GIL
-       Since we are using python and types are flexible, a data formats will
-       be unofficially specified in the fields below.
+    """Game state contains all the relevant information in one place.
+       Many threads can edit and use the game state at once, cuz Python GIL
+       Since we are using python, data types are specified in the comments below.
     """
     def __init__(self):
         # NOTE: in general fields with underscores are "private" so
@@ -25,7 +24,8 @@ class GameState(object):
         # ball positions are in the form (x, y)
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH) # queue of (time, pos)
         # robot positions are (x, y, w) where w = rotation
-        self._robot_positions = dict() # Robot ID: queue of (time, pos)
+        self._blue_robot_positions = dict() # Robot ID: queue of (time, pos)
+        self._yellow_robot_positions = dict() # Robot ID: queue of (time, pos)
         # TODO: store both teams robots
         # TODO: include game states/events, such as time, score and ref events (see docs)
 
@@ -89,28 +89,38 @@ class GameState(object):
             return True
         return time.time() - last_update_time > BALL_LOST_TIME
 
-    def get_blue_team_robot_ids(self):
-        # UDPATE WHEN INCLUDE YELLOW TEAM
-        return tuple(self._robot_positions.keys())
+    def get_robot_positions(self, team):
+        if team == 'blue':
+            return self._blue_robot_positions
+        else:
+            assert(team == 'yellow')
+            return self._yellow_robot_positions
+
+    def get_robot_ids(self, team):
+        robot_positions = self.get_robot_positions(team)
+        return tuple(robot_positions.keys())
 
     # returns position robot was last seen at
-    def get_robot_position(self, robot_id):
-        if robot_id not in self._robot_positions:
+    def get_robot_position(self, team, robot_id):
+        robot_positions = self.get_robot_positions(team)
+        if robot_id not in robot_positions:
             # print("getting position of robot never seen?!?")
             return None
-        timestamp, pos = self._robot_positions[robot_id][0]
+        timestamp, pos = robot_positions[robot_id][0]
         return pos
 
-    def update_robot_position(self, robot_id, pos):
-        if robot_id not in self._robot_positions:
-            self._robot_positions[robot_id] = deque([], ROBOT_POS_HISTORY_LENGTH)
-        self._robot_positions[robot_id].appendleft((time.time(), pos))
+    def update_robot_position(self, team, robot_id, pos):
+        robot_positions = self.get_robot_positions(team)
+        if robot_id not in robot_positions:
+            robot_positions[robot_id] = deque([], ROBOT_POS_HISTORY_LENGTH)
+        robot_positions[robot_id].appendleft((time.time(), pos))
 
-    def get_robot_last_update_time(self, robot_id):
-        if robot_id not in self._robot_positions:
+    def get_robot_last_update_time(self, team, robot_id):
+        robot_positions = self.get_robot_positions(team)
+        if robot_id not in robot_positions:
             # print("getting update time of robot never seen?!?")
             return None
-        timestamp, pos = self._robot_positions[robot_id][0]
+        timestamp, pos = robot_positions[robot_id][0]
         return timestamp
 
     def is_robot_lost(self, robot_id):

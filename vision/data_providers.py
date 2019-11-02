@@ -74,14 +74,14 @@ class SSLVisionDataProvider(PositionDataProvider):
     def gamestate_update_loop(self):
         while self._is_running:
             # update positions of all (blue team) robots seen by data feed
-            robot_positions = self.get_robot_positions(Team.blue)
+            robot_positions = self.get_robot_positions('blue')
             for robot_id, pos in robot_positions.items():
                 loc = pos.x, pos.y, pos.orientation
                 self._gamestate.update_robot_position('blue', robot_id, loc)
-            robot_positions = self.get_robot_positions(Team.yellow)
+            robot_positions = self.get_robot_positions('yellow')
             for robot_id, pos in robot_positions.items():
                 loc = pos.x, pos.y, pos.orientation
-                self._gamestate.update_robot_position(Team.yellow, robot_id, loc)  
+                self._gamestate.update_robot_position('yellow', robot_id, loc)  
             # update position of the ball
             ball_data = self.get_ball_position()
             if ball_data:

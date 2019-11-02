@@ -174,7 +174,7 @@ class Visualizer(object):
         for robot_id in self._gamestate.get_robot_ids('blue'):
             pos = self._gamestate.get_robot_position('blue', robot_id)
             robot_color = ROBOT_COLOR
-            if self._gamestate.is_robot_lost(robot_id):
+            if self._gamestate.is_robot_lost('blue', robot_id):
                 robot_color = ROBOT_LOST_COLOR
             (x, y, w) = pos
             pygame.draw.circle(

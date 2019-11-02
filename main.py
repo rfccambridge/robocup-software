@@ -24,7 +24,7 @@ if __name__ == '__main__':
     
     # spin up ssl-vision data polling to update gamestate
     vision = SSLVisionDataProvider(gamestate)
-    #vision.start()
+    vision.start()
     
     # spin up comms to send commands to robots
     comms = Comms(gamestate)

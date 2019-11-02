@@ -121,8 +121,8 @@ class GameState(object):
         timestamp, pos = robot_positions[robot_id][0]
         return timestamp
 
-    def is_robot_lost(self, robot_id):
-        last_update_time = self.get_robot_last_update_time(robot_id)
+    def is_robot_lost(self, team, robot_id):
+        last_update_time = self.get_robot_last_update_time(team, robot_id)
         if last_update_time is None:
             return True
         return time.time() - last_update_time > ROBOT_LOST_TIME

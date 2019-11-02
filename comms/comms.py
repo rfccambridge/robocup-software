@@ -57,39 +57,40 @@ class Comms(object):
                     
                 robot = self._robots[robot_id]
 
-                pos = self._gamestate.get_robot_position(robot_id, 'blue')
+                pos = self._gamestate.get_robot_position('blue', robot_id)
                 # stop the robot if we've lost track of it
-                if self._gamestate.is_robot_lost(robot_id):
+                if self._gamestate.is_robot_lost('blue', robot_id):
                     robot.move(0, 0, 0, COMMAND_DURATION)
                     continue
                 og_x, og_y, og_w = pos
                 # if close enough to first waypoint, delete and move to next one
-                while len(waypoints) > 1 and self.close_enough(pos, waypoints[0]):
-                    waypoints.pop(0)
-                goal_pos, min_speed, max_speed = waypoints[0]
-                goal_x, goal_y, goal_w = goal_pos
-                if min_speed is None:
-                    min_speed = DEFAULT_MIN_SPEED
-                if max_speed is None:
-                    max_speed = DEFAULT_MAX_SPEED
-                delta = (goal_x - og_x, goal_y - og_y)
-                # normalized offsets from robot's perspective
-                norm_x, norm_y = self.normalize(og_w, delta)
-                norm_w = self.trim_angle(goal_w - og_w)
+                if waypoints:
+                    while len(waypoints) > 1 and self.close_enough(pos, waypoints[0]):
+                        waypoints.pop(0)
+                        goal_pos, min_speed, max_speed = waypoints[0]
+                        goal_x, goal_y, goal_w = goal_pos
+                    if min_speed is None:
+                        min_speed = DEFAULT_MIN_SPEED
+                    if max_speed is None:
+                        max_speed = DEFAULT_MAX_SPEED
+                        delta = (goal_x - og_x, goal_y - og_y)
+                        # normalized offsets from robot's perspective
+                    norm_x, norm_y = self.normalize(og_w, delta)
+                    norm_w = self.trim_angle(goal_w - og_w)
 
-                #print("dx: {}, dy: {}, dw: {}".format(norm_x, norm_y, norm_w))
-                
-                # move with speed proportional to delta
-                linear_speed = self.magnitude(delta) * SPEED_SCALE
-                linear_speed = min(min_speed + linear_speed, max_speed)
-                robot.move(linear_speed * norm_x,
-                           linear_speed * norm_y,
-                           norm_w * ROTATION_SPEED_SCALE,
-                           COMMAND_DURATION)
+                    #print("dx: {}, dy: {}, dw: {}".format(norm_x, norm_y, norm_w))
+
+                    # move with speed proportional to delta
+                    linear_speed = self.magnitude(delta) * SPEED_SCALE
+                    linear_speed = min(min_speed + linear_speed, max_speed)
+                    robot.move(linear_speed * norm_x,
+                               linear_speed * norm_y,
+                               norm_w * ROTATION_SPEED_SCALE,
+                               COMMAND_DURATION)
 
                 # send dribbler commands
-                dribbler_speed = robot_commands.dribbler
-                if dribbler_speed != self._robot_dribblers[robot_id]:
+                dribbler_speed = robot_commands.dribbler_speed
+                if dribbler_speed != self._robot_dribblers.get(robot_id, None):
                     self._robot_dribblers[robot_id] = dribbler_speed
                     robot.dribble(dribbler_speed)
 

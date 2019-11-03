@@ -58,9 +58,10 @@ class GameState(object):
             # time.sleep(.05)
 
     def stop_analyzing(self):
-        self._is_analyzing = False
-        self._analysis_thread.join()
-        self._analysis_thread = None
+        if self._is_analyzing:
+            self._is_analyzing = False
+            self._analysis_thread.join()
+            self._analysis_thread = None
 
     # RAW DATA GET/SET FUNCTIONS
     # returns position ball was last seen at

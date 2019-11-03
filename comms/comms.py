@@ -118,9 +118,11 @@ class Comms(object):
         return (dx + dy) ** .5 < DISTANCE_THRESHOLD
 
     def stop_sending(self):
-        self._is_sending = False
-        self._thread.join()
-        self._thread = None
+        if self._is_sending:
+            self._is_sending = False
+            self._thread.join()
+            self.die()
+            self._thread = None
 
     # coordinate math helper functions
     def normalize(self, w_robot, vector):

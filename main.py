@@ -1,4 +1,6 @@
 import sys
+import signal
+import traceback
 import time
 import numpy as np
 import logging
@@ -17,15 +19,15 @@ if __name__ == '__main__':
 
     # initialize gamestate
     gamestate = GameState()
-    #gamestate.start_analyzing()
+    gamestate.start_analyzing()
 
     # spin up visualization to show robots on screen
-    viz = Visualizer(gamestate)
-    viz.start_visualizing()
+    visualizer = Visualizer(gamestate)
+    visualizer.start_visualizing()
     
     # spin up ssl-vision data polling to update gamestate
     vision = SSLVisionDataProvider(gamestate)
-    # vision.start()
+    # vision.start_updating()
     
     # spin up comms to send commands to robots
     comms = Comms(gamestate, 'blue')
@@ -41,15 +43,27 @@ if __name__ == '__main__':
 
     goal_x = 3000
     goal_y = 1000
-    print('press Ctrl-c a bunch of times to quit (if frozen try real shell?)')
+
+    def exit_gracefully(signum, frame):
+        print('Exiting Everything')
+        # clean up all threads
+        gamestate.stop_analyzing()
+        visualizer.stop_visualizing()
+        vision.stop_updating()
+        comms.stop_sending()
+        simulator.stop_simulating()
+        sys.exit()
+    signal.signal(signal.SIGINT, exit_gracefully)
+
+    print('Ctrl-c repeatedly to quit')
 
     try:
         while True:
             # make sure prints from all threads get flushed to terminal
             sys.stdout.flush()
             # set goal pos to click location on visualization window
-            if viz.user_click_field:
-                goal_x, goal_y = viz.user_click_field
+            if visualizer.user_click_field:
+                goal_x, goal_y = visualizer.user_click_field
 
             # tell robot to go straight towards goal position
             strategy.move_straight(8, (goal_x, goal_y, 0))
@@ -60,14 +74,6 @@ if __name__ == '__main__':
 
             # yield to other threads
             time.sleep(0)
-    except Exception as e:
-        print(e)
-        # clean up comms
-        strategy.die()
-
-        # clean up threads
-        viz.stop_visualizing()
-        vision.stop()
-        comms.stop_sending()
-        gamestate.stop_updating()
-        simulator.stop_simulating()
+    except Exception:
+        print('Unexpected Error!')
+        print(traceback.format_exc())

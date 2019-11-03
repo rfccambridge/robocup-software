@@ -141,13 +141,14 @@ class Visualizer(object):
             # yield to other threads - run this loop at most 20 times per second
             # is this the same as pygame.clock.tick()?
             time.sleep(.05)
-
-        pygame.quit()        
+        print("Exiting Pygame")
+        pygame.quit()
 
     def stop_visualizing(self):
-        self._updating = False
-        self._visualization_thread.join()
-        self._visualization_thread = None
+        if self._updating:
+            self._updating = False
+            self._visualization_thread.join()
+            self._visualization_thread = None
 
     def render(self):
         assert(self._viewer is not None)

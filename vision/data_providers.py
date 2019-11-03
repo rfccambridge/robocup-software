@@ -97,7 +97,7 @@ class SSLVisionDataProvider(PositionDataProvider):
             # yield to other threads - run this loop at most 100 times per second
             time.sleep(.01)
         
-    def start(self):
+    def start_updating(self):
         self._is_running = True
         self._ssl_vision_client = sslclient.client()
         self._ssl_vision_client.connect()
@@ -112,13 +112,14 @@ class SSLVisionDataProvider(PositionDataProvider):
         self._gamestate_update_thread.daemon = True
         self._gamestate_update_thread.start()
 
-    def stop(self):
-        self._is_running = False
-        self._gamestate_update_hread.join()
-        self._gamestate_update_thread = None
-        self._ssl_vision_client_thread.stop()
-        self._ssl_vision_client_thread.join()
-        self._ssl_vision_client = None
+    def stop_updating(self):
+        if self._is_running:
+            self._is_running = False
+            self._gamestate_update_thread.join()
+            self._gamestate_update_thread = None
+            self._ssl_vision_client_thread.stop()
+            self._ssl_vision_client_thread.join()
+            self._ssl_vision_client = None
 
     def get_raw_detection_data(self):
         return self._ssl_vision_client_thread.detection_cache

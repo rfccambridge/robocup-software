@@ -18,6 +18,8 @@ LINE_COLOR = (255, 255, 255)
 ROBOT_SIZE = 90 # mm
 ROBOT_COLOR = (0, 0, 0)
 ROBOT_LOST_COLOR = (200, 200, 200)
+BLUE_TEAM_COLOR = (0, 0, 255)
+YELLOW_TEAM_COLOR = (255, 255, 0)
 
 BALL_SIZE = 21 # mm
 BALL_COLOR = (255, 125, 0)
@@ -171,30 +173,39 @@ class Visualizer(object):
         )
 
         # Draw all the robots - TODO: draw both teams, with distinguishment
-        for robot_id in self._gamestate.get_robot_ids('blue'):
-            pos = self._gamestate.get_robot_position('blue', robot_id)
-            robot_color = ROBOT_COLOR
-            if self._gamestate.is_robot_lost('blue', robot_id):
-                robot_color = ROBOT_LOST_COLOR
-            (x, y, w) = pos
-            pygame.draw.circle(
-                self._viewer,
-                robot_color,
-                self.scale_pos((x, y)),
-                int(ROBOT_SIZE * SCALE)
-            )
-            # indicate direction of robot
-            arrow_scale = int(ROBOT_SIZE * SCALE) * 5
-            pygame.draw.line(
-                self._viewer,
-                (255, 0, 0),
-                self.scale_pos((x, y)),
-                self.scale_pos((x + math.cos(w) * arrow_scale, y + math.sin(w) * arrow_scale)),
-                2
-            )
+        for team in ['blue', 'yellow']:
+            team_color = BLUE_TEAM_COLOR if team == 'blue' else YELLOW_TEAM_COLOR
+            for robot_id in self._gamestate.get_robot_ids(team):
+                pos = self._gamestate.get_robot_position(team, robot_id)
+                robot_color = ROBOT_COLOR
+                if self._gamestate.is_robot_lost(team, robot_id):
+                    robot_color = ROBOT_LOST_COLOR
+                    (x, y, w) = pos
+                    pygame.draw.circle(
+                        self._viewer,
+                        robot_color,
+                        self.scale_pos((x, y)),
+                        int(ROBOT_SIZE * SCALE)
+                    )
+                    # draw team indicator - TODO: also id?
+                    pygame.draw.circle(
+                        self._viewer,
+                        team_color,
+                        self.scale_pos((x, y)),
+                        int(ROBOT_SIZE * SCALE * 0.2)
+                    )
 
-            # TODO: draw commands + analyzed trajectories for this robot
+                # indicate direction of robot
+                arrow_scale = int(ROBOT_SIZE * SCALE) * 5
+                pygame.draw.line(
+                    self._viewer,
+                    (255, 0, 0),
+                    self.scale_pos((x, y)),
+                    self.scale_pos((x + math.cos(w) * arrow_scale, y + math.sin(w) * arrow_scale)),
+                    2
+                )
 
+                # TODO: draw commands + analyzed trajectories for this robot
 
         # Draw ball
         if not self._gamestate.is_ball_lost():

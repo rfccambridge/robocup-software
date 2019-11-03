@@ -31,9 +31,10 @@ if __name__ == '__main__':
     
     # spin up comms to send commands to robots
     comms = Comms(gamestate, 'blue')
-    comms.start_sending()
+    # comms.start_sending()
+    comms.start_receiving()
 
-    #simulator = Simulator(gamestate)
+    simulator = Simulator(gamestate)
     #simulator.start_simulating()
     #simulator.put_fake_ball((0, 0))
     #simulator.put_fake_robot('blue', 8, (100, 100, 0))
@@ -51,6 +52,7 @@ if __name__ == '__main__':
         visualizer.stop_visualizing()
         vision.stop_updating()
         comms.stop_sending()
+        comms.stop_receiving()
         simulator.stop_simulating()
         sys.exit()
     signal.signal(signal.SIGINT, exit_gracefully)

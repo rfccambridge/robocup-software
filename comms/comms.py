@@ -3,6 +3,7 @@ import time
 import math
 import numpy as np
 from .robot import Robot
+from .omni import OmniComms
 
 
 # default proportional scaling constant for distance differences
@@ -33,10 +34,16 @@ class Comms(object):
         self._robot_chargings = dict()  # Dict of previously sent kicker chargings for robot_id
         
         self._is_sending = False
-        self._thread = None
+        self._sending_thread = None
         self._last_sent_time = None
 
+        self._is_receiving = False
+        self._receiving_thread = None
+        self._messages_received = []
+        self._comms = OmniComms()
+
     def die(self):
+        self._comms.close()
         for robot in self._robots:
             robot.die()
 
@@ -45,10 +52,17 @@ class Comms(object):
             self._robots[robot_id] = Robot()
         
         self._is_sending = True
-        self._thread = threading.Thread(target=self.sending_loop)
+        self._sending_thread = threading.Thread(target=self.sending_loop)
         # set to daemon mode so it will be easily killed
-        self._thread.daemon = True
-        self._thread.start()
+        self._sending_thread.daemon = True
+        self._sending_thread.start()
+
+    def start_receiving(self):
+        self._is_receiving = True
+        self._receiving_thread = threading.Thread(target=self.receiving_loop)
+        # set to daemon mode so it will be easily killed
+        self._receiving_thread.daemon = True
+        self._receiving_thread.start()        
         
     def sending_loop(self):
         while self._is_sending:
@@ -103,7 +117,20 @@ class Comms(object):
             if self._last_sent_time is not None:
                 delta = time.time() - self._last_sent_time
                 if delta > .3:
-                    print("Comms loop unexpectedly large delay: " + str(delta))
+                    print("Comms sending loop unexpectedly large delay: " + str(delta))
+            self._last_sent_time = time.time()
+            # yield to other threads - run this loop at most 20 times per second
+            time.sleep(.05)
+
+    def receiving_loop(self):
+        while self._is_receiving:
+            # TODO: save messages for log
+            print(self._comms.read())
+            # TODO: update relevant data into gamestate
+            if self._last_sent_time is not None:
+                delta = time.time() - self._last_sent_time
+                if delta > .3:
+                    print("Comms receiving loop unexpectedly large delay: " + str(delta))
             self._last_sent_time = time.time()
             # yield to other threads - run this loop at most 20 times per second
             time.sleep(.05)
@@ -120,9 +147,16 @@ class Comms(object):
     def stop_sending(self):
         if self._is_sending:
             self._is_sending = False
-            self._thread.join()
+            self._sending_thread.join()
             self.die()
-            self._thread = None
+            self._sending_thread = None
+
+    def stop_receiving(self):
+        if self._is_receiving:
+            self._is_receiving = False
+            self._receiving_thread.join()
+            self.die()
+            self._receiving_thread = None
 
     # coordinate math helper functions
     def normalize(self, w_robot, vector):

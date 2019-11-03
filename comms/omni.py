@@ -48,6 +48,12 @@ class OmniComms(object):
             except XBeeException as xbee_exp:
                 print(str(xbee_exp))
 
+    def read(self):
+        for remote_device in self.net_devs:
+            try:
+                return self.device.read_data()
+            except XBeeException as xbee_exp:
+                print(str(xbee_exp))
 
     def close(self):
         if self.device.is_open():

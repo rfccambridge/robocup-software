@@ -163,7 +163,6 @@ class GameState(object):
 
     # Here we find ball velocities from ball position data
     def get_ball_velocity(self):
-
         prev_velocity = self.ball_velocity
 
         positions = self._ball_position
@@ -174,7 +173,6 @@ class GameState(object):
         # 0 is most recent!!!
         while i < len(positions) - 1 and  positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
             i += 1
-
         delta_pos = self.diff_pos(positions[0][1], positions[i][1])
         delta_time = (positions[0][0] - positions[i][0])
 
@@ -186,8 +184,11 @@ class GameState(object):
     # TODO: test this function!
     def get_ball_pos_future(self, seconds):
         accel_magnitude = -.5
-#This is just a guess at the acceleration due to friction as the ball rolls. This number should be tuned empitically.
+        #This is just a guess at the acceleration due to friction as the ball rolls. This number should be tuned empitically.
         velocity_initial = self.get_ball_velocity()
+        # dumb check to prevent erroring out, think of something nicer
+        if velocity_initial == (0, 0):
+            return (self.get_ball_position())
         accel_direction = self.scale_pos(velocity_initial, 1 / self.magnitude(velocity_initial))
         accel = self.scale_pos(accel_direction, accel_magnitude)
         if accel[0] * seconds + velocity_initial[0] < 0:
@@ -197,7 +198,4 @@ class GameState(object):
                                             self.scale_pos(velocity_initial, seconds))
         predicted_pos = self.sum_pos(predicted_pos_change, self.get_ball_position())
         return predicted_pos
-
-    #deque([(1572297310.7425327, (1241.970703125, 260.6355285644531)), (1572297310.7324636, (1218.429443359375, 252.887451171875)), (1572297310.7223923, (1218.429443359375, 252.887451171875)), (1572297310.7123, (1182.462158203125, 244.92494201660156)), (1572297310.7022493, (1182.462158203125, 244.92494201660156)), (1572297310.6921763, (1125.27978515625, 245.63365173339844)), (1572297310.6820886, (1125.27978515625, 245.63365173339844)), (1572297310.6720102, (1108.6162109375, 254.580322265625)), (1572297310.6619406, (1108.6162109375, 254.580322265625)), (1572297310.6518548, (1071.0198974609375, 252.38209533691406)), (1572297310.6417856, (1071.0198974609375, 252.38209533691406)), (1572297310.631708, (1025.57373046875, 246.82630920410156)), (1572297310.6216369, (1025.57373046875, 246.82630920410156)), (1572297310.6115437, (985.090087890625, 248.5403594970703)), (1572297310.6014657, (985.090087890625, 248.5403594970703)), (1572297310.59138, (944.6881713867188, 246.3601837158203)), (1572297310.581291, (944.6881713867188, 246.3601837158203)), (1572297310.5712094, (896.4560546875, 241.21607971191406)), (1572297310.5611184, (855.451904296875, 246.6865997314453)), (1572297310.5510397, (855.451904296875, 246.6865997314453))], maxlen=20)
-
     

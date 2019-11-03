@@ -174,27 +174,19 @@ class Visualizer(object):
 
         # Draw all the robots - TODO: draw both teams, with distinguishment
         for team in ['blue', 'yellow']:
-            team_color = BLUE_TEAM_COLOR if team == 'blue' else YELLOW_TEAM_COLOR
+            
             for robot_id in self._gamestate.get_robot_ids(team):
                 pos = self._gamestate.get_robot_position(team, robot_id)
-                robot_color = ROBOT_COLOR
+                robot_color = BLUE_TEAM_COLOR if team == 'blue' else YELLOW_TEAM_COLOR
                 if self._gamestate.is_robot_lost(team, robot_id):
                     robot_color = ROBOT_LOST_COLOR
-                    (x, y, w) = pos
-                    pygame.draw.circle(
-                        self._viewer,
-                        robot_color,
-                        self.scale_pos((x, y)),
-                        int(ROBOT_SIZE * SCALE)
-                    )
-                    # draw team indicator - TODO: also id?
-                    pygame.draw.circle(
-                        self._viewer,
-                        team_color,
-                        self.scale_pos((x, y)),
-                        int(ROBOT_SIZE * SCALE * 0.2)
-                    )
-
+                (x, y, w) = pos
+                pygame.draw.circle(
+                    self._viewer,
+                    robot_color,
+                    self.scale_pos((x, y)),
+                    int(ROBOT_SIZE * SCALE)
+                )
                 # indicate direction of robot
                 arrow_scale = int(ROBOT_SIZE * SCALE) * 5
                 pygame.draw.line(

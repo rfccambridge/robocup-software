@@ -33,13 +33,15 @@ if __name__ == '__main__':
 
     simulator = Simulator(gamestate)
     simulator.start_simulating()
+    simulator.put_fake_ball((0, 0))
+    simulator.put_fake_robot('blue', 8, (100, 100, 0))
     
     # intialize algorithm module
     strategy = Strategy(gamestate, 'blue')
 
     goal_x = 3000
     goal_y = 1000
-    print('press Ctrl-c ~6 times to quit')
+    print('press Ctrl-c a bunch of times to quit (if frozen try real shell?)')
 
     try:
         while True:

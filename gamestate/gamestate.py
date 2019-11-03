@@ -194,7 +194,8 @@ class GameState(object):
         accel = self.scale_pos(accel_direction, accel_magnitude)
         if accel[0] * seconds + velocity_initial[0] < 0:
             time_to_stop = -1 * velocity_initial[0] / accel[0]
-            return self.get_ball_pos_future(time_to_stop)
+            return (0, 0) # TOOD: infinite recursion right now
+            # return self.get_ball_pos_future(time_to_stop)
         predicted_pos_change = self.sum_pos(self.scale_pos(accel, seconds * seconds),
                                             self.scale_pos(velocity_initial, seconds))
         predicted_pos = self.sum_pos(predicted_pos_change, self.get_ball_position())

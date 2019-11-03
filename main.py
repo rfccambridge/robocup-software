@@ -27,16 +27,16 @@ if __name__ == '__main__':
     
     # spin up ssl-vision data polling to update gamestate
     vision = SSLVisionDataProvider(gamestate)
-    # vision.start_updating()
+    vision.start_updating()
     
     # spin up comms to send commands to robots
     comms = Comms(gamestate, 'blue')
-    # comms.start_sending()
+    comms.start_sending()
 
-    simulator = Simulator(gamestate)
-    simulator.start_simulating()
-    simulator.put_fake_ball((0, 0))
-    simulator.put_fake_robot('blue', 8, (100, 100, 0))
+    #simulator = Simulator(gamestate)
+    #simulator.start_simulating()
+    #simulator.put_fake_ball((0, 0))
+    #simulator.put_fake_robot('blue', 8, (100, 100, 0))
     
     # intialize algorithm module
     strategy = Strategy(gamestate, 'blue')

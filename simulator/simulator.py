@@ -35,7 +35,6 @@ class Simulator(object):
         
     def simulation_loop(self):
         while self._is_simulating:
-            assert(False)
             # TODO: insert new ball positions according to prediction
             ball_pos = self._gamestate.get_ball_position()
             if ball_pos is not None:
@@ -55,7 +54,7 @@ class Simulator(object):
             time.sleep(.05)
 
     def stop_simulating(self):
-        if self._is_simulating is not None:
+        if self._is_simulating:
             self._is_simulating = False
             self._thread.join()
             self._thread = None

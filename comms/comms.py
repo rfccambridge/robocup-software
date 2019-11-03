@@ -23,8 +23,10 @@ class Comms(object):
     """Comms class spins a thread to repeated send the commands stored in
        gamestate to the robots via radio"""
     # TODO: when we get multiple comms, connect to all robots that are available
-    def __init__(self, gamestate):
+    def __init__(self, gamestate, team):
         self._gamestate = gamestate
+        assert(team in ['blue', 'yellow'])
+        self._team = team
         self._robots = dict() # dict from id to robot (comms class)
         # store previously sent commands to reduce redundant commands
         self._robot_dribblers = dict()  # Dict of previously sent dribbler speeds for robot_id
@@ -39,7 +41,7 @@ class Comms(object):
             robot.die()
 
     def start_sending(self):
-        for robot_id in self._gamestate.get_robot_ids('blue'):
+        for robot_id in self._gamestate.get_robot_ids(self._team):
             self._robots[robot_id] = Robot()
         
         self._is_sending = True
@@ -50,8 +52,8 @@ class Comms(object):
         
     def sending_loop(self):
         while self._is_sending:
-            for robot_id in self._gamestate.get_robot_ids('blue'):
-                robot_commands = self._gamestate.get_robot_commands('blue', robot_id)
+            for robot_id in self._gamestate.get_robot_ids(self._team):
+                robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
                 waypoints = robot_commands.waypoints
                 if robot_id not in self._robots:
                     print("Commanding a Robot that was not connected when initializing")
@@ -60,9 +62,9 @@ class Comms(object):
                     
                 robot = self._robots[robot_id]
 
-                pos = self._gamestate.get_robot_position('blue', robot_id)
+                pos = self._gamestate.get_robot_position(self._team, robot_id)
                 # stop the robot if we've lost track of it
-                if self._gamestate.is_robot_lost('blue', robot_id):
+                if self._gamestate.is_robot_lost(self._team, robot_id):
                     robot.move(0, 0, 0, COMMAND_DURATION)
                     continue
                 og_x, og_y, og_w = pos

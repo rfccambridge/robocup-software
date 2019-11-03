@@ -28,17 +28,18 @@ if __name__ == '__main__':
     # vision.start()
     
     # spin up comms to send commands to robots
-    comms = Comms(gamestate)
+    comms = Comms(gamestate, 'blue')
     # comms.start_sending()
 
     simulator = Simulator(gamestate)
     simulator.start_simulating()
     
     # intialize algorithm module
-    strategy = Strategy(gamestate)
+    strategy = Strategy(gamestate, 'blue')
 
     goal_x = 3000
     goal_y = 1000
+    print('press Ctrl-c ~6 times to quit')
 
     try:
         while True:

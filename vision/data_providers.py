@@ -78,6 +78,7 @@ class SSLVisionDataProvider(PositionDataProvider):
             for robot_id, pos in robot_positions.items():
                 loc = pos.x, pos.y, pos.orientation
                 self._gamestate.update_robot_position('blue', robot_id, loc)
+            # update positions of all (yellow team) robots seen by data feed
             robot_positions = self.get_robot_positions('yellow')
             for robot_id, pos in robot_positions.items():
                 loc = pos.x, pos.y, pos.orientation

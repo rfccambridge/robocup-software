@@ -17,6 +17,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)
     VERBOSE = False
 
+    print('Spinning up Threads...')
     # initialize gamestate
     gamestate = GameState()
     gamestate.start_analyzing()
@@ -31,8 +32,8 @@ if __name__ == '__main__':
     
     # spin up comms to send commands to robots
     comms = Comms(gamestate, 'blue')
-    # comms.start_sending()
-    comms.start_receiving()
+    comms.start_sending()
+    # comms.start_receiving()
 
     simulator = Simulator(gamestate)
     #simulator.start_simulating()
@@ -45,7 +46,13 @@ if __name__ == '__main__':
     goal_x = 3000
     goal_y = 1000
 
+    exit_signal_received = False
     def exit_gracefully(signum, frame):
+        global exit_signal_received
+        if exit_signal_received:
+            return
+        else:
+            exit_signal_received = True
         print('Exiting Everything')
         # clean up all threads
         gamestate.stop_analyzing()
@@ -53,10 +60,11 @@ if __name__ == '__main__':
         vision.stop_updating()
         comms.stop_sending_and_receiving()
         simulator.stop_simulating()
+        print('Done Cleaning Up All Threads')
         sys.exit()
     signal.signal(signal.SIGINT, exit_gracefully)
 
-    print('Ctrl-c repeatedly to quit')
+    print('Running! Ctrl-c repeatedly to quit')
 
     try:
         while True:
@@ -74,7 +82,7 @@ if __name__ == '__main__':
             # strategy.greedy_path_find(8, (goal_x, goal_y))
 
             # yield to other threads
-            time.sleep(0)
+            time.sleep(0.05)
     except Exception:
         print('Unexpected Error!')
         print(traceback.format_exc())

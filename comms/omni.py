@@ -21,6 +21,8 @@ import time
 
 DEFAULT_PORT = "/dev/ttyUSB0"
 DEFAULT_BAUD_RATE = 9600
+MAGIC_KEY = "42069,"  # Key to ensure that xbee message is not corrupted.
+                     # Match with firmware, should be put at start of message
 
 class OmniComms(object):
 
@@ -42,9 +44,10 @@ class OmniComms(object):
             raise RuntimeError("Cound not find any XBEE devices on network")
 
     def send(self, command):
+        print(command)
         for remote_device in self.net_devs:
             try:
-                self.device.send_data(remote_device, command + '\n')
+                self.device.send_data(remote_device, MAGIC_KEY + command + '\n')
             except XBeeException as xbee_exp:
                 print(str(xbee_exp))
 

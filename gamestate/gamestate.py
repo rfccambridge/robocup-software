@@ -130,10 +130,14 @@ class GameState(object):
 
     def get_robot_commands(self, team, robot_id):
         if team == 'blue':
-            return self._blue_robot_commands.get(robot_id, RobotCommands())
+            if robot_id not in self._blue_robot_commands:
+                self._blue_robot_commands[robot_id] = RobotCommands()
+            return self._blue_robot_commands[robot_id]
         else:
             assert(team == 'yellow')
-            return self._yellow_robot_commands.get(robot_id, RobotCommands())
+            if robot_id not in self._yellow_robot_commands:
+                self._yellow_robot_commands[robot_id] = RobotCommands()
+            return self._yellow_robot_commands[robot_id]
 
     def set_robot_waypoints(self, pos):
         self._ball_position.appendleft((time.time(), pos))

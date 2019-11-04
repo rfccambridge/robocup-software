@@ -20,8 +20,7 @@ ROTATION_SPEED_SCALE = 0
 # how long a command can be run without being updated
 COMMAND_DURATION = .2
 # limiting throughput of messages sent to robot
-COMMAND_THROTTLE_INTERVAL = .15
-COMMAND_THROTTLE_CAPACITY = 3
+COMMAND_DELAY = .15
 CMD_MOVE = 0
 CMD_DRIBBLE = 1
 CMD_KILL = 2
@@ -86,8 +85,8 @@ class Comms(object):
                 if waypoints:
                     while len(waypoints) > 1 and self.close_enough(pos, waypoints[0]):
                         waypoints.pop(0)
-                        goal_pos, min_speed, max_speed = waypoints[0]
-                        goal_x, goal_y, goal_w = goal_pos
+                    goal_pos, min_speed, max_speed = waypoints[0]
+                    goal_x, goal_y, goal_w = goal_pos
                     if min_speed is None:
                         min_speed = DEFAULT_MIN_SPEED
                     if max_speed is None:
@@ -187,11 +186,12 @@ class Comms(object):
     # sends command if throttle conditions are met, returns whether command was sent
     def try_send_command(self, robot_id, command_string):
         if robot_id not in self._robot_last_command_times:
-            self._robot_last_command_times[robot_id] = deque([], COMMAND_THROTTLE_CAPACITY)
-        earliest_time = self._robot_last_command_times[robot_id].
-        can_send = time.time() - self._robot_last_command_times[robot_id] > COMMAND_DELAY
+            can_send = True
+        else:
+            last_time = self._robot_last_command_times[robot_id]
+            can_send = time.time() - last_time > COMMAND_DELAY
         if can_send:
-            self.comms.send(command_string)
+            self._comms.send(command_string)
             self._robot_last_command_times[robot_id] = time.time()
         return can_send
 
@@ -201,7 +201,7 @@ class Comms(object):
         robot_id = -1
         cmd = "{},{}".format(robot_id, CMD_KILL)
         # for now, kill bypasses throughput restrictions
-        self.comms.send(cmd)
+        self._comms.send(cmd)
 
     def move_command(self, robot_id, x, y, w, ttl=0.5):
         """Move x, y, and rotation velocity - x, y are mm/s, 
@@ -209,14 +209,13 @@ class Comms(object):
         robot_id = -1 # TODO delete
         time_ms = int(ttl * 1000.0)
         cmd = "{},{},{},{},{},{}".format(robot_id, CMD_MOVE, x, y, w, time_ms)
-        self.try_send_command(cmd)
+        self.try_send_command(robot_id, cmd)
 
-    def dribble_command(self, robot_id, power):
+    def dribble_command(self, robot_id, dribbler_speed):
         # only send command if its a change in speed
-        if dribbler_speed != self._robot_dribblers.get(robot_id, None):                
-            robot_id = -1 # TODO delete
-            cmd = "{},{},{}".format(robot_id, CMD_DRIBBLE, power)
-            if self.try_send_command(cmd):
+        if dribbler_speed != self._robot_dribblers.get(robot_id, None):
+            cmd = "{},{},{}".format(robot_id, CMD_DRIBBLE, dribbler_speed)
+            if self.try_send_command(robot_id, cmd) and robot_id != -1:
                 self._robot_dribblers[robot_id] = dribbler_speed
 
     def kick_command(self, robot_id):

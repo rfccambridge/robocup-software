@@ -188,7 +188,8 @@ class GameState(object):
 
     # TODO: test this function!
     def get_ball_pos_future(self, seconds):
-        accel_magnitude = -.5
+        # 500 seems more accurate
+        accel_magnitude = -1000
         #This is just a guess at the acceleration due to friction as the ball rolls. This number should be tuned empitically.
         velocity_initial = self.get_ball_velocity()
         # dumb check to prevent erroring out, think of something nicer

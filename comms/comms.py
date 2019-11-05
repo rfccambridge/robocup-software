@@ -35,7 +35,7 @@ class Comms(object):
         assert(team in ['blue', 'yellow'])
         self._team = team
 
-        self._comms = OmniComms()
+        self._comms = None
 
         # store previously sent commands to reduce redundant commands
         self._robot_dribblers = dict()  # Dict of previously sent dribbler speeds for robot_id
@@ -53,9 +53,12 @@ class Comms(object):
 
 
     def die(self):
-        self._comms.close()
+        if self._comms is not None:
+            self._comms.close()
 
     def start_sending(self):
+        if self._comms is None:
+            self._comms = OmniComms()
         self._is_sending = True
         self._sending_thread = threading.Thread(target=self.sending_loop)
         # set to daemon mode so it will be easily killed
@@ -63,6 +66,8 @@ class Comms(object):
         self._sending_thread.start()
 
     def start_receiving(self):
+        if self._comms is None:
+            self._comms = OmniComms()
         self._is_receiving = True
         self._receiving_thread = threading.Thread(target=self.receiving_loop)
         # set to daemon mode so it will be easily killed

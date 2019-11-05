@@ -1,6 +1,7 @@
 import threading
 import time
 import math
+from collections import deque
 
 
 class Simulator(object):
@@ -22,8 +23,22 @@ class Simulator(object):
     def put_fake_ball(self, position):
         self._gamestate.update_ball_position(position)
 
-    # Some real-life collected ball data to use:
-        #deque([(1572297310.7425327, (1241.970703125, 260.6355285644531)), (1572297310.7324636, (1218.429443359375, 252.887451171875)), (1572297310.7223923, (1218.429443359375, 252.887451171875)), (1572297310.7123, (1182.462158203125, 244.92494201660156)), (1572297310.7022493, (1182.462158203125, 244.92494201660156)), (1572297310.6921763, (1125.27978515625, 245.63365173339844)), (1572297310.6820886, (1125.27978515625, 245.63365173339844)), (1572297310.6720102, (1108.6162109375, 254.580322265625)), (1572297310.6619406, (1108.6162109375, 254.580322265625)), (1572297310.6518548, (1071.0198974609375, 252.38209533691406)), (1572297310.6417856, (1071.0198974609375, 252.38209533691406)), (1572297310.631708, (1025.57373046875, 246.82630920410156)), (1572297310.6216369, (1025.57373046875, 246.82630920410156)), (1572297310.6115437, (985.090087890625, 248.5403594970703)), (1572297310.6014657, (985.090087890625, 248.5403594970703)), (1572297310.59138, (944.6881713867188, 246.3601837158203)), (1572297310.581291, (944.6881713867188, 246.3601837158203)), (1572297310.5712094, (896.4560546875, 241.21607971191406)), (1572297310.5611184, (855.451904296875, 246.6865997314453)), (1572297310.5510397, (855.451904296875, 246.6865997314453))], maxlen=20)
+    # adjust timestamps so it's like we've just seen the data
+    # assumes deque elements are in the form (timestamp, data)
+    def adjust_timestamps(self, deque_data):        
+        time_offset = time.time() - deque_data[0][0]
+        adjusted_data = deque([])
+        for timestamp, data in deque_data:
+            adjusted_data.append((timestamp + time_offset, data))
+        return adjusted_data
+        
+    def initialize_ball_move(self):
+        # bypass gamestate "private" variable >:O        
+        # Some real-life collected ball data when it was moving
+        ball_data = deque([
+            (1572297310.7425327, (1241.970703125, 260.6355285644531)), (1572297310.7324636, (1218.429443359375, 252.887451171875)), (1572297310.7223923, (1218.429443359375, 252.887451171875)), (1572297310.7123, (1182.462158203125, 244.92494201660156)), (1572297310.7022493, (1182.462158203125, 244.92494201660156)), (1572297310.6921763, (1125.27978515625, 245.63365173339844)), (1572297310.6820886, (1125.27978515625, 245.63365173339844)), (1572297310.6720102, (1108.6162109375, 254.580322265625)), (1572297310.6619406, (1108.6162109375, 254.580322265625)), (1572297310.6518548, (1071.0198974609375, 252.38209533691406)), (1572297310.6417856, (1071.0198974609375, 252.38209533691406)), (1572297310.631708, (1025.57373046875, 246.82630920410156)), (1572297310.6216369, (1025.57373046875, 246.82630920410156)), (1572297310.6115437, (985.090087890625, 248.5403594970703)), (1572297310.6014657, (985.090087890625, 248.5403594970703)), (1572297310.59138, (944.6881713867188, 246.3601837158203)), (1572297310.581291, (944.6881713867188, 246.3601837158203)), (1572297310.5712094, (896.4560546875, 241.21607971191406)), (1572297310.5611184, (855.451904296875, 246.6865997314453)), (1572297310.5510397, (855.451904296875, 246.6865997314453))
+        ], maxlen=20)
+        self._gamestate._ball_position = self.adjust_timestamps(ball_data)
 
 
     def start_simulating(self):
@@ -35,21 +50,25 @@ class Simulator(object):
         
     def simulation_loop(self):
         while self._is_simulating:
+            delta = 0
+            if self._last_step_time is not None:
+                delta = time.time() - self._last_step_time
+                if delta > .3:
+                    print("Simulation loop unexpectedly large delay: " + str(delta))
+            self._last_step_time = time.time()
+
             # TODO: insert new ball positions according to prediction
             ball_pos = self._gamestate.get_ball_position()
             if ball_pos is not None:
-                self._gamestate.update_ball_position(ball_pos)
+                new_ball_pos = self._gamestate.get_ball_pos_future(delta)
+                #print(self._gamestate.get_ball_velocity())
+                self._gamestate.update_ball_position(new_ball_pos)
             # TODO: insert new robot positions according to commands
             for team in ['blue', 'yellow']:
                 for robot_id in self._gamestate.get_robot_ids(team):
                     pos = self._gamestate.get_robot_position(team, robot_id)
                     self._gamestate.update_robot_position(team, robot_id, pos)
                     
-            if self._last_step_time is not None:
-                delta = time.time() - self._last_step_time
-                if delta > .3:
-                    print("Simulation loop unexpectedly large delay: " + str(delta))
-            self._last_step_time = time.time()
             # yield to other threads - run this loop at most 20 times per second
             time.sleep(.05)
 

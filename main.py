@@ -39,6 +39,7 @@ if __name__ == '__main__':
     #simulator.start_simulating()
     #simulator.put_fake_ball((0, 0))
     #simulator.put_fake_robot('blue', 8, (100, 100, 0))
+    #simulator.initialize_ball_move()
     
     # intialize algorithm module
     strategy = Strategy(gamestate, 'blue')

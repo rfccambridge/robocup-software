@@ -196,12 +196,18 @@ class GameState(object):
             return (self.get_ball_position())
         accel_direction = self.scale_pos(velocity_initial, 1 / self.magnitude(velocity_initial))
         accel = self.scale_pos(accel_direction, accel_magnitude)
+# we need to check if our acceleration would make the ball turn around. If this happens we will need to truncate
+# the time at the point where velocoty is zero.
         if accel[0] * seconds + velocity_initial[0] < 0:
             time_to_stop = -1 * velocity_initial[0] / accel[0]
-            return (0, 0) # TOOD: infinite recursion right now
+            predicted_pos_change = self.sum_pos(self.scale_pos(accel, time_to_stop ** 2),
+                                            self.scale_pos(velocity_initial, time_to_stop))
+            predicted_pos = self.sum_pos(predicted_pos_change, self.get_ball_position())
+            return predicted_pos
+            # TOOD: infinite recursion right now
             # return self.get_ball_pos_future(time_to_stop)
-        predicted_pos_change = self.sum_pos(self.scale_pos(accel, seconds * seconds),
+        else:
+            predicted_pos_change = self.sum_pos(self.scale_pos(accel, seconds ** 2),
                                             self.scale_pos(velocity_initial, seconds))
-        predicted_pos = self.sum_pos(predicted_pos_change, self.get_ball_position())
-        return predicted_pos
-    
+            predicted_pos = self.sum_pos(predicted_pos_change, self.get_ball_position())
+            return predicted_pos

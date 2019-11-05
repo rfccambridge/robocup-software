@@ -20,7 +20,7 @@ ROTATION_SPEED_SCALE = 0
 # how long a command can be run without being updated
 COMMAND_DURATION = .2
 # limiting throughput of messages sent to robot
-COMMAND_DELAY = .15
+COMMAND_DELAY = 0
 CMD_MOVE = 0
 CMD_DRIBBLE = 1
 CMD_KILL = 2
@@ -207,8 +207,8 @@ class Comms(object):
         """Move x, y, and rotation velocity - x, y are mm/s, 
            and y is radians/s of the robot"""
         robot_id = -1 # TODO delete
-        time_ms = int(ttl * 1000.0)
-        cmd = "{},{},{},{},{},{}".format(robot_id, CMD_MOVE, x, y, w, time_ms)
+        # TODO: no need for time to live?
+        cmd = "{},{},{:.0f},{:.0f},{:.2f}".format(robot_id, CMD_MOVE, x, y, w)
         self.try_send_command(robot_id, cmd)
 
     def dribble_command(self, robot_id, dribbler_speed):

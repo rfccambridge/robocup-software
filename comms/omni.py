@@ -44,12 +44,22 @@ class OmniComms(object):
             raise RuntimeError("Cound not find any XBEE devices on network")
 
     def send(self, command):
-        print(command)
         for remote_device in self.net_devs:
             try:
-                self.device.send_data(remote_device, MAGIC_KEY + command + '\n')
+                start = time.time()
+                # message length of 27 was .0001 ms send time, quickly increases when longer
+                # we suspect xbee is crappy at splitting up messages
+                # also time spikes when too many messages are sent? can we get beter xbee?
+                message = MAGIC_KEY + command + '\n'
+                self.device.send_data_async(remote_device, message)
+                delta = time.time() - start
+                if delta > .001:
+                    print("xbee send is taking a long time, message too long or rate too fast?")
+                    print("time taken: " + str(delta))
+                    print("message length: " + str(len(message)))
             except XBeeException as xbee_exp:
                 print(str(xbee_exp))
+
 
     def read(self):
         for remote_device in self.net_devs:

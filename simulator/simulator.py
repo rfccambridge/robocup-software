@@ -57,7 +57,7 @@ class Simulator(object):
                     print("Simulation loop unexpectedly large delay: " + str(delta))
             self._last_step_time = time.time()
 
-            # TODO: insert new ball positions according to prediction
+            # insert new ball positions according to prediction
             ball_pos = self._gamestate.get_ball_position()
             if ball_pos is not None:
                 new_ball_pos = self._gamestate.get_ball_pos_future(delta)

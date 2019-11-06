@@ -31,8 +31,8 @@ class GameState(object):
         # TODO: include game states/events, such as time, score and ref events (see docs)
 
         # Commands data (desired robot actions)
-        self._blue_robot_commands = dict() # Robot ID: command object
-        self._yellow_robot_commands = dict() # Robot ID: command object
+        self._blue_robot_commands = dict() # Robot ID: commands object
+        self._yellow_robot_commands = dict() # Robot ID: commands object
 
         # TODO: cached analysis data (i.e. ball trajectory)
         # this can be later, for now just build the functions

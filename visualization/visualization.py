@@ -233,6 +233,7 @@ class Visualizer(object):
 
         # Draw buttons :)
         for label, rect in self.buttons.items():
+            # TODO: produces false/misleading font errors when other things break
             pygame.draw.rect(self._viewer, BUTTON_COLOR, rect)
             myfont = pygame.font.SysFont('Arial', 30)
             textsurface = myfont.render(label, False, BUTTON_TEXT_COLOR)

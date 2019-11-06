@@ -18,15 +18,10 @@ class Strategy(object):
         robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
         robot_commands.waypoints = [(goal_pos, None, None)]
 
-    # tell robot to move towards goal pos greedily while avoiding obstacles
-    # TODO: eventually factor things into different libraries?
-    def greedy_path_find(self, robot_id, goal_pos):
-        waypoint = (goal_pos, None, None)
-        self.move_straight(robot_id, waypoint)
-        return True
-
     # RRT
     def RRT_path_find(self, robot_id, goal_pos, lim=1000):
+        print("TODO: UPDATE RRT FUNCTION")
+        assert(False)
         start_pos = self._gamestate.get_robot_position(robot_id)
         graph = {start_pos: []}
         prev = {start_pos: None}

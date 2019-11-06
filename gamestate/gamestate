@@ -1,0 +1,11 @@
+  /home/robocup/robocup-software/gamestate:
+  total used in directory 44 available 25192880
+  drwxrwxr-x 3 robocup robocup 4096 Nov  6 14:11 .
+  drwxrwxr-x 9 robocup robocup 4096 Nov  6 12:59 ..
+  -rw-rw-r-- 1 robocup robocup 8521 Nov  5 15:45 gamestate.py
+  -rw-rw-r-- 1 robocup robocup   33 Nov  2 15:58 __init__.py
+  drwxrwxr-x 2 robocup robocup 4096 Nov  5 15:58 __pycache__
+  -rw-rw-r-- 1 robocup robocup 1655 Nov  6 14:11 robot_commands.py
+  lrwxrwxrwx 1 robocup robocup   31 Nov  6 14:07 .#robot_commands.py -> robocup@robocup.7940:1571961594
+  -rw-rw-r-- 1 robocup robocup 1807 Nov  6 14:08 #robot_commands.py#
+  -rw-rw-r-- 1 robocup robocup   56 Nov  2 16:00 robot_commands.py~

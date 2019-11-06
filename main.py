@@ -13,33 +13,38 @@ from visualization import Visualizer
 from comms import Comms
 from simulator import Simulator
 
+# whether or not we are running with real field and robots
+IS_REAL = True
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)
     VERBOSE = False
 
-    print('Spinning up Threads...')
-    # initialize gamestate
+    # initialize gamestate + all other modules
     gamestate = GameState()
-    gamestate.start_analyzing()
-
-    # spin up visualization to show robots on screen
     visualizer = Visualizer(gamestate)
-    visualizer.start_visualizing()
-    
-    # spin up ssl-vision data polling to update gamestate
     vision = SSLVisionDataProvider(gamestate)
-    vision.start_updating()
-    
-    # spin up comms to send commands to robots
     comms = Comms(gamestate, 'blue')
-    comms.start_sending()
-    # comms.start_receiving()
-
     simulator = Simulator(gamestate)
-    #simulator.start_simulating()
-    #simulator.put_fake_ball((0, 0))
-    #simulator.put_fake_robot('blue', 8, (100, 100, 0))
-    #simulator.initialize_ball_move()
+    strategy = Strategy(gamestate, 'blue')
+
+    # choose which modules to actually run
+    print('Spinning up Threads...')
+    gamestate.start_analyzing()
+    # spin up visualization to show robots on screen
+    visualizer.start_visualizing()
+    if IS_REAL:
+        # spin up ssl-vision data polling to update gamestate
+        vision.start_updating()
+        # spin up comms to send commands to robots
+        comms.start_sending()
+        # comms.start_receiving()
+    else:
+        # spin up simulator to replace actual vision data + comms
+        simulator.start_simulating()
+        #simulator.put_fake_ball((0, 0))
+        #simulator.put_fake_robot('blue', 8, (100, 100, 0))
+        simulator.initialize_ball_move()
     
     # intialize algorithm module
     strategy = Strategy(gamestate, 'blue')

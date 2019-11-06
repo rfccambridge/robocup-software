@@ -21,16 +21,17 @@ import time
 
 DEFAULT_PORT = "/dev/ttyUSB0"
 DEFAULT_BAUD_RATE = 9600
-MAGIC_KEY = "42069,"  # Key to ensure that xbee message is not corrupted.
+MAGIC_KEY = b"420,"  # Key to ensure that xbee message is not corrupted.
                      # Match with firmware, should be put at start of message
 
 class OmniComms(object):
-
+    
     def __init__(self, port=DEFAULT_PORT, baud_rate=DEFAULT_BAUD_RATE):
         # Find our XBee device connected to this computer
         self.device = XBeeDevice(port, baud_rate)
 
-        self.device.open()
+        # TODO: sometimes it errors about operating mode, try replugging xbee
+        self.device.open()        
 
         # Obtain the remote XBee devices from the XBee network.
         xbee_network = self.device.get_network()
@@ -50,7 +51,7 @@ class OmniComms(object):
                 # message length of 27 was .0001 ms send time, quickly increases when longer
                 # we suspect xbee is crappy at splitting up messages
                 # also time spikes when too many messages are sent? can we get beter xbee?
-                message = MAGIC_KEY + command + '\n'
+                message = MAGIC_KEY + command + b'\n'
                 self.device.send_data_async(remote_device, message)
                 delta = time.time() - start
                 if delta > .001:

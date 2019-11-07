@@ -46,24 +46,8 @@ class Comms(object):
         self._receiving_thread.start()        
         
     def sending_loop(self):
-        while self._is_sending:
-            # compile a single serialized command message for all robots
-            multi_command_string = b""
-            assert len(self._gamestate.get_robot_ids(self._team)) <= 6, 'too many robots'
-            for robot_id in self._gamestate.get_robot_ids(self._team):
-                # TODO: move to gamestate so no need to have same logic in simulator?
-                robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
-                pos = self._gamestate.get_robot_position(self._team, robot_id)                
-                # stop the robot if we've lost track of it
-                if self._gamestate.is_robot_lost(self._team, robot_id):
-                    robot_commands.set_zero_speeds()
-                else:
-                    # recalculate the speed the robot should be commanded at
-                    robot_commands.derive_speeds(pos)
-                command_string = robot_commands.get_serialized_command(robot_id)
-                print(robot_commands.deserialize_command(command_string))
-                multi_command_string += command_string
-            self._comms.send(command_string)
+        while self._is_sending:            
+            self._comms.send(self._gamestate.get_serialized_team_command(self._team))
 
             if self._last_send_loop_time is not None:
                 delta = time.time() - self._last_send_loop_time

@@ -18,8 +18,12 @@ MIN_Y = -1000
 MAX_Y = 1000
 MIN_W = -2 * math.pi
 MAX_W = 2 * math.pi
+MAX_ENCODING = 256
 
 class RobotCommands:
+    # for padding multi-robot commands - 15 should be higher than any valid robot_id
+    EMPTY_COMMAND = bytearray([15, 0, 0, 0])
+    
     def __init__(self):
         # each waypoint is (pos, speed)?
         self.waypoints = []
@@ -30,7 +34,7 @@ class RobotCommands:
         # other commands
         self.is_dribbling = False
         self.is_charging = False
-        self.is_kicking = False
+        self.is_kicking = False    
 
     def get_serialized_command(self, robot_id):
         if not MIN_X < self._x < MAX_X:
@@ -39,7 +43,7 @@ class RobotCommands:
             raise ValueError("y={} is too big to be serialized".format(self._y))
         if not MIN_W < self._w < MAX_W:
             raise ValueError("w={} is too big to be serialized".format(self._w))
-        if robot_id < 0 or robot_id > 15:
+        if robot_id < 0 or robot_id > 14:
             raise ValueError("robot_id={} is too large to serialize".format(robot_id))
  
         first_byte = 0
@@ -48,9 +52,9 @@ class RobotCommands:
         first_byte = first_byte | int(self.is_charging) << 6 # Bit 6
         first_byte = first_byte | int(self.is_kicking) << 7 # Bit 7
         
-        x_byte = int(((self._x - MIN_X) / (MAX_X - MIN_X)) * 256)
-        y_byte = int(((self._y - MIN_Y) / (MAX_Y - MIN_Y)) * 256)
-        w_byte = int(((self._w - MIN_W) / (MAX_W - MIN_W)) * 256)
+        x_byte = int(((self._x - MIN_X) / (MAX_X - MIN_X)) * MAX_ENCODING)
+        y_byte = int(((self._y - MIN_Y) / (MAX_Y - MIN_Y)) * MAX_ENCODING)
+        w_byte = int(((self._w - MIN_W) / (MAX_W - MIN_W)) * MAX_ENCODING)
         return bytes([first_byte, x_byte, y_byte, w_byte])
 
     # for debugging/sanity check
@@ -68,9 +72,9 @@ class RobotCommands:
         is_charging = first_byte & 1 << 6 != 0
         is_kicking = first_byte & 1 << 7 != 0
  
-        x = (x_byte * ((MAX_X - MIN_X) / 256)) + MIN_X
-        y = (y_byte * ((MAX_Y - MIN_Y) / 256)) + MIN_Y
-        w = (w_byte * ((MAX_W - MIN_W) / 256)) + MIN_W
+        x = (x_byte * ((MAX_X - MIN_X) / MAX_ENCODING)) + MIN_X
+        y = (y_byte * ((MAX_Y - MIN_Y) / MAX_ENCODING)) + MIN_Y
+        w = (w_byte * ((MAX_W - MIN_W) / MAX_ENCODING)) + MIN_W
  
         return {
             'is_dribbling': is_dribbling,

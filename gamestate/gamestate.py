@@ -139,6 +139,29 @@ class GameState(object):
                 self._yellow_robot_commands[robot_id] = RobotCommands()
             return self._yellow_robot_commands[robot_id]
 
+    # compile a single serialized command message for all robots
+    def get_serialized_team_command(self, team):        
+        multi_command_string = b""
+        num_robots = len(self.get_robot_ids(team))
+        assert num_robots <= 6, 'too many robots'
+        # pad string so it always contains 6 robots worth of data
+        for i in range(6 - num_robots):
+            multi_command_string += RobotCommands.EMPTY_COMMAND
+        for robot_id in self.get_robot_ids(team):
+            # TODO: move to analysis thread so no need to have same logic in simulator?
+            robot_commands = self.get_robot_commands(team, robot_id)
+            pos = self.get_robot_position(team, robot_id)                
+            # stop the robot if we've lost track of it
+            if self.is_robot_lost(team, robot_id):
+                robot_commands.set_zero_speeds()
+            else:
+                # recalculate the speed the robot should be commanded at
+                robot_commands.derive_speeds(pos)
+            command_string = robot_commands.get_serialized_command(robot_id)
+            # print(robot_commands.deserialize_command(command_string))
+            multi_command_string += command_string
+        return multi_command_string
+
     def set_robot_waypoints(self, pos):
         self._ball_position.appendleft((time.time(), pos))
 

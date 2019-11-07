@@ -19,10 +19,12 @@ from digi.xbee.devices import XBeeDevice
 from digi.xbee.exception import XBeeException
 import time
 
+# Match with firmware
 DEFAULT_PORT = "/dev/ttyUSB0"
 DEFAULT_BAUD_RATE = 9600
-MAGIC_KEY = b"420,"  # Key to ensure that xbee message is not corrupted.
-                     # Match with firmware, should be put at start of message
+START_KEY = bytes([100])  # Key to ensure that xbee message is not corrupted.
+END_KEY = bytes([255])  # Key to ensure that xbee message is not corrupted.
+
 
 class OmniComms(object):
     
@@ -50,8 +52,10 @@ class OmniComms(object):
                 start = time.time()
                 # message length of 27 was .0001 ms send time, quickly increases when longer
                 # we suspect xbee is crappy at splitting up messages
-                # also time spikes when too many messages are sent? can we get beter xbee?
-                message = MAGIC_KEY + command + b'\n'
+                # also time spikes when too many messages are sent? can we get beter xbee?         
+                message = START_KEY + command + END_KEY
+                #print(bytes(message))
+                #print(len(message))
                 self.device.send_data_async(remote_device, message)
                 delta = time.time() - start
                 if delta > .001:

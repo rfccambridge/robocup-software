@@ -2,9 +2,7 @@ import sys
 import signal
 import traceback
 import time
-import numpy as np
 import logging
-import threading
 
 from gamestate import GameState
 from vision import SSLVisionDataProvider

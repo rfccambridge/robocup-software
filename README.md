@@ -8,6 +8,8 @@ To install dependencies, run:
 ```bash
 pip3 install -r requirements.txt
 ```
+TODO: For mac users, installing pygame for python3 may require more steps
+
 Main control loop is main.py - comment out vision + comms threads if not running with hardware
 ```bash
 python3 main.py

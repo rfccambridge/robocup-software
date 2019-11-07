@@ -16,8 +16,8 @@ try:
     from radio import Radio
     from robot_commands import RobotCommands
 except SystemError:
-    print("\nTry running from inside directory!\n")
-    assert(False)
+    from .radio import Radio
+    from .robot_commands import RobotCommands
 
 print('Setting up radio connection...')
 radio = Radio()
@@ -25,7 +25,7 @@ print('Radio Connected.')
 
 # TODO: Standardize with constants in robot_commands?
 MAX_XY_SPEED = 600 # mm/s
-MAX_ROTATION_SPEED = 6.28 # robot radians/s
+MAX_ROTATION_SPEED = 6.2 # robot radians/s
 
 pygame.joystick.init()
 pygame.display.init()
@@ -55,14 +55,15 @@ while True:
     button_rb = js.get_button(5)
     speed_lateral, speed_forward = a * MAX_XY_SPEED, -b * MAX_XY_SPEED
     speed_rotation = c * MAX_ROTATION_SPEED
-    print("x, y, w ({},{},{})".format(speed_lateral, speed_forward, speed_rotation))
     robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)
-    robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)    
+    robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)
 
     if button_lb:
         robot_commands.dribble(False)
     elif button_rb:
         robot_commands.dribble(True)
+
+    print(robot_commands)
 
     # send serialized message for whole team (just 1 robot)
     team_commands = {ROBOT_ID: robot_commands}

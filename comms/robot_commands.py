@@ -9,7 +9,9 @@ MIN_Y = -1000
 MAX_Y = 1000
 MIN_W = -2 * math.pi
 MAX_W = 2 * math.pi
-MAX_ENCODING = 256
+# range of values allowed to appear in the serialized message bits
+# even to avoid rounding 0, < END_KEY so nothing gets encoded to END_KEY
+MAX_ENCODING = 254
 # Single-byte key to ensure that xbee message is not corrupted.
 START_KEY = bytes([100])
 # Single-byte Key to terminate messages - MUST NEVER APPEAR IN MESSAGE BODY
@@ -73,9 +75,10 @@ class RobotCommands:
         x_byte = int(((self._x - MIN_X) / (MAX_X - MIN_X)) * MAX_ENCODING)
         y_byte = int(((self._y - MIN_Y) / (MAX_Y - MIN_Y)) * MAX_ENCODING)
         w_byte = int(((self._w - MIN_W) / (MAX_W - MIN_W)) * MAX_ENCODING)
-        assert END_KEY not in [first_byte, x_byte, y_byte, w_byte], \
+        assert END_KEY not in bytes([first_byte, x_byte, y_byte, w_byte]), \
             "END_KEY appears in message body!!!"
         single_robot_command = bytes([first_byte, x_byte, y_byte, w_byte])
+        # print(RobotCommands.deserialize_command(single_robot_command))
         assert(len(single_robot_command) == SINGLE_ROBOT_COMMAND_LENGTH)
         return single_robot_command
 
@@ -120,7 +123,7 @@ class RobotCommands:
             team_command_message += EMPTY_COMMAND
         for robot_id, commands in team_commands.items():
             command_message = commands.get_serialized_command(robot_id)
-            # print(robot_commands.deserialize_command(command_message))
+            # print(RobotCommands.deserialize_command(command_message))
             team_command_message += command_message
         team_command_message = START_KEY + team_command_message + END_KEY
         assert(len(team_command_message) == TEAM_COMMAND_MESSAGE_LENGTH)
@@ -130,7 +133,7 @@ class RobotCommands:
     def set_speeds(self, x, y, w):
         self._x = x
         self._y = y
-        self._z = w
+        self._w = w
 
     # use the waypoints to calculate desired speeds from robot perspective
     def derive_speeds(self, current_position):

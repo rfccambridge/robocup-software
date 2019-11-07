@@ -1,7 +1,12 @@
 import threading
 import time
-from .radio import Radio
-from .robot_commands import RobotCommands
+try:
+    from radio import Radio
+    from robot_commands import RobotCommands
+except SystemError:
+    from .radio import Radio
+    from .robot_commands import RobotCommands
+
 
 class Comms(object):
     """Comms class spins a thread to repeated send the commands stored in

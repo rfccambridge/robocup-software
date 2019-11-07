@@ -47,11 +47,11 @@ class Comms(object):
     def sending_loop(self):
         while self._is_sending:
             # TODO: move to analysis thread so no need to have same logic in simulator?
-            for robot_id in self._gamestate.get_robot_ids():
+            for robot_id in self._gamestate.get_robot_ids(self._team):
                 robot_commands = self.get_robot_commands(self._team, robot_id)
-                pos = self.get_robot_position(team, robot_id)
+                pos = self._gamestate.get_robot_position(self._team, robot_id)
                 # stop the robot if we've lost track of it
-                if self.is_robot_lost(team, robot_id):
+                if self._gamestate.is_robot_lost(self._team, robot_id):
                     robot_commands.set_zero_speeds()
                 else:
                     # recalculate the speed the robot should be commanded at

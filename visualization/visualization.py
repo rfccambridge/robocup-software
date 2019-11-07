@@ -14,19 +14,19 @@ FIELD_LINE_WIDTH = 3
 FIELD_COLOR = (0, 255, 0)
 LINE_COLOR = (255, 255, 255)
 
-ROBOT_SIZE = 90 # mm
+ROBOT_SIZE = 90  # mm
 ROBOT_COLOR = (0, 0, 0)
 ROBOT_LOST_COLOR = (200, 200, 200)
 BLUE_TEAM_COLOR = (0, 0, 255)
 YELLOW_TEAM_COLOR = (255, 255, 0)
 
-BALL_SIZE = 21 # mm
+BALL_SIZE = 21  # mm
 BALL_COLOR = (255, 125, 0)
 
 WAYPOINT_SIZE = 3
 WAYPOINT_COLOR = (0, 0, 0)
 
-VECTOR_SCALE = 1 # px / (mm/s) ?
+VECTOR_SCALE = 1  # px / (mm/s) ?
 TRAJECTORY_COLOR = (255, 0, 0)
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
@@ -45,19 +45,20 @@ WINDOW_BUFFER_PX = 20
 TOTAL_SCREEN_WIDTH = int(FIELD_W * SCALE) + WINDOW_BUFFER_PX * 2
 TOTAL_SCREEN_HEIGHT = int(FIELD_H * SCALE) + WINDOW_BUFFER_PX * 2 + UI_BUFFER_PX
 
+
 class Visualizer(object):
     """Robocup homegrown visualization library that essentially does the same
     as the modules in OpenAI gym."""
-    
+
     def __init__(self, gamestate):
         self._viewer = None
         self._clock = None
-        
+
         self.user_click = None
         self.user_click_field = None
 
         self._gamestate = gamestate
-        
+
         self._updating = False
         self._visualization_thread = None
 
@@ -70,15 +71,15 @@ class Visualizer(object):
                 BUTTON_HEIGHT
             )
         self.buttons = {
-            "timeout" : generate_button_rect(0),
-            "ref" : generate_button_rect(1),
-            "normal" : generate_button_rect(2),
+            "timeout": generate_button_rect(0),
+            "ref": generate_button_rect(1),
+            "normal": generate_button_rect(2),
         }
 
     # map ssl-vision field position to pixel x,y on viewer
     def scale_pos(self, pos):
         assert(len(pos) == 2 and type(pos) == tuple)
-        # shift position so (0, 0) becomes the center of the field, as in ssl-vision
+        # shift position so (0, 0) is the center of the field, as in ssl-vision
         pos = (pos[0] + FIELD_W / 2, pos[1] + FIELD_H / 2)
         # scale for display
         pos = (int(pos[0] * SCALE), int(pos[1] * SCALE))
@@ -108,18 +109,22 @@ class Visualizer(object):
         vector = (int(vector[0] * SCALE), int(vector[1] * SCALE))
         # y becomes axis inverted in pygame (top left screen is 0,0)
         vector = (vector[0], -vector[1])
-        return vector    
+        return vector
 
     def start_visualizing(self):
         self._updating = True
-        self._visualization_thread = threading.Thread(target=self.visualization_loop)
+        self._visualization_thread = threading.Thread(
+            target=self.visualization_loop
+        )
         # set to daemon mode so it will be easily killed
         self._visualization_thread.daemon = True
         self._visualization_thread.start()
 
     def visualization_loop(self):
         pygame.init()
-        self._viewer = pygame.display.set_mode((TOTAL_SCREEN_WIDTH, TOTAL_SCREEN_HEIGHT))
+        self._viewer = pygame.display.set_mode(
+            (TOTAL_SCREEN_WIDTH, TOTAL_SCREEN_HEIGHT)
+        )
         pygame.display.set_caption("Robocup Visualizer")
         self._clock = pygame.time.Clock()
         while self._updating:
@@ -133,11 +138,10 @@ class Visualizer(object):
                         if rect.collidepoint(self.user_click):
                             # prints current location of mouse
                             print('button pressed: ' + label)
-            start_time = time.time()
             self._viewer.fill(FIELD_COLOR)
             self.render()
             pygame.display.flip()
-            # yield to other threads - run this loop at most 20 times per second
+            # yield to other threads - loop at most 20 times per second
             # is this the same as pygame.clock.tick()?
             time.sleep(.05)
         print("Exiting Pygame")
@@ -174,7 +178,6 @@ class Visualizer(object):
 
         # Draw all the robots - TODO: draw both teams, with distinguishment
         for team in ['blue', 'yellow']:
-            
             for robot_id in self._gamestate.get_robot_ids(team):
                 pos = self._gamestate.get_robot_position(team, robot_id)
                 robot_color = BLUE_TEAM_COLOR if team == 'blue' else YELLOW_TEAM_COLOR
@@ -237,7 +240,6 @@ class Visualizer(object):
             myfont = pygame.font.SysFont('Arial', 30)
             textsurface = myfont.render(label, False, BUTTON_TEXT_COLOR)
             self._viewer.blit(textsurface, rect)
-        
 
     def close(self):
         if self._viewer is not None:
@@ -252,6 +254,3 @@ class Visualizer(object):
         bottom_left = (pos[0] - size, pos[1] + size)
         pygame.draw.line(self._viewer, color, top_left, bottom_right, width)
         pygame.draw.line(self._viewer, color, bottom_left, top_right, width)
-
-
-

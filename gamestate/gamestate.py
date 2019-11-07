@@ -14,7 +14,7 @@ ROBOT_LOST_TIME = .2
 class GameState(object):
     """Game state contains all the relevant information in one place.
        Many threads can edit and use the game state at once, cuz Python GIL
-       Since we are using python, data types are specified in the comments below.
+       Since using python, data types are specified in the comments below.
     """
     def __init__(self):
         # NOTE: Fields starting with _underscore are "private" so
@@ -187,8 +187,6 @@ class GameState(object):
 
         return self.ball_velocity
 
-
-    # TODO: test this function!
     def get_ball_pos_future(self, seconds):
         # 500 seems more accurate
         accel_magnitude = -1000

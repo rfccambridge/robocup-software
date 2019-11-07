@@ -24,23 +24,25 @@ SINGLE_ROBOT_COMMAND_LENGTH = 4
 # (contains 6 robots commands, plus a start key and end key)
 TEAM_COMMAND_MESSAGE_LENGTH = 26
 
-'''
+"""
 Contains information about a robot's command state. Provides functions for
-deriving lower level commands from high level ones (i.e. waypoints => (x, y, w))
+deriving lower level commands from high level (i.e. waypoints => (x, y, w))
 Also specifies message serialization to interface with firmware.
-'''
+"""
+
+
 class RobotCommands:
     # constants for deriving speed from waypoints TODO: obselete?
     # default proportional scaling constant for distance differences
     SPEED_SCALE = .8
-    # Max speed from max power to motors => [free-spinning] 1090 mm/s (see firmware)
+    # Max speed from max power to motors => [no-load] 1090 mm/s (see firmware)
     # Reduce that by multiplying by min(sin(theta), cos(theta)) of wheels
-    # Goal is to get upper bound on we can send and expect firmware to obey accurately
-    DEFAULT_MAX_SPEED = 650 # pretty conservative, maybe we can be more aggressive?
+    # Goal is to get upper bound on what firmware can obey accurately
+    DEFAULT_MAX_SPEED = 650  # maybe we can be more aggressive?
     DEFAULT_MIN_SPEED = 0
     # TODO: make rotation actually work
     ROTATION_SPEED_SCALE = 0
-    
+
     def __init__(self):
         # each waypoint is (pos, speed)?
         self.waypoints = []
@@ -56,20 +58,20 @@ class RobotCommands:
     # returns serialized commands for single robot in 4 bytes
     def get_serialized_command(self, robot_id):
         if not MIN_X < self._x < MAX_X:
-            raise ValueError("x={} is too big to be serialized".format(self._x))
+            raise ValueError("x={} is too big".format(self._x))
         if not MIN_Y < self._y < MAX_Y:
-            raise ValueError("y={} is too big to be serialized".format(self._y))
+            raise ValueError("y={} is too big".format(self._y))
         if not MIN_W < self._w < MAX_W:
-            raise ValueError("w={} is too big to be serialized".format(self._w))
+            raise ValueError("w={} is too big".format(self._w))
         if robot_id < 0 or robot_id > 14:
-            raise ValueError("robot_id={} is too large to serialize".format(robot_id))
+            raise ValueError("robot_id={} is too big".format(robot_id))
 
         # pack robot_id and boolean commands into the first byte
         first_byte = 0
-        first_byte = first_byte | (15 & robot_id) # The 4 least significant bits
-        first_byte = first_byte | int(self.is_dribbling) << 5 # Bit 5
-        first_byte = first_byte | int(self.is_charging) << 6 # Bit 6
-        first_byte = first_byte | int(self.is_kicking) << 7 # Bit 7
+        first_byte = first_byte | (15 & robot_id)  # 4 least significant bits
+        first_byte = first_byte | int(self.is_dribbling) << 5  # Bit 5
+        first_byte = first_byte | int(self.is_charging) << 6  # Bit 6
+        first_byte = first_byte | int(self.is_kicking) << 7  # Bit 7
 
         # pack x, y, w each into a byte (reduces granularity)
         x_byte = int(((self._x - MIN_X) / (MAX_X - MIN_X)) * MAX_ENCODING)
@@ -86,21 +88,21 @@ class RobotCommands:
     def deserialize_command(command):
         if len(command) != 4:
             raise ValueError("Commands should be 4 bytes")
-       
+
         first_byte = command[0]
         x_byte = command[1]
         y_byte = command[2]
         w_byte = command[3]
- 
+
         robot_id = int(first_byte & 15)
         is_dribbling = first_byte & 1 << 5 != 0
         is_charging = first_byte & 1 << 6 != 0
         is_kicking = first_byte & 1 << 7 != 0
- 
+
         x = (x_byte * ((MAX_X - MIN_X) / MAX_ENCODING)) + MIN_X
         y = (y_byte * ((MAX_Y - MIN_Y) / MAX_ENCODING)) + MIN_Y
         w = (w_byte * ((MAX_W - MIN_W) / MAX_ENCODING)) + MIN_W
- 
+
         return {
             'is_dribbling': is_dribbling,
             'is_charging': is_charging,
@@ -155,13 +157,14 @@ class RobotCommands:
             norm_w = self.trim_angle(goal_w - og_w)
             # move with speed proportional to delta
             linear_speed = self.magnitude(delta) * self.SPEED_SCALE
-            linear_speed = min_speed + linear_speed # only use if pid is crappy
+            # only use if pid is crappy
+            linear_speed = min_speed + linear_speed
             if linear_speed > max_speed:
-                linear_speed = max_speed            
+                linear_speed = max_speed
             self._x = linear_speed * norm_x
             self._y = linear_speed * norm_y
             self._z = norm_w * self.ROTATION_SPEED_SCALE,
-        
+
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
         cx, cy, cw = current
@@ -187,7 +190,7 @@ class RobotCommands:
         return (x**2 + y**2) ** .5
 
     def trim_angle(self, angle):
-        """Transforms an angle into the range -pi to pi, for shortest turning"""
+        """Transforms angle into range -pi to pi, for shortest turning"""
         while angle > 2 * math.pi:
             angle -= 2 * math.pi
         while angle < -1 * math.pi:
@@ -207,4 +210,3 @@ class RobotCommands:
             self._y,
             self._w
         )
-        

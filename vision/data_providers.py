@@ -1,4 +1,3 @@
-import socket
 import sslclient
 import threading
 import time
@@ -8,7 +7,7 @@ logger = logging.getLogger(__name__)
 '''
 A class to provide robot position data from the cameras
 '''
-from enum import Enum
+
 
 class PositionDataProvider(object):
 
@@ -44,11 +43,11 @@ class DataThread(threading.Thread):
 
     def run(self):
         while not self._stop_event.is_set():
-            #received decoded package
+            # received decoded package
             data = self._client.receive()
             if data.HasField('geometry'):
                 self.geometry_cache = data.geometry
-            
+
             if data.HasField('detection'):
                 self.detection_cache = data.detection
 
@@ -58,14 +57,15 @@ class DataThread(threading.Thread):
     def stopped(self):
         return self._stop_event.is_set()
 
+
 class SSLVisionDataProvider(PositionDataProvider):
-    def __init__(self, gamestate, HOST='224.5.23.2', PORT=10006):        
+    def __init__(self, gamestate, HOST='224.5.23.2', PORT=10006):
         self.HOST = HOST
         self.PORT = PORT
 
         self._ssl_vision_client = None
         self._ssl_vision_client_thread = None
-        
+
         self._gamestate = gamestate
         self._gamestate_update_thread = None
         self._is_running = False
@@ -82,18 +82,18 @@ class SSLVisionDataProvider(PositionDataProvider):
             robot_positions = self.get_robot_positions('yellow')
             for robot_id, pos in robot_positions.items():
                 loc = pos.x, pos.y, pos.orientation
-                self._gamestate.update_robot_position('yellow', robot_id, loc)  
+                self._gamestate.update_robot_position('yellow', robot_id, loc)
             # update position of the ball
             ball_data = self.get_ball_position()
             if ball_data:
                 self._gamestate.update_ball_position((ball_data.x, ball_data.y))
-                
-            if self._last_update_time is not None:                
+
+            if self._last_update_time is not None:      
                 delta = time.time() - self._last_update_time
                 if delta > .1:
                     print("SSL-vision data loop unexpectedly large delay: " + str(delta))
-            self._last_update_time = time.time()            
-            
+            self._last_update_time = time.time()
+
             # yield to other threads - run this loop at most 100 times per second
             time.sleep(.01)
         
@@ -107,7 +107,9 @@ class SSLVisionDataProvider(PositionDataProvider):
         self._ssl_vision_client_thread.start()
         # BUG: sensible defaults when data hasn't loaded yet (@dinge)
         time.sleep(0.1)
-        self._gamestate_update_thread = threading.Thread(target=self.gamestate_update_loop)
+        self._gamestate_update_thread = threading.Thread(
+            target=self.gamestate_update_loop
+        )
         # set to daemon mode so it will be easily killed
         self._gamestate_update_thread.daemon = True
         self._gamestate_update_thread.start()
@@ -161,5 +163,3 @@ class SSLVisionDataProvider(PositionDataProvider):
             # print('More than one ball detected')
             # raise RuntimeError('More than one ball detected')
         return balls[0]
-
-    

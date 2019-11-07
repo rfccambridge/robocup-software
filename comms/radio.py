@@ -1,5 +1,5 @@
-"""XBee communications class for omniwheel robocup devices. Read the following for setting up
-the XBee device we are using and common troubleshooting errors.
+"""XBee radio communications class
+Setup + Troubleshooting:
 
 802.15.4 devices
     Click Load default firmware settings in the Radio Configuration toolbar to load the default values for the device firmware.
@@ -14,6 +14,7 @@ Troubleshooting:
     Could not open port "/dev/USBXXX", permission denied
     then make sure that your user has usb port access without sudo
     you can do this by adding user into dialout group. Google this.
+
 """
 from digi.xbee.devices import XBeeDevice
 from digi.xbee.exception import XBeeException
@@ -22,10 +23,11 @@ import time
 DEFAULT_PORT = "/dev/ttyUSB0"
 DEFAULT_BAUD_RATE = 9600
 
+
 class Radio(object):
     # current xbee only can send once every ~50ms, sending faster may block
     MESSAGE_DELAY = .05
-    
+
     def __init__(self, port=DEFAULT_PORT, baud_rate=DEFAULT_BAUD_RATE):
         # Find our XBee device connected to this computer
         self.device = XBeeDevice(port, baud_rate)
@@ -48,12 +50,12 @@ class Radio(object):
         for remote_device in self.net_devs:
             try:
                 start = time.time()
-                # asynchronous send is fast for first msg, but waits if too many 
+                # asynchronous send is fast for first msg, but waits if more
                 # long messages (>30?) take longer because they must be split
                 self.device.send_data_async(remote_device, message)
                 delta = time.time() - start
                 if delta > .001:
-                    print("xbee send is taking a long time, message too long or rate too fast?")
+                    print('xbee send is taking a long time, too long/many?')
                     print("time taken: " + str(delta))
                     print("message length: " + str(len(message)))
             except XBeeException as xbee_exp:
@@ -69,13 +71,3 @@ class Radio(object):
     def close(self):
         if self.device.is_open():
             self.device.close()
-
-
-if __name__ == '__main__':
-    test = OmniComms()
-    for _ in range(5):
-        test.send('-1,50,50,0,500')  # go diagonally for 500 ms
-        test.send('-1,-50,50,0,500')  # go diagonally for 500 ms
-        test.send('-1,-50,-50,0,500')  # go diagonally for 500 ms
-        test.send('-1,50,-50,0,500')  # go diagonally for 500 ms
-

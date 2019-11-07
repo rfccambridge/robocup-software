@@ -51,9 +51,9 @@ class Comms(object):
 
     def sending_loop(self):
         while self._is_sending:
-            # TODO: move to analysis thread so no need to have same logic in simulator?
-            for robot_id in self._gamestate.get_robot_ids(self._team):
-                robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
+            # TODO: move to analysis thread to avoid copying in simulator?
+            team_commands = self._gamestate.get_team_commands(self._team)
+            for robot_id, robot_commands in team_commands:
                 pos = self._gamestate.get_robot_position(self._team, robot_id)
                 # stop the robot if we've lost track of it
                 if self._gamestate.is_robot_lost(self._team, robot_id):
@@ -63,14 +63,14 @@ class Comms(object):
                     robot_commands.derive_speeds(pos)
             # send serialized message for whole team
             team_commands = self._gamestate.get_team_commands(self._team)
-            #for robot_id, commands in team_commands.items():
-            #    print(commands)
-            message = RobotCommands.get_serialized_team_command(team_commands)            
+            # for robot_id, commands in team_commands.items():
+            #     print(commands)
+            message = RobotCommands.get_serialized_team_command(team_commands)
             self._radio.send(message)
             if self._last_send_loop_time is not None:
                 delta = time.time() - self._last_send_loop_time
                 if delta > .3:
-                    print("Comms sending loop unexpectedly large delay: " + str(delta))
+                    print("Comms sending loop large delay: " + str(delta))
             self._last_send_loop_time = time.time()
             # yield to other threads - loop only as fast as radio can send
             time.sleep(Radio.MESSAGE_DELAY)
@@ -83,11 +83,11 @@ class Comms(object):
             if self._last_receive_loop_time is not None:
                 delta = time.time() - self._last_receive_loop_time
                 if delta > .3:
-                    print("Comms receiving loop unexpectedly large delay: " + str(delta))
+                    print("Comms receiving loop large delay: " + str(delta))
             self._last_receive_loop_time = time.time()
-            # yield to other threads - run this loop at most 20 times per second
+            # yield to other threads - loop at most 20 times per second
             time.sleep(.05)
-            
+
     def stop_sending_and_receiving(self):
         if self._is_sending:
             self._is_sending = False

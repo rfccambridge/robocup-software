@@ -6,7 +6,7 @@ FIELD_H = 6000
 
 class Strategy(object):
     """Logic for playing the game. Uses data from gamestate to calculate desired
-       robot actions, and enters commands into the gamestate to be sent by comms"""
+       robot actions, and enters commands into gamestate to be sent by comms"""
     def __init__(self, gamestate, team):
         assert(team in ['blue', 'yellow'])
         self._team = team

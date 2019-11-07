@@ -1,5 +1,5 @@
-"""Quick test script that moves the robot using the Game Controller. If you get a
-PermissionError, you will need to add the current user to the input group.
+"""Quick test script that moves the robot using the Game Controller.
+If you get a PermissionError, add the current user to the input group.
     sudo usermod -a -G input robocup
 Then, log out and log back in to make sure the permissions have refreshed.
 
@@ -24,8 +24,8 @@ radio = Radio()
 print('Radio Connected.')
 
 # TODO: Standardize with constants in robot_commands?
-MAX_XY_SPEED = 600 # mm/s
-MAX_ROTATION_SPEED = 6.2 # robot radians/s
+MAX_XY_SPEED = 600  # mm/s
+MAX_ROTATION_SPEED = 6.2  # robot radians/s
 
 pygame.joystick.init()
 pygame.display.init()
@@ -45,8 +45,8 @@ while True:
     c = js.get_axis(2)
     d = js.get_axis(3)
     # Button mapping
-    # 0 - X   1 - A    2 - B   
-    # 3 - Y   4 - Lb    5 - Rb   
+    # 0 - X   1 - A    2 - B
+    # 3 - Y   4 - Lb    5 - Rb
     button_x = js.get_button(0)
     button_a = js.get_button(1)
     button_b = js.get_button(2)

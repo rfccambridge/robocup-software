@@ -1,15 +1,21 @@
-#import pyglet
+import sys
 import time
 import numpy as np
 import threading
 from collections import deque
 from enum import Enum
-from .robot_commands import RobotCommands
+# import RobotCommands from the comms folder
+try:
+    sys.path.append('..')
+    from comms import RobotCommands
+except ImportError:
+    from comms import RobotCommands
 
 BALL_POS_HISTORY_LENGTH = 20
 BALL_LOST_TIME = .1
 ROBOT_POS_HISTORY_LENGTH = 20
 ROBOT_LOST_TIME = .2
+
 
 class GameState(object):
     """Game state contains all the relevant information in one place.
@@ -128,39 +134,18 @@ class GameState(object):
             return True
         return time.time() - last_update_time > ROBOT_LOST_TIME
 
-    def get_robot_commands(self, team, robot_id):
+    def get_team_commands(self, team):
         if team == 'blue':
-            if robot_id not in self._blue_robot_commands:
-                self._blue_robot_commands[robot_id] = RobotCommands()
-            return self._blue_robot_commands[robot_id]
+            return self._blue_robot_commands
         else:
             assert(team == 'yellow')
-            if robot_id not in self._yellow_robot_commands:
-                self._yellow_robot_commands[robot_id] = RobotCommands()
-            return self._yellow_robot_commands[robot_id]
+            return self._yellow_robot_commands
 
-    # compile a single serialized command message for all robots
-    def get_serialized_team_command(self, team):        
-        multi_command_string = b""
-        num_robots = len(self.get_robot_ids(team))
-        assert num_robots <= 6, 'too many robots'
-        # pad string so it always contains 6 robots worth of data
-        for i in range(6 - num_robots):
-            multi_command_string += RobotCommands.EMPTY_COMMAND
-        for robot_id in self.get_robot_ids(team):
-            # TODO: move to analysis thread so no need to have same logic in simulator?
-            robot_commands = self.get_robot_commands(team, robot_id)
-            pos = self.get_robot_position(team, robot_id)                
-            # stop the robot if we've lost track of it
-            if self.is_robot_lost(team, robot_id):
-                robot_commands.set_zero_speeds()
-            else:
-                # recalculate the speed the robot should be commanded at
-                robot_commands.derive_speeds(pos)
-            command_string = robot_commands.get_serialized_command(robot_id)
-            # print(robot_commands.deserialize_command(command_string))
-            multi_command_string += command_string
-        return multi_command_string
+    def get_robot_commands(self, team, robot_id):
+        team_commands = self.get_team_commands(team)
+        if robot_id not in team_commands:
+            team_commands[robot_id] = RobotCommands()
+        return team_commands[robot_id]
 
     def set_robot_waypoints(self, pos):
         self._ball_position.appendleft((time.time(), pos))

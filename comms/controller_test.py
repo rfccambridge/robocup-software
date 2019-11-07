@@ -12,8 +12,12 @@ ranges from -1 to 1
 """
 import pygame
 import time
-from .radio import Radio
-from .robot_commands import RobotCommands
+try:
+    from radio import Radio
+    from robot_commands import RobotCommands
+except SystemError:
+    print("\nTry running from inside directory!\n")
+    assert(False)
 
 print('Setting up radio connection...')
 radio = Radio()

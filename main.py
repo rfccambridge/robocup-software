@@ -33,7 +33,7 @@ if __name__ == '__main__':
     visualizer.start_visualizing()
     if IS_REAL:
         # spin up ssl-vision data polling to update gamestate
-        # vision.start_updating()
+        vision.start_updating()
         # spin up comms to send commands to robots
         comms.start_sending()
         # comms.start_receiving()

@@ -35,7 +35,7 @@ class RobotCommands:
     # Reduce that by multiplying by min(sin(theta), cos(theta)) of wheels
     # Goal is to get upper bound on we can send and expect firmware to obey accurately
     DEFAULT_MAX_SPEED = 650 # pretty conservative, maybe we can be more aggressive?
-    DEFAULT_MIN_SPEED = 50
+    DEFAULT_MIN_SPEED = 0
     # TODO: make rotation actually work
     ROTATION_SPEED_SCALE = 0
     
@@ -80,7 +80,7 @@ class RobotCommands:
         return single_robot_command
 
     # for debugging/sanity check
-    def deserialize_command(self, command):
+    def deserialize_command(command):
         if len(command) != 4:
             raise ValueError("Commands should be 4 bytes")
        
@@ -143,20 +143,21 @@ class RobotCommands:
             goal_pos, min_speed, max_speed = self.waypoints[0]
             goal_x, goal_y, goal_w = goal_pos
             if min_speed is None:
-                min_speed = DEFAULT_MIN_SPEED
+                min_speed = self.DEFAULT_MIN_SPEED
             if max_speed is None:
-                max_speed = DEFAULT_MAX_SPEED
+                max_speed = self.DEFAULT_MAX_SPEED
             delta = (goal_x - og_x, goal_y - og_y)
             # normalized offsets from robot's perspective
             norm_x, norm_y = self.normalize(og_w, delta)
             norm_w = self.trim_angle(goal_w - og_w)
-            #print("dx: {}, dy: {}, dw: {}".format(norm_x, norm_y, norm_w))
             # move with speed proportional to delta
-            linear_speed = self.magnitude(delta) * SPEED_SCALE
-            linear_speed = min(min_speed + linear_speed, max_speed)
+            linear_speed = self.magnitude(delta) * self.SPEED_SCALE
+            linear_speed = min_speed + linear_speed # only use if pid is crappy
+            if linear_speed > max_speed:
+                linear_speed = max_speed            
             self._x = linear_speed * norm_x
             self._y = linear_speed * norm_y
-            self._z = norm_w * ROTATION_SPEED_SCALE,
+            self._z = norm_w * self.ROTATION_SPEED_SCALE,
         
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
@@ -192,5 +193,15 @@ class RobotCommands:
             angle -= 2 * math.pi
         if angle < -math.pi:
             angle += 2 * math.pi
-        return angle    
+        return angle
+
+    def __str__(self):
+        return "dribble: {}, charge: {}, kick: {} (x, y, w): ({}, {}, {})".format(
+            self.is_dribbling,
+            self.is_charging,
+            self.is_kicking,
+            self._x,
+            self._y,
+            self._w
+        )
         

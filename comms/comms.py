@@ -52,7 +52,7 @@ class Comms(object):
                 pos = self._gamestate.get_robot_position(self._team, robot_id)
                 # stop the robot if we've lost track of it
                 if self._gamestate.is_robot_lost(self._team, robot_id):
-                    robot_commands.set_zero_speeds()
+                    robot_commands.set_speeds(0, 0, 0)
                 else:
                     # recalculate the speed the robot should be commanded at
                     robot_commands.derive_speeds(pos)
@@ -65,9 +65,8 @@ class Comms(object):
                 if delta > .3:
                     print("Comms sending loop unexpectedly large delay: " + str(delta))
             self._last_send_loop_time = time.time()
-            # yield to other threads - run this loop at most 20 times per second
-            # Warning - looping too fast might overload throttle, so some commands never sent
-            time.sleep(.05)
+            # yield to other threads - loop only as fast as radio can send
+            time.sleep(Radio.MESSAGE_DELAY)
 
     def receiving_loop(self):
         while self._is_receiving:

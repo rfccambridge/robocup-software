@@ -1,13 +1,9 @@
-import sys
 import time
 import threading
 from collections import deque
 # import RobotCommands from the comms folder
-try:
-    sys.path.append('..')
-    from comms import RobotCommands
-except ImportError:
-    from comms import RobotCommands
+# (expected to run from root directory, use try/except if run from here)
+from comms import RobotCommands
 
 BALL_POS_HISTORY_LENGTH = 20
 BALL_LOST_TIME = .1

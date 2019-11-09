@@ -166,6 +166,17 @@ class GameState(object):
 
     # TODO - calculate based on robot locations and rules
     def is_position_open(self, pos):
+        robot_diameter = 180
+        for id in self.get_robot_ids(yellow):
+            obstacle_pos = self._yellow_robot_positions[id][0][1][:1]
+# obstacle_pos is a tuple (x, y). We are taking the first element of the queue (ie most recent entry), then
+# the second entry in the tuple (ie the pos), and then the first 2 entries of pos (ie (x, y))
+            if self.magnitude(self.diff_pos(pos, obstacle_pos)) <= robot_diameter
+                return False
+        for id in self.get_robot_ids(blue):
+            obstacle_pos = self._blue_robot_positions[id][0][1][:2]
+            if self.magnitude(self.diff_pos(pos, obstacle_pos)) <= robot_diameter
+                return False
         return True
 
     # Here we find ball velocities from ball position data
@@ -212,3 +223,40 @@ class GameState(object):
                                             self.scale_pos(velocity_initial, seconds))
             predicted_pos = self.sum_pos(predicted_pos_change, self.get_ball_position())
             return predicted_pos
+
+    def get_ball_interception_point(self, team, robot_id):
+        robot_pos = self.get_robot_position(team, robot_id)
+        delta_t = .05
+        robot_max_speed = 500
+        time = 0
+        while(True):
+            interception_pos = self.get_ball_pos_future(time)
+            separation_distance = self.magnitude(self.diff_pos(robot_pos, interception_pos))
+            if separation_distance <= time * robot_max_speed:
+                return interception_pos
+            else:
+                time += delta_t
+
+    #TODO write a "is_goalie(self, team, robot_id)" function to determine whether the robot of interest is a goalie.
+    def is_goalie(self, team, robot_id):
+        return False
+
+    def is_pos_in_bounds(self, pos, team, robot_id):
+        in_play = False
+        in_goalie_area = False
+        if (-4500 <= pos[0] <= 4500) and (-3000 <= pos[1] <= 3000):
+            in_play = True
+        if (-4500 <= pos[0] <= -3500) or (3500 <= pos[0] <= 4500):
+            if -1000 <= pos[1] <= 1000:
+                in_goalie_area = True
+        if in_play == False:
+            return False
+        elif self.is_goalie(self, team, robot_id) == False and in_goalie_area == True:
+            return False
+        else:
+            return True
+
+    def is_pos_valid(self, pos, team, robot_id)
+        if self.is_position_open(pos) and self.is_pos_in_bounds(pos, team, robot_id):
+            return True
+        return False

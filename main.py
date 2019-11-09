@@ -12,7 +12,7 @@ from comms import Comms
 from simulator import Simulator
 
 # whether or not we are running with real field and robots
-IS_REAL = True
+IS_REAL = False
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)

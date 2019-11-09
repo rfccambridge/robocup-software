@@ -15,7 +15,7 @@ import time
 try:
     from radio import Radio
     from robot_commands import RobotCommands
-except SystemError:
+except (SystemError, ImportError):
     from .radio import Radio
     from .robot_commands import RobotCommands
 

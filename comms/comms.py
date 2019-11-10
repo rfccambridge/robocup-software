@@ -11,11 +11,12 @@ except (SystemError, ImportError):
 class Comms(object):
     """Comms class spins a thread to repeated send the commands stored in
        gamestate to the robots via radio"""
-    def __init__(self, gamestate, team):
+    def __init__(self, gamestate, team, is_second_comms=False):
         self._gamestate = gamestate
         assert(team in ['blue', 'yellow'])
         self._team = team
 
+        self._is_second_comms = is_second_comms
         self._radio = None
 
         self._is_sending = False
@@ -33,7 +34,7 @@ class Comms(object):
 
     def start_sending(self):
         if self._radio is None:
-            self._radio = Radio()
+            self._radio = Radio(self._is_second_comms)
         self._is_sending = True
         self._sending_thread = threading.Thread(target=self.sending_loop)
         # set to daemon mode so it will be easily killed
@@ -42,7 +43,7 @@ class Comms(object):
 
     def start_receiving(self):
         if self._radio is None:
-            self._radio = Radio()
+            self._radio = Radio(self._is_second_comms)
         self._is_receiving = True
         self._receiving_thread = threading.Thread(target=self.receiving_loop)
         # set to daemon mode so it will be easily killed

@@ -13,8 +13,9 @@ ROBOT_LOST_TIME = .2
 FIELD_W = 9000
 FIELD_H = 6000
 
+
 class GameState(object):
-    """Game state contains all the relevant information in one place.
+    """Game state contains all relevant game information in one place.
        Many threads can edit and use the game state at once, cuz Python GIL
        Since using python, data types are specified in the comments below.
     """

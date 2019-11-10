@@ -20,17 +20,19 @@ from digi.xbee.devices import XBeeDevice
 from digi.xbee.exception import XBeeException
 import time
 
-DEFAULT_PORT = "/dev/ttyUSB0"
-DEFAULT_BAUD_RATE = 9600
+RADIO_PORT_1 = "/dev/ttyUSB0"
+RADIO_PORT_2 = "TODO: doesn't exist yet"
+BAUD_RATE = 9600
 
 
 class Radio(object):
     # current xbee only can send once every ~50ms, sending faster may block
     MESSAGE_DELAY = .05
 
-    def __init__(self, port=DEFAULT_PORT, baud_rate=DEFAULT_BAUD_RATE):
+    def __init__(self, is_second_radio=False):
         # Find our XBee device connected to this computer
-        self.device = XBeeDevice(port, baud_rate)
+        port = RADIO_PORT_2 if is_second_radio else RADIO_PORT_1
+        self.device = XBeeDevice(port, BAUD_RATE)
 
         # TODO: sometimes it errors about operating mode, try replugging xbee
         self.device.open()

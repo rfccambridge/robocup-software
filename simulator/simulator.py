@@ -64,6 +64,7 @@ class Simulator(object):
                 new_ball_pos = self._gamestate.get_ball_pos_future(delta_time)
                 # print(self._gamestate.get_ball_velocity())
                 self._gamestate.update_ball_position(new_ball_pos)
+                # TODO: collisions, + randomness?
 
             for team in ['blue', 'yellow']:
                 # move robots according to commands

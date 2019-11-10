@@ -50,13 +50,16 @@ class Visualizer(object):
     """Robocup homegrown visualization library that essentially does the same
     as the modules in OpenAI gym."""
 
-    def __init__(self, gamestate):
+    def __init__(self, gamestate, home_strategy, away_strategy):
         self._viewer = None
         self._clock = None
 
         self.user_click = None
 
         self._gamestate = gamestate
+        # get references to strategy objects to display strategic information
+        self._home_strategy = home_strategy
+        self._away_strategy = away_strategy
         self._updating = True
 
         # Buttons for different commands (label : pygame.Rect)

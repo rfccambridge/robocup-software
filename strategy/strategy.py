@@ -15,9 +15,12 @@ class Strategy(object):
         self._control_thread = None
         self._last_control_loop_time = None
 
-    def start_controlling(self):
+    def start_controlling(self, mode=None):
         self._is_controlling = True
-        self._control_thread = threading.Thread(target=self.control_loop)
+        self._control_thread = threading.Thread(
+            target=self.control_loop,
+            args=(mode,)
+        )
         # set to daemon mode so it will be easily killed
         self._control_thread.daemon = True
         self._control_thread.start()
@@ -28,16 +31,14 @@ class Strategy(object):
             self._control_thread.join()
             self._control_thread = None
 
-    def control_loop(self):
-        goal_x = 3000
-        goal_y = 1000
+    def control_loop(self, mode):
+        print("Running strategy for {} team, mode {}".format(self._team, mode))
         while self._is_controlling:
             # set goal pos to click location on visualization window
             if self._gamestate.user_click_field:
                 goal_x, goal_y = self._gamestate.user_click_field
-
-            # tell robot to go straight towards goal position
-            self.move_straight(8, (goal_x, goal_y, 0))
+                # tell robot to go straight towards goal position
+                self.move_straight(8, (goal_x, goal_y, 0))
 
             # tell robots to refresh their speeds based on waypoints
             team_commands = self._gamestate.get_team_commands(self._team)
@@ -49,20 +50,20 @@ class Strategy(object):
                 else:
                     # recalculate the speed the robot should be commanded at
                     robot_commands.derive_speeds(pos)
-            
+
             if self._last_control_loop_time is not None:
                 delta = time.time() - self._last_control_loop_time
                 if delta > .3:
                     print("Control loop large delay: " + str(delta))
             self._last_control_loop_time = time.time()
             # yield to other threads
-            time.sleep(0.05)            
+            time.sleep(0.05)
 
     # TODO: orient rotation?
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):
-        robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        robot_commands.waypoints = [(goal_pos, None, None)]
+        commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        commands.waypoints = [(goal_pos, None, None)]
 
     # RRT
     def RRT_path_find(self, robot_id, goal_pos, lim=1000):

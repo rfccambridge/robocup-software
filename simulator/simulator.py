@@ -75,10 +75,10 @@ class Simulator(object):
                     self._gamestate.update_robot_position(
                         team, robot_id, new_pos
                     )
-
-                # for robot_id in self._gamestate.get_robot_ids(team):
-                #     pos = self._gamestate.get_robot_position(team, robot_id)
-                #     self._gamestate.update_robot_position(team, robot_id, pos)
+                # refresh positions of all robots
+                for robot_id in self._gamestate.get_robot_ids(team):
+                    pos = self._gamestate.get_robot_position(team, robot_id)
+                    self._gamestate.update_robot_position(team, robot_id, pos)
             # yield to other threads - loop at most 20 times per second
             time.sleep(.05)
 

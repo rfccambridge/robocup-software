@@ -9,11 +9,14 @@ from comms import Comms
 from simulator import Simulator
 
 # whether or not we are running with real field and robots
-IS_SIMULATION = False
-CONTROL_BOTH_TEAMS = False
+IS_SIMULATION = True
+CONTROL_BOTH_TEAMS = True
 # we will control home team in a real match
 HOME_TEAM = 'blue'
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
+# what strategies each team is running
+HOME_STRATEGY = 'follow_click'
+AWAY_STRATEGY = None
 
 if __name__ == '__main__':
     VERBOSE = False
@@ -41,10 +44,9 @@ if __name__ == '__main__':
         # spin up simulator to replace actual vision data + comms
         simulator.start_simulating()
 
-    gamestate.start_analyzing()
-    home_strategy.start_controlling()
+    home_strategy.start_controlling(HOME_STRATEGY)
     if CONTROL_BOTH_TEAMS:
-        away_strategy.start_controlling()
+        away_strategy.start_controlling(AWAY_STRATEGY)
 
     # Prepare to be interrupted by user
     exit_signal_received = False
@@ -61,7 +63,6 @@ if __name__ == '__main__':
         home_comms.stop_sending_and_receiving()
         away_comms.stop_sending_and_receiving()
         simulator.stop_simulating()
-        gamestate.stop_analyzing()
         home_strategy.stop_controlling()
         away_strategy.stop_controlling()
         print('Done Cleaning Up All Threads')

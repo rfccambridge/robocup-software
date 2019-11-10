@@ -25,48 +25,24 @@ class GameState(object):
 
         # RAW POSITION DATA (updated by vision data or simulator)
         # [most recent data is stored at the front of the queue]
-        # ball positions are in the form (x, y)
-        self._ball_position = deque([], BALL_POS_HISTORY_LENGTH) # queue of (time, pos)
+        # queue of (time, pos), where positions are in the form (x, y)
+        self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
         # robot positions are (x, y, w) where w = rotation
-        self._blue_robot_positions = dict() # Robot ID: queue of (time, pos)
-        self._yellow_robot_positions = dict() # Robot ID: queue of (time, pos)
+        self._blue_robot_positions = dict()  # Robot ID: queue of (time, pos)
+        self._yellow_robot_positions = dict()  # Robot ID: queue of (time, pos)
         # TODO: store both teams robots
-        # TODO: include game states/events, such as time, score and ref events (see docs)
+        # TODO: include game states/events, i.e. time, score and referee
 
         # Commands data (desired robot actions)
-        self._blue_robot_commands = dict() # Robot ID: commands object
-        self._yellow_robot_commands = dict() # Robot ID: commands object
+        self._blue_robot_commands = dict()  # Robot ID: commands object
+        self._yellow_robot_commands = dict()  # Robot ID: commands object
 
         # TODO: cached analysis data (i.e. ball trajectory)
         # this can be later, for now just build the functions
-        self.ball_velocity = (0,0)
-
-        # gamestate thread is for doing analysis on raw data (i.e. trajectory calcuations, etc.)
-        self._is_analyzing = False
-        self._analysis_thread = None
+        self.ball_velocity = (0, 0)
 
         # User input
         self.user_click_field = None
-
-    def start_analyzing(self):
-        self._is_analyzing = True
-        self._analysis_thread = threading.Thread(target=self.analysis_loop)
-        # set to daemon mode so it will be easily killed
-        self._analysis_thread.daemon = True
-        self._analysis_thread.start()
-
-    def analysis_loop(self):
-        while self._is_analyzing:
-            # TODO: calculate from the position history
-            #print(self._ball_position)
-            # yield to other threads - run this loop at most 20 times per second
-            time.sleep(.05)
-
-    def stop_analyzing(self):
-        if self._is_analyzing:
-            self._is_analyzing = False
-            self._analysis_thread.join()
-            self._analysis_thread = None
 
     # RAW DATA GET/SET FUNCTIONS
     # returns position ball was last seen at

@@ -14,13 +14,12 @@ class Strategy(object):
         self._is_controlling = False
         self._control_thread = None
         self._last_control_loop_time = None
+        self._mode = None
 
     def start_controlling(self, mode=None):
+        self._mode = mode
         self._is_controlling = True
-        self._control_thread = threading.Thread(
-            target=self.control_loop,
-            args=(mode,)
-        )
+        self._control_thread = threading.Thread(target=self.control_loop)
         # set to daemon mode so it will be easily killed
         self._control_thread.daemon = True
         self._control_thread.start()
@@ -31,14 +30,19 @@ class Strategy(object):
             self._control_thread.join()
             self._control_thread = None
 
-    def control_loop(self, mode):
-        print("Running strategy for {} team, mode {}".format(self._team, mode))
+    def control_loop(self):
+        print("Running strategy for {} team, mode: {}".format(
+            self._team, self._mode)
+        )
+        if self._mode is None:
+            print('(mode = None, doing nothing)')
+
         while self._is_controlling:
-            # set goal pos to click location on visualization window
-            if self._gamestate.user_click_field:
-                goal_x, goal_y = self._gamestate.user_click_field
-                # tell robot to go straight towards goal position
-                self.move_straight(8, (goal_x, goal_y, 0))
+            # run the strategy corresponding to the given mode
+            if self._mode == "follow_click":
+                self.follow_click()
+            else:
+                assert(self._mode is None)
 
             # tell robots to refresh their speeds based on waypoints
             team_commands = self._gamestate.get_team_commands(self._team)
@@ -58,6 +62,15 @@ class Strategy(object):
             self._last_control_loop_time = time.time()
             # yield to other threads
             time.sleep(0.05)
+
+    # tell first robot on a team to go straight towards mouse click
+    def follow_click(self):
+        # set goal pos to click location on visualization window
+        if self._gamestate.user_click_field:
+            goal_x, goal_y = self._gamestate.user_click_field
+            robot_ids = self._gamestate.get_robot_ids(self._team)
+            if robot_ids:
+                self.move_straight(robot_ids[0], (goal_x, goal_y, 0))
 
     # TODO: orient rotation?
     # tell specific robot to move straight towards given location

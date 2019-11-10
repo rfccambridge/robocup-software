@@ -44,27 +44,40 @@ class Simulator(object):
         # set to daemon mode so it will be easily killed
         self._thread.daemon = True
         self._thread.start()
-        
+        # initialize a scenario
+        self.put_fake_ball((0, 0))
+        self.put_fake_robot('blue', 8, (100, 100, 0))
+        self.initialize_ball_move()
+
     def simulation_loop(self):
         while self._is_simulating:
-            delta = 0
+            delta_time = 0
             if self._last_step_time is not None:
-                delta = time.time() - self._last_step_time
-                if delta > .3:
-                    print("Simulation loop large delay: " + str(delta))
+                delta_time = time.time() - self._last_step_time
+                if delta_time > .3:
+                    print("Simulation loop large delay: " + str(delta_time))
             self._last_step_time = time.time()
 
-            # insert new ball positions according to prediction
+            # move ball according to prediction
             ball_pos = self._gamestate.get_ball_position()
             if ball_pos is not None:
-                new_ball_pos = self._gamestate.get_ball_pos_future(delta)
+                new_ball_pos = self._gamestate.get_ball_pos_future(delta_time)
                 # print(self._gamestate.get_ball_velocity())
                 self._gamestate.update_ball_position(new_ball_pos)
-            # TODO: insert new robot positions according to commands
+
             for team in ['blue', 'yellow']:
-                for robot_id in self._gamestate.get_robot_ids(team):
+                # move robots according to commands
+                team_commands = self._gamestate.get_team_commands(team)
+                for robot_id, robot_commands in team_commands.items():
                     pos = self._gamestate.get_robot_position(team, robot_id)
-                    self._gamestate.update_robot_position(team, robot_id, pos)
+                    new_pos = robot_commands.predict_pos(pos, delta_time)
+                    self._gamestate.update_robot_position(
+                        team, robot_id, new_pos
+                    )
+
+                # for robot_id in self._gamestate.get_robot_ids(team):
+                #     pos = self._gamestate.get_robot_position(team, robot_id)
+                #     self._gamestate.update_robot_position(team, robot_id, pos)
             # yield to other threads - loop at most 20 times per second
             time.sleep(.05)
 

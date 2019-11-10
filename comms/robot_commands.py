@@ -137,6 +137,19 @@ class RobotCommands:
         self._y = y
         self._w = w
 
+    # predict where the robot will be if it follows the current command
+    def predict_pos(self, pos, delta_time):
+        # print(self.field_to_robot_perspective(1, (100, 400)))
+        # print(self.robot_to_field_perspective(1, (-132, 390)))
+        x, y, w = pos
+        robot_x, robot_y = self.field_to_robot_perspective(w, (x, y))
+        robot_x = robot_x + delta_time * self._x
+        robot_y = robot_y + delta_time * self._y
+        new_w = w + delta_time * self._w
+        # transform the x and y back to field perspective
+        new_x, new_y = self.robot_to_field_perspective(w, (robot_x, robot_y))
+        return (new_x, new_y, new_w)
+
     # use the waypoints to calculate desired speeds from robot perspective
     def derive_speeds(self, current_position):
         og_x, og_y, og_w = current_position
@@ -153,7 +166,8 @@ class RobotCommands:
                 max_speed = self.DEFAULT_MAX_SPEED
             delta = (goal_x - og_x, goal_y - og_y)
             # normalized offsets from robot's perspective
-            norm_x, norm_y = self.normalize(og_w, delta)
+            robot_vector = self.field_to_robot_perspective(og_w, delta)
+            norm_x, norm_y = self.normalize(robot_vector)
             norm_w = self.trim_angle(goal_w - og_w)
             # move with speed proportional to delta
             linear_speed = self.magnitude(delta) * self.SPEED_SCALE
@@ -162,6 +176,7 @@ class RobotCommands:
             if linear_speed > max_speed:
                 linear_speed = max_speed
             self._x = linear_speed * norm_x
+            # print("og_x: {}, goal_x: {}, vx: {}".format(og_x, goal_x, self._x))
             self._y = linear_speed * norm_y
             self._z = norm_w * self.ROTATION_SPEED_SCALE,
 
@@ -174,17 +189,36 @@ class RobotCommands:
         DISTANCE_THRESHOLD = 10
         return (dx + dy) ** .5 < DISTANCE_THRESHOLD
 
-    # coordinate math helper functions
-    def normalize(self, w_robot, vector):
-        """Transforms real world x, y vector into a normalized vector in the
-        reference frame of the robot"""
+    # HELPER FUNCTIONS
+    # Transforms field x, y into a vector in the robot's perspective
+    def field_to_robot_perspective(self, w_robot, vector):
         assert(len(vector) == 2)
         if vector == (0, 0):
             return vector
         x, y = vector
         w_rot = w_robot - np.arctan2(y, x)
-        return (np.sin(w_rot), np.cos(w_rot))
-    
+        magnitude = self.magnitude(vector)
+        return (np.sin(w_rot) * magnitude, np.cos(w_rot) * magnitude)
+
+    # Transforms robot perspective x, y vector into field vector
+    def robot_to_field_perspective(self, w_robot, vector):
+        assert(len(vector) == 2)
+        if vector == (0, 0):
+            return vector
+        x, y = vector
+        w_rot = w_robot - np.arctan2(x, y)
+        magnitude = self.magnitude(vector)
+        return (np.cos(w_rot) * magnitude, np.sin(w_rot) * magnitude)
+
+    # scales down a x, y vector to length 1
+    def normalize(self, vector):
+        assert(len(vector) == 2)
+        if vector == (0, 0):
+            return vector
+        x, y = vector
+        magnitude = self.magnitude(vector)
+        return (x / magnitude, y / magnitude)
+
     def magnitude(self, v):
         x, y = v
         return (x**2 + y**2) ** .5

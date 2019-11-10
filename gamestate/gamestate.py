@@ -10,6 +10,8 @@ BALL_LOST_TIME = .1
 ROBOT_POS_HISTORY_LENGTH = 20
 ROBOT_LOST_TIME = .2
 
+FIELD_W = 9000
+FIELD_H = 6000
 
 class GameState(object):
     """Game state contains all the relevant information in one place.
@@ -42,6 +44,9 @@ class GameState(object):
         self._is_analyzing = False
         self._analysis_thread = None
 
+        # User input
+        self.user_click_field = None
+
     def start_analyzing(self):
         self._is_analyzing = True
         self._analysis_thread = threading.Thread(target=self.analysis_loop)
@@ -53,9 +58,8 @@ class GameState(object):
         while self._is_analyzing:
             # TODO: calculate from the position history
             #print(self._ball_position)
-            time.sleep(1)
             # yield to other threads - run this loop at most 20 times per second
-            # time.sleep(.05)
+            time.sleep(.05)
 
     def stop_analyzing(self):
         if self._is_analyzing:
@@ -171,11 +175,11 @@ class GameState(object):
             obstacle_pos = self._yellow_robot_positions[id][0][1][:1]
 # obstacle_pos is a tuple (x, y). We are taking the first element of the queue (ie most recent entry), then
 # the second entry in the tuple (ie the pos), and then the first 2 entries of pos (ie (x, y))
-            if self.magnitude(self.diff_pos(pos, obstacle_pos)) <= robot_diameter
+            if self.magnitude(self.diff_pos(pos, obstacle_pos)) <= robot_diameter:
                 return False
         for id in self.get_robot_ids(blue):
             obstacle_pos = self._blue_robot_positions[id][0][1][:2]
-            if self.magnitude(self.diff_pos(pos, obstacle_pos)) <= robot_diameter
+            if self.magnitude(self.diff_pos(pos, obstacle_pos)) <= robot_diameter:
                 return False
         return True
 
@@ -256,7 +260,7 @@ class GameState(object):
         else:
             return True
 
-    def is_pos_valid(self, pos, team, robot_id)
+    def is_pos_valid(self, pos, team, robot_id):
         if self.is_position_open(pos) and self.is_pos_in_bounds(pos, team, robot_id):
             return True
         return False

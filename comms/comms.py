@@ -51,16 +51,6 @@ class Comms(object):
 
     def sending_loop(self):
         while self._is_sending:
-            # TODO: move to analysis thread to avoid copying in simulator?
-            team_commands = self._gamestate.get_team_commands(self._team)
-            for robot_id, robot_commands in team_commands:
-                pos = self._gamestate.get_robot_position(self._team, robot_id)
-                # stop the robot if we've lost track of it
-                if self._gamestate.is_robot_lost(self._team, robot_id):
-                    robot_commands.set_speeds(0, 0, 0)
-                else:
-                    # recalculate the speed the robot should be commanded at
-                    robot_commands.derive_speeds(pos)
             # send serialized message for whole team
             team_commands = self._gamestate.get_team_commands(self._team)
             # for robot_id, commands in team_commands.items():
@@ -98,4 +88,3 @@ class Comms(object):
             self._receiving_thread.join()
             self._receiving_thread = None
         self.die()
-

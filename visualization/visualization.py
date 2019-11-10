@@ -1,6 +1,6 @@
+import sys
 import math
 import time
-import threading
 import pygame
 
 
@@ -55,12 +55,9 @@ class Visualizer(object):
         self._clock = None
 
         self.user_click = None
-        self.user_click_field = None
 
         self._gamestate = gamestate
-
-        self._updating = False
-        self._visualization_thread = None
+        self._updating = True
 
         # Buttons for different commands (label : pygame.Rect)
         def generate_button_rect(n):
@@ -75,6 +72,14 @@ class Visualizer(object):
             "ref": generate_button_rect(1),
             "normal": generate_button_rect(2),
         }
+
+        # Designed to be run in main thread so it works on more platforms
+        pygame.init()
+        self._viewer = pygame.display.set_mode(
+            (TOTAL_SCREEN_WIDTH, TOTAL_SCREEN_HEIGHT)
+        )
+        pygame.display.set_caption("Robocup Visualizer")
+        self._clock = pygame.time.Clock()
 
     # map ssl-vision field position to pixel x,y on viewer
     def scale_pos(self, pos):
@@ -111,29 +116,17 @@ class Visualizer(object):
         vector = (vector[0], -vector[1])
         return vector
 
-    def start_visualizing(self):
-        self._updating = True
-        self._visualization_thread = threading.Thread(
-            target=self.visualization_loop
-        )
-        # set to daemon mode so it will be easily killed
-        self._visualization_thread.daemon = True
-        self._visualization_thread.start()
-
     def visualization_loop(self):
-        pygame.init()
-        self._viewer = pygame.display.set_mode(
-            (TOTAL_SCREEN_WIDTH, TOTAL_SCREEN_HEIGHT)
-        )
-        pygame.display.set_caption("Robocup Visualizer")
-        self._clock = pygame.time.Clock()
         while self._updating:
+            # make sure prints from all threads get flushed to terminal
+            sys.stdout.flush()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self._updating = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.user_click = pygame.mouse.get_pos()
-                    self.user_click_field = self.unscale_pos(self.user_click)
+                    self._gamestate.user_click_field = \
+                        self.unscale_pos(self.user_click)
                     for label, rect in self.buttons.items():
                         if rect.collidepoint(self.user_click):
                             # prints current location of mouse
@@ -146,12 +139,6 @@ class Visualizer(object):
             time.sleep(.05)
         print("Exiting Pygame")
         pygame.quit()
-
-    def stop_visualizing(self):
-        if self._updating:
-            self._updating = False
-            self._visualization_thread.join()
-            self._visualization_thread = None
 
     def render(self):
         assert(self._viewer is not None)

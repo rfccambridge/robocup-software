@@ -125,6 +125,8 @@ class Visualizer(object):
         return vector
 
     def visualization_loop(self):
+        # wait until game begins (while other threads are initializing)
+        self._gamestate.wait_until_game_begins()
         while self._updating:
             # make sure prints from all threads get flushed to terminal
             sys.stdout.flush()
@@ -202,11 +204,10 @@ class Visualizer(object):
 
         # Draw ball
         if not self._gamestate.is_ball_lost():
-            x, y = self.field_to_screen(self._gamestate.get_ball_position())
             pygame.draw.circle(
                 self._viewer,
                 BALL_COLOR,
-                (x, y),
+                self.field_to_screen(self._gamestate.get_ball_position()),
                 int(BALL_SIZE * SCALE)
             )
             # draw ball velocity
@@ -219,16 +220,15 @@ class Visualizer(object):
                 1
             )
             # draw where we think ball will be in 1s
-            x, y = self.field_to_screen(self._gamestate.get_ball_pos_future(0))
             pygame.draw.circle(
                 self._viewer,
-                (255, 0, 0),
-                (x, y),
+                (0, 0, 0),
+                self.field_to_screen(self._gamestate.predict_ball_pos(1)),
                 int(BALL_SIZE * SCALE)
             )
 
         # draw user click location with a red 'X'
-        if self.user_click:
+        if self.user_click is not None:
             self.draw_X(self.user_click, (255, 0, 0), 5, 2)
 
         # Draw buttons :)

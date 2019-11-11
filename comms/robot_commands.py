@@ -139,15 +139,16 @@ class RobotCommands:
 
     # predict where the robot will be if it follows the current command
     def predict_pos(self, pos, delta_time):
-        # print(self.field_to_robot_perspective(1, (100, 400)))
-        # print(self.robot_to_field_perspective(1, (-132, 390)))
+        assert(len(pos) == 3 and type(pos) == np.ndarray)
         x, y, w = pos
-        robot_x, robot_y = self.field_to_robot_perspective(w, (x, y))
+        robot_x, robot_y = self.field_to_robot_perspective(w, np.array([x, y]))
         robot_x = robot_x + delta_time * self._x
         robot_y = robot_y + delta_time * self._y
         new_w = w + delta_time * self._w
         # transform the x and y back to field perspective
-        new_x, new_y = self.robot_to_field_perspective(w, (robot_x, robot_y))
+        new_x, new_y = self.robot_to_field_perspective(
+            w, np.array([robot_x, robot_y])
+        )
         return np.array([new_x, new_y, new_w])
 
     # use the waypoints to calculate desired speeds from robot perspective
@@ -164,7 +165,7 @@ class RobotCommands:
                 min_speed = self.DEFAULT_MIN_SPEED
             if max_speed is None:
                 max_speed = self.DEFAULT_MAX_SPEED
-            delta = (goal_x - og_x, goal_y - og_y)
+            delta = (goal_pos - current_position)[:2]
             # normalized offsets from robot's perspective
             robot_vector = self.field_to_robot_perspective(og_w, delta)
             norm_x, norm_y = self.normalize(robot_vector)
@@ -192,7 +193,7 @@ class RobotCommands:
     # HELPER FUNCTIONS
     # Transforms field x, y into a vector in the robot's perspective
     def field_to_robot_perspective(self, w_robot, vector):
-        assert(len(vector) == 2)
+        assert(len(vector) == 2 and type(vector) == np.ndarray)
         if not vector.any():
             return vector
         x, y = vector
@@ -202,7 +203,7 @@ class RobotCommands:
 
     # Transforms robot perspective x, y vector into field vector
     def robot_to_field_perspective(self, w_robot, vector):
-        assert(len(vector) == 2)
+        assert(len(vector) == 2 and type(vector) == np.ndarray)
         if not vector.any():
             return vector
         x, y = vector

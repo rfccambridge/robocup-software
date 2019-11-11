@@ -10,7 +10,7 @@ from simulator import Simulator
 
 # whether or not we are running with real field and robots
 IS_SIMULATION = True
-CONTROL_BOTH_TEAMS = True
+CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
@@ -47,6 +47,8 @@ if __name__ == '__main__':
     home_strategy.start_controlling(HOME_STRATEGY)
     if CONTROL_BOTH_TEAMS:
         away_strategy.start_controlling(AWAY_STRATEGY)
+    # start the game  - now everything should be going
+    gamestate.start_game()
 
     # Prepare to be interrupted by user
     exit_signal_received = False
@@ -65,6 +67,7 @@ if __name__ == '__main__':
         simulator.stop_simulating()
         home_strategy.stop_controlling()
         away_strategy.stop_controlling()
+        gamestate.end_game()
         print('Done Cleaning Up All Threads')
         sys.exit()
     signal.signal(signal.SIGINT, exit_gracefully)

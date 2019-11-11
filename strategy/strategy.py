@@ -36,7 +36,8 @@ class Strategy(object):
         )
         if self._mode is None:
             print('(mode = None, doing nothing)')
-
+        # wait until game begins (while other threads are initializing)
+        self._gamestate.wait_until_game_begins()
         while self._is_controlling:
             # run the strategy corresponding to the given mode
             if self._mode == "follow_click":

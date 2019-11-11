@@ -1,4 +1,5 @@
 import time
+import threading
 import numpy as np
 from collections import deque
 # import RobotCommands from the comms folder
@@ -12,17 +13,23 @@ ROBOT_LOST_TIME = .2
 
 FIELD_W = 9000
 FIELD_H = 6000
+ROBOT_DIAMETER = 180
 
 
 class GameState(object):
-    """Game state contains all raw game information in one place. Also, all
-       functions involving physics and game rules go in gamestate.
+    """Game state contains all raw game information in one place.
+       Functions involving physics and game rules go in gamestate.
        Many threads can edit and use the game state at once, cuz Python GIL
        Since using python, data types are specified in the comments below.
     """
     def __init__(self):
         # NOTE: Fields starting with _underscore are "private" so
         # should be accessed through getter and setter methods
+
+        # Thread keeps track of game status/events
+        self._is_playing = False
+        self._game_thread = None
+        self._last_step_time = None
 
         # RAW POSITION DATA (updated by vision data or simulator)
         # [most recent data is stored at the front of the queue]
@@ -31,19 +38,48 @@ class GameState(object):
         # robot positions are np.array([x, y, w]) where w = rotation
         self._blue_robot_positions = dict()  # Robot ID: queue of (time, pos)
         self._yellow_robot_positions = dict()  # Robot ID: queue of (time, pos)
-        # TODO: store both teams robots
-        # TODO: include game states/events, i.e. time, score and referee
 
         # Commands data (desired robot actions)
         self._blue_robot_commands = dict()  # Robot ID: commands object
         self._yellow_robot_commands = dict()  # Robot ID: commands object
 
-        # TODO: cached analysis data (i.e. ball trajectory)
-        # this can be later, for now just build the functions
-        self.ball_velocity = np.array([0, 0])
-
-        # User input
+        # Game status/events
+        self.game_clock = None
+        # TODO: enum all ref box restart commands
         self.user_click_field = None
+
+    def start_game(self):
+        self._is_playing = True
+        self._game_thread = threading.Thread(target=self.game_loop)
+        # set to daemon mode so it will be easily killed
+        self._game_thread.daemon = True
+        self._game_thread.start()
+
+    def end_game(self):
+        if self._is_playing:
+            self._is_playing = False
+            self._game_thread.join()
+            self._game_thread = None
+
+    def game_loop(self):
+        # set up game status
+        self.game_clock = 0
+        while self._is_playing:
+            delta_time = 0
+            if self._last_step_time is not None:
+                delta_time = time.time() - self._last_step_time
+                if delta_time > .3:
+                    print("Game loop large delay: " + str(delta_time))
+            self._last_step_time = time.time()
+
+            self.game_clock += delta_time
+            # yield to other threads - loop at most 10 times per second
+            time.sleep(.1)
+
+    # GAME STATUS/EVENT FUNCTIONS
+    def wait_until_game_begins(self):
+        while self.game_clock is None:
+            time.sleep(.01)
 
     # RAW DATA GET/SET FUNCTIONS
     # returns position ball was last seen at
@@ -127,85 +163,77 @@ class GameState(object):
         return team_commands[robot_id]
 
     # GAME RULES FUNCTIONS
-    #TODO write a "is_goalie(self, team, robot_id)" function to determine whether the robot of interest is a goalie.
+    # TODO write a "is_goalie(self, team, robot_id)" function to determine
+    # whether the robot of interest is a goalie.
     def is_goalie(self, team, robot_id):
         return False
 
     def is_pos_in_bounds(self, pos, team, robot_id):
-        in_play = False
+        in_play = (-FIELD_W / 2 <= pos[0] <= FIELD_W / 2) and \
+            (-FIELD_H / 2 <= pos[1] <= FIELD_H / 2)
         in_goalie_area = False
-        if (-4500 <= pos[0] <= 4500) and (-3000 <= pos[1] <= 3000):
-            in_play = True
         if (-4500 <= pos[0] <= -3500) or (3500 <= pos[0] <= 4500):
             if -1000 <= pos[1] <= 1000:
                 in_goalie_area = True
-        if in_play == False:
+        if not in_play:
             return False
-        elif self.is_goalie(self, team, robot_id) == False and in_goalie_area == True:
-            return False
-        else:
-            return True
+        return self.is_goalie(self, team, robot_id) or (not in_goalie_area)
 
     # ANALYSIS FUNCTIONS
-    # return whether robot can be in a location
+    # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):
-        robot_diameter = 180
-        for id in self.get_robot_ids(yellow):
-            obstacle_pos = self._yellow_robot_positions[id][0][1][:1]
-# obstacle_pos is a tuple (x, y). We are taking the first element of the queue (ie most recent entry), then
-# the second entry in the tuple (ie the pos), and then the first 2 entries of pos (ie (x, y))
-            if np.linalg.norm(pos - obstacle_pos) <= robot_diameter:
-                return False
-        for id in self.get_robot_ids(blue):
-            obstacle_pos = self._blue_robot_positions[id][0][1][:2]
-            if self.magnitude(pos - obstacle_pos) <= robot_diameter:
+        all_robot_positions = []
+        for team in ['blue', 'yellow']:
+            for robot_id in self.get_robot_ids(team):
+                # get just the x, y for this robot
+                pos = self.get_robot_position(team, robot_id)[:1]
+                all_robot_positions.append(pos)
+        for robot_pos in all_robot_positions:
+            if np.linalg.norm(pos - robot_pos) <= ROBOT_DIAMETER:
                 return False
         return True
 
     # Here we find ball velocities from ball position data
     def get_ball_velocity(self):
-        prev_velocity = self.ball_velocity
-
+        # TOOD: smooth out this value by averaging?
+        # prev_velocity = self.ball_velocity
         positions = self._ball_position
         MIN_TIME_INTERVAL = .05
         i = 0
         if len(positions) <= 1:
             return np.array([0, 0])
-        # 0 is most recent!!!
-        while i < len(positions) - 1 and  positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
+
+        # look back from 0 (most recent) until big enough interval
+        while i < len(positions) - 1 and \
+              positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
             i += 1
         delta_pos = positions[0][1] - positions[i][1]
-        delta_time = (positions[0][0] - positions[i][0])
+        delta_time = positions[0][0] - positions[i][0]
 
-        self.ball_velocity = delta_pos / delta_time
+        return delta_pos / delta_time
 
-        return self.ball_velocity
-
-    def get_ball_pos_future(self, seconds):
-        # -500 seems more accurate
-        accel_magnitude = -1000
-        #This is just a guess at the acceleration due to friction as the ball rolls. This number should be tuned empitically.
+    def predict_ball_pos(self, delta_time):
+        # estimate for acceleration due to friction as the ball rolls
+        accel_magnitude = -1000  # -500 seems more accurate
         velocity_initial = self.get_ball_velocity()
-        # dumb check to prevent erroring out, think of something nicer
         if not velocity_initial.any():
             return (self.get_ball_position())
         accel_direction = velocity_initial / np.linalg.norm(velocity_initial)
         accel = accel_direction * accel_magnitude
-# we need to check if our acceleration would make the ball turn around. If this happens we will need to truncate
-# the time at the point where velocoty is zero.
-        if accel[0] * seconds + velocity_initial[0] < 0:
+        # truncate if we're going past the time where the ball would stop
+        if accel[0] * delta_time + velocity_initial[0] < 0:
             time_to_stop = -1 * velocity_initial[0] / accel[0]
-            predicted_pos_change = accel * time_to_stop ** 2 + \
-                                            velocity_initial *time_to_stop
-            predicted_pos = predicted_pos_change + self.get_ball_position()
-            return predicted_pos
-            # TOOD: infinite recursion right now
-            # return self.get_ball_pos_future(time_to_stop)
-        else:
-            predicted_pos_change = accel *seconds ** 2 + \
-                                            velocity_initial * seconds
-            predicted_pos = predicted_pos_change + self.get_ball_position()
-            return predicted_pos
+            # print("dt: {} TTS: {}".format(delta_time, time_to_stop))
+            delta_time = time_to_stop
+        # TODO WACK: for small dt i.e. simulation steps, acceleration must
+        # be doubled to account for lag in velocity calculation
+        if delta_time < .1:
+            accel *= 2
+        predicted_pos_change = \
+            0.5 * accel * delta_time ** 2 + velocity_initial * delta_time
+        # print("dt: {} PPC: {}".format(delta_time, predicted_pos_change))
+        predicted_pos = predicted_pos_change + self.get_ball_position()
+        return predicted_pos
 
     def get_ball_interception_point(self, team, robot_id):
         robot_pos = self.get_robot_position(team, robot_id)
@@ -213,7 +241,7 @@ class GameState(object):
         robot_max_speed = 500
         time = 0
         while(True):
-            interception_pos = self.get_ball_pos_future(time)
+            interception_pos = self.predict_ball_pos(time)
             separation_distance = np.linalg.norm(robot_pos - interception_pos)
             if separation_distance <= time * robot_max_speed:
                 return interception_pos

@@ -51,6 +51,7 @@ class Comms(object):
         self._receiving_thread.start()
 
     def sending_loop(self):
+        self._gamestate.wait_until_game_begins()
         while self._is_sending:
             # send serialized message for whole team
             team_commands = self._gamestate.get_team_commands(self._team)
@@ -67,6 +68,7 @@ class Comms(object):
             time.sleep(Radio.MESSAGE_DELAY)
 
     def receiving_loop(self):
+        self._gamestate.wait_until_game_begins()
         while self._is_receiving:
             # TODO: save messages for log
             print(self._radio.read())

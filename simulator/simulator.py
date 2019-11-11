@@ -56,6 +56,8 @@ class Simulator(object):
         self.initialize_ball_move()
 
     def simulation_loop(self):
+        # wait until game begins (while other threads are initializing)
+        self._gamestate.wait_until_game_begins()
         while self._is_simulating:
             delta_time = 0
             if self._last_step_time is not None:
@@ -67,7 +69,12 @@ class Simulator(object):
             # move ball according to prediction
             ball_pos = self._gamestate.get_ball_position()
             if ball_pos is not None:
-                new_ball_pos = self._gamestate.get_ball_pos_future(delta_time)
+                new_ball_pos = self._gamestate.predict_ball_pos(delta_time)
+                # print(time.time())
+                # print("v: {}".format(self._gamestate.get_ball_velocity()))
+                # print(self._gamestate.predict_ball_pos(0))
+                # print(self._gamestate.predict_ball_pos(1))
+
                 # print(self._gamestate.get_ball_velocity())
                 self._gamestate.update_ball_position(new_ball_pos)
                 # TODO: collisions, + randomness?

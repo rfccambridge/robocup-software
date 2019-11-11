@@ -72,6 +72,8 @@ class SSLVisionDataProvider(PositionDataProvider):
         self._last_update_time = None
 
     def gamestate_update_loop(self):
+        # wait until game begins (while other threads are initializing)
+        self._gamestate.wait_until_game_begins()
         while self._is_running:
             # update positions of all (blue team) robots seen by data feed
             robot_positions = self.get_robot_positions('blue')

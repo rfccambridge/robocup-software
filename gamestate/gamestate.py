@@ -6,14 +6,20 @@ from collections import deque
 # (expected to run from root directory, use try/except if run from here)
 from comms import RobotCommands
 
+# RAW DATA PROCESSING CONSTANTS
 BALL_POS_HISTORY_LENGTH = 20
 BALL_LOST_TIME = .1
 ROBOT_POS_HISTORY_LENGTH = 20
 ROBOT_LOST_TIME = .2
 
+# FIELD + ROBOT DIMENSIONS
 FIELD_W = 9000
 FIELD_H = 6000
 ROBOT_DIAMETER = 180
+
+# PHYSICS CONSTANTS
+# models constant slowdown due to friction
+BALL_DECCELERATION = 1000  # mm/s^2 (-500 more accurate?)
 
 
 class GameState(object):
@@ -92,6 +98,7 @@ class GameState(object):
 
     def update_ball_position(self, pos):
         assert(len(pos) == 2 and type(pos) == np.ndarray)
+        pos = pos.copy().astype(float)
         self._ball_position.appendleft((time.time(), pos))
 
     def get_ball_last_update_time(self):
@@ -129,6 +136,7 @@ class GameState(object):
 
     def update_robot_position(self, team, robot_id, pos):
         assert(len(pos) == 3 and type(pos) == np.ndarray)
+        pos = pos.copy().astype(float)
         robot_positions = self.get_robot_positions(team)
         if robot_id not in robot_positions:
             robot_positions[robot_id] = deque([], ROBOT_POS_HISTORY_LENGTH)
@@ -193,7 +201,7 @@ class GameState(object):
                 return False
         return True
 
-    # Here we find ball velocities from ball position data
+    # Here we find ball velocity at most recent timestamp from position data
     def get_ball_velocity(self):
         # TOOD: smooth out this value by averaging?
         # prev_velocity = self.ball_velocity
@@ -202,33 +210,50 @@ class GameState(object):
         i = 0
         if len(positions) <= 1:
             return np.array([0, 0])
-
         # look back from 0 (most recent) until big enough interval
         while i < len(positions) - 1 and \
               positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
             i += 1
-        delta_pos = positions[0][1] - positions[i][1]
-        delta_time = positions[0][0] - positions[i][0]
+        # use those two points as reference for calculation
+        time1, pos1 = positions[i]
+        time2, pos2 = positions[0]
+        delta_pos = pos2 - pos1
+        delta_time = time2 - time1
+        if delta_pos[0] > 400:
+            for time, pos in self._ball_position:
+                print(pos)
+            assert(False)
+        midpoint_velocity = delta_pos / delta_time
+        if not midpoint_velocity.any():
+            return np.array([0, 0])
+        # print("before adjust: {}".format(midpoint_velocity))
 
-        return delta_pos / delta_time
+        # adjust ball's deceleration since the midpoint of interval used
+        midpoint_time = (time1 + time2) / 2
+        time_since_midpoint = time2 - midpoint_time
+        accel_direction = -midpoint_velocity / np.linalg.norm(midpoint_velocity)
+        accel = accel_direction * BALL_DECCELERATION * time_since_midpoint
+        velocity_now = midpoint_velocity + accel
+        # truncate if slowdown has caused change directions
+        if velocity_now[0] * midpoint_velocity[0] < 0:
+            assert(velocity_now[1] * midpoint_velocity[1] < 0)
+            velocity_now = np.array([0, 0])
+        # print("after adjust: {}".format(velocity_now))
+        return velocity_now
 
     def predict_ball_pos(self, delta_time):
-        # estimate for acceleration due to friction as the ball rolls
-        accel_magnitude = -1000  # -500 seems more accurate
         velocity_initial = self.get_ball_velocity()
         if not velocity_initial.any():
             return (self.get_ball_position())
-        accel_direction = velocity_initial / np.linalg.norm(velocity_initial)
-        accel = accel_direction * accel_magnitude
+        accel_direction = -velocity_initial / np.linalg.norm(velocity_initial)
+        accel = accel_direction * BALL_DECCELERATION
         # truncate if we're going past the time where the ball would stop
-        if accel[0] * delta_time + velocity_initial[0] < 0:
+        velocity_final = accel * delta_time + velocity_initial
+        if ((velocity_initial * velocity_final) < 0).any():
+            assert(((velocity_initial * velocity_final) < 0).all())
             time_to_stop = -1 * velocity_initial[0] / accel[0]
             # print("dt: {} TTS: {}".format(delta_time, time_to_stop))
             delta_time = time_to_stop
-        # TODO WACK: for small dt i.e. simulation steps, acceleration must
-        # be doubled to account for lag in velocity calculation
-        if delta_time < .1:
-            accel *= 2
         predicted_pos_change = \
             0.5 * accel * delta_time ** 2 + velocity_initial * delta_time
         # print("dt: {} PPC: {}".format(delta_time, predicted_pos_change))

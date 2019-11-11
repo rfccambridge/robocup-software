@@ -116,7 +116,7 @@ class Visualizer(object):
 
     # map vector in ssl-vision coordinates (mm) to vector in x,y viewer pixels
     def scale_vector(self, vector):
-        vector = vector.copy()
+        vector = vector.copy().astype(float)
         assert(len(vector) == 2 and type(vector) == np.ndarray)
         # scale for display
         vector *= SCALE

@@ -54,12 +54,12 @@ class Simulator(object):
     def simulation_loop(self):
         # wait until game begins (while other threads are initializing)
         self._gamestate.wait_until_game_begins()
-        
+
         # initialize a scenario
         self.put_fake_ball(np.array([0, 0]))
         self.put_fake_robot('blue', 8, np.array([100, 100, 0]))
         self.initialize_ball_move()
-        
+
         while self._is_simulating:
             delta_time = 0
             if self._last_step_time is not None:
@@ -72,6 +72,7 @@ class Simulator(object):
             ball_pos = self._gamestate.get_ball_position()
             if ball_pos is not None:
                 new_ball_pos = self._gamestate.predict_ball_pos(delta_time)
+                # print("dt: {}, new_pos: {}".format(delta_time, new_ball_pos))
                 # print(time.time())
                 # print("v: {}".format(self._gamestate.get_ball_velocity()))
                 # print(self._gamestate.predict_ball_pos(0))

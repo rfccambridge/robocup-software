@@ -66,7 +66,7 @@ class Strategy(object):
     # tell first robot on a team to go straight towards mouse click
     def follow_click(self):
         # set goal pos to click location on visualization window
-        if self._gamestate.user_click_field:
+        if self._gamestate.user_click_field is not None:
             goal_x, goal_y = self._gamestate.user_click_field
             robot_ids = self._gamestate.get_robot_ids(self._team)
             if robot_ids:

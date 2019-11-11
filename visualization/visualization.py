@@ -86,7 +86,7 @@ class Visualizer(object):
         self._clock = pygame.time.Clock()
 
     # map ssl-vision field position to pixel x,y on viewer
-    def scale_pos(self, pos):
+    def field_to_screen(self, pos):
         assert(len(pos) == 2 and type(pos) == np.ndarray)
         pos = pos.copy().astype(float)
         # shift position so (0, 0) is the center of the field, as in ssl-vision
@@ -97,11 +97,11 @@ class Visualizer(object):
         # account for buffer space outside of field
         pos += WINDOW_BUFFER_PX
         # y becomes axis inverted in pygame (top left screen is 0,0)
-        pos[1] -= TOTAL_SCREEN_HEIGHT
+        pos[1] = TOTAL_SCREEN_HEIGHT - pos[1]
         return pos
 
     # map screen pixels to field position
-    def unscale_pos(self, pos):
+    def screen_to_field(self, pos):
         assert(len(pos) == 2 and type(pos) == np.ndarray)
         pos = pos.copy().astype(float)
         # revert y axis
@@ -132,9 +132,9 @@ class Visualizer(object):
                 if event.type == pygame.QUIT:
                     self._updating = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.user_click = pygame.mouse.get_pos()
+                    self.user_click = np.array(pygame.mouse.get_pos())
                     self._gamestate.user_click_field = \
-                        self.unscale_pos(self.user_click)
+                        self.screen_to_field(self.user_click)
                     for label, rect in self.buttons.items():
                         if rect.collidepoint(self.user_click):
                             # prints current location of mouse
@@ -154,20 +154,20 @@ class Visualizer(object):
         pygame.draw.circle(
             self._viewer,
             LINE_COLOR,
-            self.scale_pos(np.array([0.,0.])),
+            self.field_to_screen(np.array([0, 0])),
             int(CENTER_CIRCLE_RADIUS * SCALE),
             FIELD_LINE_WIDTH
         )
         hw, hh = FIELD_W / 2, FIELD_H / 2
-        top_left = self.scale_pos(np.array([-hw, hh]))
+        top_left = self.field_to_screen(np.array([-hw, hh]))
         dims = (FIELD_W * SCALE, FIELD_H * SCALE)
         boundary_lines_rect = [*top_left, *dims]
         pygame.draw.rect(self._viewer, LINE_COLOR, boundary_lines_rect, FIELD_LINE_WIDTH)
         pygame.draw.line(
             self._viewer,
             LINE_COLOR,
-            self.scale_pos(np.array([0., hh])),
-            self.scale_pos(np.array([0., -hh])),
+            self.field_to_screen(np.array([0, hh])),
+            self.field_to_screen(np.array([0, -hh])),
             FIELD_LINE_WIDTH
         )
 
@@ -182,7 +182,7 @@ class Visualizer(object):
                 pygame.draw.circle(
                     self._viewer,
                     robot_color,
-                    self.scale_pos(np.array([x, y])),
+                    self.field_to_screen(np.array([x, y])),
                     int(ROBOT_SIZE * SCALE)
                 )
                 # indicate direction of robot
@@ -190,8 +190,8 @@ class Visualizer(object):
                 pygame.draw.line(
                     self._viewer,
                     (255, 0, 0),
-                    self.scale_pos(np.array([x, y])),
-                    self.scale_pos(np.array([
+                    self.field_to_screen(np.array([x, y])),
+                    self.field_to_screen(np.array([
                         x + math.cos(w) * arrow_scale,
                         y + math.sin(w) * arrow_scale
                     ])),
@@ -202,7 +202,7 @@ class Visualizer(object):
 
         # Draw ball
         if not self._gamestate.is_ball_lost():
-            x, y = self.scale_pos(self._gamestate.get_ball_position())
+            x, y = self.field_to_screen(self._gamestate.get_ball_position())
             pygame.draw.circle(
                 self._viewer,
                 BALL_COLOR,
@@ -219,13 +219,13 @@ class Visualizer(object):
                 1
             )
             # draw where we think ball will be in 1s
-            x, y = self.scale_pos(self._gamestate.get_ball_pos_future(0))
+            x, y = self.field_to_screen(self._gamestate.get_ball_pos_future(0))
             pygame.draw.circle(
                 self._viewer,
                 (255, 0, 0),
                 (x, y),
                 int(BALL_SIZE * SCALE)
-            )     
+            )
 
         # draw user click location with a red 'X'
         if self.user_click:

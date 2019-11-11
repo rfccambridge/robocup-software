@@ -50,14 +50,16 @@ class Simulator(object):
         # set to daemon mode so it will be easily killed
         self._thread.daemon = True
         self._thread.start()
-        # initialize a scenario
-        self.put_fake_ball(np.array([0, 0]))
-        self.put_fake_robot('blue', 8, np.array([100, 100, 0]))
-        self.initialize_ball_move()
 
     def simulation_loop(self):
         # wait until game begins (while other threads are initializing)
         self._gamestate.wait_until_game_begins()
+        
+        # initialize a scenario
+        self.put_fake_ball(np.array([0, 0]))
+        self.put_fake_robot('blue', 8, np.array([100, 100, 0]))
+        self.initialize_ball_move()
+        
         while self._is_simulating:
             delta_time = 0
             if self._last_step_time is not None:

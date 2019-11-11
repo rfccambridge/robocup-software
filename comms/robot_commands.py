@@ -148,7 +148,7 @@ class RobotCommands:
         new_w = w + delta_time * self._w
         # transform the x and y back to field perspective
         new_x, new_y = self.robot_to_field_perspective(w, (robot_x, robot_y))
-        return (new_x, new_y, new_w)
+        return np.array([new_x, new_y, new_w])
 
     # use the waypoints to calculate desired speeds from robot perspective
     def derive_speeds(self, current_position):
@@ -193,31 +193,28 @@ class RobotCommands:
     # Transforms field x, y into a vector in the robot's perspective
     def field_to_robot_perspective(self, w_robot, vector):
         assert(len(vector) == 2)
-        if vector == (0, 0):
+        if not vector.any():
             return vector
         x, y = vector
         w_rot = w_robot - np.arctan2(y, x)
         magnitude = self.magnitude(vector)
-        return (np.sin(w_rot) * magnitude, np.cos(w_rot) * magnitude)
+        return np.array([np.sin(w_rot) * magnitude, np.cos(w_rot) * magnitude])
 
     # Transforms robot perspective x, y vector into field vector
     def robot_to_field_perspective(self, w_robot, vector):
         assert(len(vector) == 2)
-        if vector == (0, 0):
+        if not vector.any():
             return vector
         x, y = vector
         w_rot = w_robot - np.arctan2(x, y)
         magnitude = self.magnitude(vector)
-        return (np.cos(w_rot) * magnitude, np.sin(w_rot) * magnitude)
+        return np.array([np.cos(w_rot) * magnitude, np.sin(w_rot) * magnitude])
 
-    # scales down a x, y vector to length 1
     def normalize(self, vector):
         assert(len(vector) == 2)
-        if vector == (0, 0):
+        if not vector.any():
             return vector
-        x, y = vector
-        magnitude = self.magnitude(vector)
-        return (x / magnitude, y / magnitude)
+        return vector / np.linalg.norm(vector)
 
     def magnitude(self, v):
         x, y = v

@@ -1,5 +1,5 @@
 import time
-import threading
+import numpy as np
 from collections import deque
 # import RobotCommands from the comms folder
 # (expected to run from root directory, use try/except if run from here)
@@ -15,7 +15,8 @@ FIELD_H = 6000
 
 
 class GameState(object):
-    """Game state contains all relevant game information in one place.
+    """Game state contains all raw game information in one place. Also, all
+       functions involving physics and game rules go in gamestate.
        Many threads can edit and use the game state at once, cuz Python GIL
        Since using python, data types are specified in the comments below.
     """
@@ -25,9 +26,9 @@ class GameState(object):
 
         # RAW POSITION DATA (updated by vision data or simulator)
         # [most recent data is stored at the front of the queue]
-        # queue of (time, pos), where positions are in the form (x, y)
+        # queue of (time, pos), where positions are in the form np.array([x, y])
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
-        # robot positions are (x, y, w) where w = rotation
+        # robot positions are np.array([x, y, w]) where w = rotation
         self._blue_robot_positions = dict()  # Robot ID: queue of (time, pos)
         self._yellow_robot_positions = dict()  # Robot ID: queue of (time, pos)
         # TODO: store both teams robots
@@ -39,7 +40,7 @@ class GameState(object):
 
         # TODO: cached analysis data (i.e. ball trajectory)
         # this can be later, for now just build the functions
-        self.ball_velocity = (0, 0)
+        self.ball_velocity = np.array([0, 0])
 
         # User input
         self.user_click_field = None
@@ -54,6 +55,7 @@ class GameState(object):
         return pos
 
     def update_ball_position(self, pos):
+        assert(len(pos) == 2 and type(pos) == np.ndarray)
         self._ball_position.appendleft((time.time(), pos))
 
     def get_ball_last_update_time(self):
@@ -90,6 +92,7 @@ class GameState(object):
         return pos
 
     def update_robot_position(self, team, robot_id, pos):
+        assert(len(pos) == 3 and type(pos) == np.ndarray)
         robot_positions = self.get_robot_positions(team)
         if robot_id not in robot_positions:
             robot_positions[robot_id] = deque([], ROBOT_POS_HISTORY_LENGTH)
@@ -103,6 +106,7 @@ class GameState(object):
         timestamp, pos = robot_positions[robot_id][0]
         return timestamp
 
+    # check if robot hasn't been seen by cameras in a while
     def is_robot_lost(self, team, robot_id):
         last_update_time = self.get_robot_last_update_time(team, robot_id)
         if last_update_time is None:
@@ -122,102 +126,7 @@ class GameState(object):
             team_commands[robot_id] = RobotCommands()
         return team_commands[robot_id]
 
-    def set_robot_waypoints(self, pos):
-        self._ball_position.appendleft((time.time(), pos))
-
-    # ANALYSIS FUNCTIONS
-    # basic helper functions - should these be elsewhere?
-    def diff_pos(self, p1, p2):
-        x = p1[0] - p2[0]
-        y = p1[1] - p2[1]
-
-        return (x,y)
-
-    def sum_pos(self, p1, p2):
-        x = p1[0] + p2[0]
-        y = p1[1] + p2[1]
-
-        return (x,y)
-
-    def magnitude(self, veloc):
-        return ((veloc[0] ** 2 + veloc[1] ** 2) ** .5)
-
-    def scale_pos(self, pos, factor):
-        return (pos[0] * factor, pos[1] * factor)
-
-    # TODO - calculate based on robot locations and rules
-    def is_position_open(self, pos):
-        robot_diameter = 180
-        for id in self.get_robot_ids(yellow):
-            obstacle_pos = self._yellow_robot_positions[id][0][1][:1]
-# obstacle_pos is a tuple (x, y). We are taking the first element of the queue (ie most recent entry), then
-# the second entry in the tuple (ie the pos), and then the first 2 entries of pos (ie (x, y))
-            if self.magnitude(self.diff_pos(pos, obstacle_pos)) <= robot_diameter:
-                return False
-        for id in self.get_robot_ids(blue):
-            obstacle_pos = self._blue_robot_positions[id][0][1][:2]
-            if self.magnitude(self.diff_pos(pos, obstacle_pos)) <= robot_diameter:
-                return False
-        return True
-
-    # Here we find ball velocities from ball position data
-    def get_ball_velocity(self):
-        prev_velocity = self.ball_velocity
-
-        positions = self._ball_position
-        MIN_TIME_INTERVAL = .05
-        i = 0
-        if len(positions) <= 1:
-            return (0, 0)
-        # 0 is most recent!!!
-        while i < len(positions) - 1 and  positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
-            i += 1
-        delta_pos = self.diff_pos(positions[0][1], positions[i][1])
-        delta_time = (positions[0][0] - positions[i][0])
-
-        self.ball_velocity = self.scale_pos(delta_pos, 1 / delta_time)
-
-        return self.ball_velocity
-
-    def get_ball_pos_future(self, seconds):
-        # 500 seems more accurate
-        accel_magnitude = -1000
-        #This is just a guess at the acceleration due to friction as the ball rolls. This number should be tuned empitically.
-        velocity_initial = self.get_ball_velocity()
-        # dumb check to prevent erroring out, think of something nicer
-        if velocity_initial == (0, 0):
-            return (self.get_ball_position())
-        accel_direction = self.scale_pos(velocity_initial, 1 / self.magnitude(velocity_initial))
-        accel = self.scale_pos(accel_direction, accel_magnitude)
-# we need to check if our acceleration would make the ball turn around. If this happens we will need to truncate
-# the time at the point where velocoty is zero.
-        if accel[0] * seconds + velocity_initial[0] < 0:
-            time_to_stop = -1 * velocity_initial[0] / accel[0]
-            predicted_pos_change = self.sum_pos(self.scale_pos(accel, time_to_stop ** 2),
-                                            self.scale_pos(velocity_initial, time_to_stop))
-            predicted_pos = self.sum_pos(predicted_pos_change, self.get_ball_position())
-            return predicted_pos
-            # TOOD: infinite recursion right now
-            # return self.get_ball_pos_future(time_to_stop)
-        else:
-            predicted_pos_change = self.sum_pos(self.scale_pos(accel, seconds ** 2),
-                                            self.scale_pos(velocity_initial, seconds))
-            predicted_pos = self.sum_pos(predicted_pos_change, self.get_ball_position())
-            return predicted_pos
-
-    def get_ball_interception_point(self, team, robot_id):
-        robot_pos = self.get_robot_position(team, robot_id)
-        delta_t = .05
-        robot_max_speed = 500
-        time = 0
-        while(True):
-            interception_pos = self.get_ball_pos_future(time)
-            separation_distance = self.magnitude(self.diff_pos(robot_pos, interception_pos))
-            if separation_distance <= time * robot_max_speed:
-                return interception_pos
-            else:
-                time += delta_t
-
+    # GAME RULES FUNCTIONS
     #TODO write a "is_goalie(self, team, robot_id)" function to determine whether the robot of interest is a goalie.
     def is_goalie(self, team, robot_id):
         return False
@@ -236,6 +145,80 @@ class GameState(object):
             return False
         else:
             return True
+
+    # ANALYSIS FUNCTIONS
+    # return whether robot can be in a location
+    def is_position_open(self, pos):
+        robot_diameter = 180
+        for id in self.get_robot_ids(yellow):
+            obstacle_pos = self._yellow_robot_positions[id][0][1][:1]
+# obstacle_pos is a tuple (x, y). We are taking the first element of the queue (ie most recent entry), then
+# the second entry in the tuple (ie the pos), and then the first 2 entries of pos (ie (x, y))
+            if np.linalg.norm(pos - obstacle_pos) <= robot_diameter:
+                return False
+        for id in self.get_robot_ids(blue):
+            obstacle_pos = self._blue_robot_positions[id][0][1][:2]
+            if self.magnitude(pos - obstacle_pos) <= robot_diameter:
+                return False
+        return True
+
+    # Here we find ball velocities from ball position data
+    def get_ball_velocity(self):
+        prev_velocity = self.ball_velocity
+
+        positions = self._ball_position
+        MIN_TIME_INTERVAL = .05
+        i = 0
+        if len(positions) <= 1:
+            return np.array([0, 0])
+        # 0 is most recent!!!
+        while i < len(positions) - 1 and  positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
+            i += 1
+        delta_pos = positions[0][1] - positions[i][1]
+        delta_time = (positions[0][0] - positions[i][0])
+
+        self.ball_velocity = delta_pos / delta_time
+
+        return self.ball_velocity
+
+    def get_ball_pos_future(self, seconds):
+        # -500 seems more accurate
+        accel_magnitude = -1000
+        #This is just a guess at the acceleration due to friction as the ball rolls. This number should be tuned empitically.
+        velocity_initial = self.get_ball_velocity()
+        # dumb check to prevent erroring out, think of something nicer
+        if not velocity_initial.any():
+            return (self.get_ball_position())
+        accel_direction = velocity_initial / np.linalg.norm(velocity_initial)
+        accel = accel_direction * accel_magnitude
+# we need to check if our acceleration would make the ball turn around. If this happens we will need to truncate
+# the time at the point where velocoty is zero.
+        if accel[0] * seconds + velocity_initial[0] < 0:
+            time_to_stop = -1 * velocity_initial[0] / accel[0]
+            predicted_pos_change = accel * time_to_stop ** 2 + \
+                                            velocity_initial *time_to_stop
+            predicted_pos = predicted_pos_change + self.get_ball_position()
+            return predicted_pos
+            # TOOD: infinite recursion right now
+            # return self.get_ball_pos_future(time_to_stop)
+        else:
+            predicted_pos_change = accel *seconds ** 2 + \
+                                            velocity_initial * seconds
+            predicted_pos = predicted_pos_change + self.get_ball_position()
+            return predicted_pos
+
+    def get_ball_interception_point(self, team, robot_id):
+        robot_pos = self.get_robot_position(team, robot_id)
+        delta_t = .05
+        robot_max_speed = 500
+        time = 0
+        while(True):
+            interception_pos = self.get_ball_pos_future(time)
+            separation_distance = np.linalg.norm(robot_pos - interception_pos)
+            if separation_distance <= time * robot_max_speed:
+                return interception_pos
+            else:
+                time += delta_t
 
     def is_pos_valid(self, pos, team, robot_id):
         if self.is_position_open(pos) and self.is_pos_in_bounds(pos, team, robot_id):

@@ -1,6 +1,7 @@
 import sys
 import math
 import time
+import numpy as np
 import pygame
 
 
@@ -86,37 +87,41 @@ class Visualizer(object):
 
     # map ssl-vision field position to pixel x,y on viewer
     def scale_pos(self, pos):
-        assert(len(pos) == 2 and type(pos) == tuple)
+        assert(len(pos) == 2 and type(pos) == np.ndarray)
+        pos = pos.copy().astype(float)
         # shift position so (0, 0) is the center of the field, as in ssl-vision
-        pos = (pos[0] + FIELD_W / 2, pos[1] + FIELD_H / 2)
+        pos += np.array([FIELD_W / 2, FIELD_H / 2])
         # scale for display
-        pos = (int(pos[0] * SCALE), int(pos[1] * SCALE))
+        pos *= SCALE
+        pos = pos.astype(int)
         # account for buffer space outside of field
-        pos = (pos[0] + WINDOW_BUFFER_PX, pos[1] + WINDOW_BUFFER_PX)
+        pos += WINDOW_BUFFER_PX
         # y becomes axis inverted in pygame (top left screen is 0,0)
-        pos = (pos[0], TOTAL_SCREEN_HEIGHT - pos[1])
+        pos[1] -= TOTAL_SCREEN_HEIGHT
         return pos
 
     # map screen pixels to field position
     def unscale_pos(self, pos):
-        assert(len(pos) == 2 and type(pos) == tuple)
+        assert(len(pos) == 2 and type(pos) == np.ndarray)
+        pos = pos.copy().astype(float)
         # revert y axis
-        pos = (pos[0], TOTAL_SCREEN_HEIGHT - pos[1])
+        pos[1] = TOTAL_SCREEN_HEIGHT - pos[1]
         # account for buffer space outside of field
-        pos = (pos[0] - WINDOW_BUFFER_PX, pos[1] - WINDOW_BUFFER_PX)
+        pos -= WINDOW_BUFFER_PX
         # unscale display
-        pos = (int(pos[0] / SCALE), int(pos[1] / SCALE))
+        pos /= SCALE
         # shift position so that center becomes (0, 0)
-        pos = (pos[0] - FIELD_W / 2, pos[1] - FIELD_H / 2)
+        pos -= np.array([FIELD_W / 2, FIELD_H / 2])
         return pos
 
     # map vector in ssl-vision coordinates (mm) to vector in x,y viewer pixels
     def scale_vector(self, vector):
-        assert(len(vector) == 2 and type(vector) == tuple)
+        vector = vector.copy()
+        assert(len(vector) == 2 and type(vector) == np.ndarray)
         # scale for display
-        vector = (int(vector[0] * SCALE), int(vector[1] * SCALE))
+        vector *= SCALE
         # y becomes axis inverted in pygame (top left screen is 0,0)
-        vector = (vector[0], -vector[1])
+        vector[1] *= -1
         return vector
 
     def visualization_loop(self):
@@ -149,20 +154,20 @@ class Visualizer(object):
         pygame.draw.circle(
             self._viewer,
             LINE_COLOR,
-            self.scale_pos((0,0)),
+            self.scale_pos(np.array([0.,0.])),
             int(CENTER_CIRCLE_RADIUS * SCALE),
             FIELD_LINE_WIDTH
         )
         hw, hh = FIELD_W / 2, FIELD_H / 2
-        top_left = self.scale_pos((-hw, hh))
+        top_left = self.scale_pos(np.array([-hw, hh]))
         dims = (FIELD_W * SCALE, FIELD_H * SCALE)
         boundary_lines_rect = [*top_left, *dims]
         pygame.draw.rect(self._viewer, LINE_COLOR, boundary_lines_rect, FIELD_LINE_WIDTH)
         pygame.draw.line(
             self._viewer,
             LINE_COLOR,
-            self.scale_pos((0, hh)),
-            self.scale_pos((0, -hh)),
+            self.scale_pos(np.array([0., hh])),
+            self.scale_pos(np.array([0., -hh])),
             FIELD_LINE_WIDTH
         )
 
@@ -177,7 +182,7 @@ class Visualizer(object):
                 pygame.draw.circle(
                     self._viewer,
                     robot_color,
-                    self.scale_pos((x, y)),
+                    self.scale_pos(np.array([x, y])),
                     int(ROBOT_SIZE * SCALE)
                 )
                 # indicate direction of robot
@@ -185,8 +190,11 @@ class Visualizer(object):
                 pygame.draw.line(
                     self._viewer,
                     (255, 0, 0),
-                    self.scale_pos((x, y)),
-                    self.scale_pos((x + math.cos(w) * arrow_scale, y + math.sin(w) * arrow_scale)),
+                    self.scale_pos(np.array([x, y])),
+                    self.scale_pos(np.array([
+                        x + math.cos(w) * arrow_scale,
+                        y + math.sin(w) * arrow_scale
+                    ])),
                     2
                 )
 

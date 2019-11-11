@@ -14,7 +14,7 @@ CONTROL_BOTH_TEAMS = True
 # we will control home team in a real match
 HOME_TEAM = 'blue'
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
-# what strategies each team is running
+# which strategies each team is running (see strategy module)
 HOME_STRATEGY = 'follow_click'
 AWAY_STRATEGY = None
 
@@ -32,7 +32,10 @@ if __name__ == '__main__':
 
     # choose which modules to run based on run conditions
     print('Spinning up Threads...')
-    if not IS_SIMULATION:
+    if IS_SIMULATION:
+        # spin up simulator to replace actual vision data + comms
+        simulator.start_simulating()
+    else:
         # spin up ssl-vision data polling to update gamestate
         vision.start_updating()
         # spin up comms to send commands to robots
@@ -40,10 +43,7 @@ if __name__ == '__main__':
         # comms.start_receiving()
         if CONTROL_BOTH_TEAMS:
             away_comms.start_sending()
-    else:
-        # spin up simulator to replace actual vision data + comms
-        simulator.start_simulating()
-
+    # spin up strategy threads to control the robots
     home_strategy.start_controlling(HOME_STRATEGY)
     if CONTROL_BOTH_TEAMS:
         away_strategy.start_controlling(AWAY_STRATEGY)

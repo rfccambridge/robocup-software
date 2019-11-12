@@ -12,11 +12,12 @@ BALL_LOST_TIME = .1
 ROBOT_POS_HISTORY_LENGTH = 20
 ROBOT_LOST_TIME = .2
 
-# FIELD + ROBOT DIMENSIONS
+# FIELD + ROBOT DIMENSIONS (mm)
 FIELD_X_LENGTH = 9000
 FIELD_Y_LENGTH = 6000
-ROBOT_DIAMETER = 180
 GOAL_WIDTH = 1000
+ROBOT_DIAMETER = 180
+BALL_RADIUS = 21
 
 # PHYSICS CONSTANTS
 # models constant slowdown due to friction
@@ -203,21 +204,30 @@ class GameState(object):
         return self.is_goalie(team, robot_id) or (not in_goalie_area)
 
     # ANALYSIS FUNCTIONS
-    # returns the amount of overlap between robots as (x, y) vector
-    def robot_collision(self, pos1, pos2):
+    # returns the amount of overlap between circles as (x, y) vector
+    def overlap(self, pos1, pos2, radius_sum):
         delta = pos2[:2] - pos1[:2]
         if not delta.any():
-            return np.array([ROBOT_DIAMETER, 0])
+            return np.array([radius_sum, 0])
         distance = np.linalg.norm(delta)
-        if distance <= ROBOT_DIAMETER:
-            touching_delta = delta / distance * ROBOT_DIAMETER
+        if distance <= radius_sum:
+            touching_delta = delta / distance * radius_sum
             return touching_delta - delta
         return np.array([0, 0])
+
+    # overlap between two robots
+    def robot_overlap(self, pos1, pos2):
+        return self.overlap(pos1, pos2, ROBOT_DIAMETER)
+
+    # overlap between robot and ball
+    def ball_overlap(self, pos):
+        ball_pos = self.get_ball_position()
+        return self.overlap(pos, ball_pos, ROBOT_DIAMETER / 2 + BALL_RADIUS)
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):
         for robot_pos in self.get_all_robot_positions():
-            if self.robot_collision(pos, robot_pos).any():
+            if self.robot_overlap(pos, robot_pos).any():
                 return False
         return True
 

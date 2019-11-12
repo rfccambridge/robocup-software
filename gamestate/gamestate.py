@@ -13,9 +13,10 @@ ROBOT_POS_HISTORY_LENGTH = 20
 ROBOT_LOST_TIME = .2
 
 # FIELD + ROBOT DIMENSIONS
-FIELD_W = 9000
-FIELD_H = 6000
+FIELD_X_LENGTH = 9000
+FIELD_Y_LENGTH = 6000
 ROBOT_DIAMETER = 180
+GOAL_WIDTH = 1000
 
 # PHYSICS CONSTANTS
 # models constant slowdown due to friction
@@ -51,6 +52,7 @@ class GameState(object):
 
         # Game status/events
         self.game_clock = None
+        self.is_blue_defense_side_left = True
         # TODO: enum all ref box restart commands
         self.user_click_field = None
 
@@ -177,8 +179,8 @@ class GameState(object):
         return False
 
     def is_pos_in_bounds(self, pos, team, robot_id):
-        in_play = (-FIELD_W / 2 <= pos[0] <= FIELD_W / 2) and \
-            (-FIELD_H / 2 <= pos[1] <= FIELD_H / 2)
+        in_play = (-FIELD_X_LENGTH / 2 <= pos[0] <= FIELD_X_LENGTH / 2) and \
+            (-FIELD_Y_LENGTH / 2 <= pos[1] <= FIELD_Y_LENGTH / 2)
         in_goalie_area = False
         if (-4500 <= pos[0] <= -3500) or (3500 <= pos[0] <= 4500):
             if -1000 <= pos[1] <= 1000:
@@ -277,3 +279,26 @@ class GameState(object):
         if self.is_position_open(pos) and self.is_pos_in_bounds(pos, team, robot_id):
             return True
         return False
+
+    def get_defense_goal(self, team):
+        if (is_blue_defense_side_left and team == 'blue') or (not is_blue_defense_side_left and team == 'yellow'):
+            return np.array[-FIELD_X_LENGTH, GOAL_WIDTH/2], np.array[-FIELD_X_LENGTH, -GOAL_WIDTH/2]
+        else:
+            return np.array[FIELD_X_LENGTH, GOAL_WIDTH/2], np.array[FIELD_X_LENGTH, -GOAL_WIDTH/2]
+
+    def get_attack_goal(self, team):
+        if team == 'yellow':
+            return self.get_defense_goal('blue')
+        else:
+            assert(team == 'blue')
+            return self.get_defense_goal('yellow')
+
+
+    def best_goalie_pos(self, team):
+        ball_pos = self.get_ball_position()
+        defense_goal = self.get_defense_goal(team)
+        center_of_goal = (defense_goal[0] + defense_goal[1])/2
+# The average of the two post locations will be the center of the goal.
+        goal_to_ball_slope = (ball_pos[1] - center_of_goal[1])/(ball_pos[0] - center_of_goal[0])
+        best_displacement_along_line = goal_to_ball_slope * 400
+        return np.array[ ,,np.arctan(goal_to_ball_slope)]

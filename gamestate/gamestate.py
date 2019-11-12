@@ -318,4 +318,5 @@ class GameState(object):
 # The average of the two post locations will be the center of the goal.
         goal_to_ball_slope = (ball_pos[1] - center_of_goal[1])/(ball_pos[0] - center_of_goal[0])
         best_displacement_along_line = goal_to_ball_slope * 400
-        return np.array[ ,,np.arctan(goal_to_ball_slope)]
+        return np.array([0, 0])
+        # return np.array[ ,,np.arctan(goal_to_ball_slope)]

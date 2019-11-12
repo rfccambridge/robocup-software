@@ -40,6 +40,7 @@ class Simulator(object):
         # initialize a scenario
         self.put_fake_ball(np.array([0, 0]), np.array([1000, 0]))
         self.put_fake_robot('blue', 8, np.array([100, 100, 0]))
+        self.put_fake_robot('blue', 7, np.array([100, 300, 0]))
 
         while self._is_simulating:
             delta_time = 0
@@ -80,7 +81,12 @@ class Simulator(object):
                     for other in self._gamestate.get_all_robot_positions():
                         if (other != pos).any():
                             overlap = self._gamestate.robot_collision(other, pos)
-                            print(overlap)
+                            overlap = np.append(overlap, 0)
+                            self._gamestate.update_robot_position(
+                                team,
+                                robot_id,
+                                pos + overlap / 2
+                            )
             # yield to other threads - loop at most 20 times per second
             time.sleep(.05)
 

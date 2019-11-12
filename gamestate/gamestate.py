@@ -19,7 +19,7 @@ ROBOT_DIAMETER = 180
 
 # PHYSICS CONSTANTS
 # models constant slowdown due to friction
-BALL_DECCELERATION = 1000  # mm/s^2 (-500 more accurate?)
+BALL_DECCELERATION = 350  # mm/s^2
 
 
 class GameState(object):
@@ -114,7 +114,7 @@ class GameState(object):
             return True
         return time.time() - last_update_time > BALL_LOST_TIME
 
-    def get_robot_positions(self, team):
+    def get_team_positions(self, team):
         if team == 'blue':
             return self._blue_robot_positions
         else:
@@ -122,12 +122,22 @@ class GameState(object):
             return self._yellow_robot_positions
 
     def get_robot_ids(self, team):
-        robot_positions = self.get_robot_positions(team)
+        robot_positions = self.get_team_positions(team)
         return tuple(robot_positions.keys())
+
+    # returns a list of all robot positions
+    def get_all_robot_positions(self):
+        all_robot_positions = []
+        for team in ['blue', 'yellow']:
+            for robot_id in self.get_robot_ids(team):
+                # get just the x, y for this robot
+                robot_pos = self.get_robot_position(team, robot_id)
+                all_robot_positions.append(robot_pos)
+        return all_robot_positions
 
     # returns position robot was last seen at
     def get_robot_position(self, team, robot_id):
-        robot_positions = self.get_robot_positions(team)
+        robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
             # print("getting position of robot never seen?!?")
             return None
@@ -137,13 +147,13 @@ class GameState(object):
     def update_robot_position(self, team, robot_id, pos):
         assert(len(pos) == 3 and type(pos) == np.ndarray)
         pos = pos.copy().astype(float)
-        robot_positions = self.get_robot_positions(team)
+        robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
             robot_positions[robot_id] = deque([], ROBOT_POS_HISTORY_LENGTH)
         robot_positions[robot_id].appendleft((time.time(), pos))
 
     def get_robot_last_update_time(self, team, robot_id):
-        robot_positions = self.get_robot_positions(team)
+        robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
             # print("getting update time of robot never seen?!?")
             return None
@@ -179,25 +189,33 @@ class GameState(object):
     def is_pos_in_bounds(self, pos, team, robot_id):
         in_play = (-FIELD_W / 2 <= pos[0] <= FIELD_W / 2) and \
             (-FIELD_H / 2 <= pos[1] <= FIELD_H / 2)
-        in_goalie_area = False
-        if (-4500 <= pos[0] <= -3500) or (3500 <= pos[0] <= 4500):
+        if (-FIELD_W / 2 <= pos[0] <= -FIELD_W / 2 + 1000) or \
+           (FIELD_W / 2 - 1000 <= pos[0] <= FIELD_W / 2):
             if -1000 <= pos[1] <= 1000:
                 in_goalie_area = True
+        # TODO: distingush own vs opponnet goalie area
+        # TODO: during free kicks must be away from opponent area
+        # + ALL OTHER RULES
         if not in_play:
             return False
-        return self.is_goalie(self, team, robot_id) or (not in_goalie_area)
+        return self.is_goalie(team, robot_id) or (not in_goalie_area)
 
     # ANALYSIS FUNCTIONS
+    # returns the amount of overlap between robots as (x, y) vector
+    def robot_collision(self, pos1, pos2):
+        delta = pos2[:2] - pos1[:2]
+        if not delta.any():
+            return np.array([ROBOT_DIAMETER, 0])
+        distance = np.linalg.norm(delta)
+        if distance <= ROBOT_DIAMETER:
+            touching_delta = delta / distance * ROBOT_DIAMETER
+            return touching_delta - delta
+        return np.array([0, 0])
+
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):
-        all_robot_positions = []
-        for team in ['blue', 'yellow']:
-            for robot_id in self.get_robot_ids(team):
-                # get just the x, y for this robot
-                pos = self.get_robot_position(team, robot_id)[:1]
-                all_robot_positions.append(pos)
-        for robot_pos in all_robot_positions:
-            if np.linalg.norm(pos - robot_pos) <= ROBOT_DIAMETER:
+        for robot_pos in self.get_all_robot_positions():
+            if self.robot_collision(pos, robot_pos).any():
                 return False
         return True
 
@@ -235,8 +253,8 @@ class GameState(object):
         accel = accel_direction * BALL_DECCELERATION * time_since_midpoint
         velocity_now = midpoint_velocity + accel
         # truncate if slowdown has caused change directions
-        if velocity_now[0] * midpoint_velocity[0] < 0:
-            assert(velocity_now[1] * midpoint_velocity[1] < 0)
+        if ((velocity_now * midpoint_velocity) < 0).any():
+            assert(((velocity_now * midpoint_velocity) <= 0).all())
             velocity_now = np.array([0, 0])
         # print("after adjust: {}".format(velocity_now))
         return velocity_now
@@ -250,7 +268,7 @@ class GameState(object):
         # truncate if we're going past the time where the ball would stop
         velocity_final = accel * delta_time + velocity_initial
         if ((velocity_initial * velocity_final) < 0).any():
-            assert(((velocity_initial * velocity_final) < 0).all())
+            assert(((velocity_initial * velocity_final) <= 0).all())
             time_to_stop = -1 * velocity_initial[0] / accel[0]
             # print("dt: {} TTS: {}".format(delta_time, time_to_stop))
             delta_time = time_to_stop
@@ -274,6 +292,5 @@ class GameState(object):
                 time += delta_t
 
     def is_pos_valid(self, pos, team, robot_id):
-        if self.is_position_open(pos) and self.is_pos_in_bounds(pos, team, robot_id):
-            return True
-        return False
+        return self.is_position_open(pos) and \
+            self.is_pos_in_bounds(pos, team, robot_id)

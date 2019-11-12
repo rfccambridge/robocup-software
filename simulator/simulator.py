@@ -1,7 +1,6 @@
 import threading
 import time
 import numpy as np
-from collections import deque
 
 
 class Simulator(object):
@@ -19,30 +18,13 @@ class Simulator(object):
     def put_fake_robot(self, team, robot_id, position):
         self._gamestate.update_robot_position(team, robot_id, position)
 
-    def put_fake_ball(self, position):
+    # initialize ball position data to reflect desired position + velocity
+    def put_fake_ball(self, position, velocity=np.array([0, 0])):
+        # use small dt to minimize deceleration correction
+        dt = .05
+        self._gamestate.update_ball_position(position - velocity * dt)
+        time.sleep(dt)
         self._gamestate.update_ball_position(position)
-
-    # adjust timestamps so it's like we've just seen the data
-    # assumes deque elements are in the form (timestamp, data)
-    def adjust_timestamps(self, deque_data):
-        time_offset = time.time() - deque_data[0][0]
-        adjusted_data = deque([])
-        for timestamp, data in deque_data:
-            adjusted_data.append((timestamp + time_offset, data))
-        return adjusted_data
-
-    def initialize_ball_move(self):
-        # bypass gamestate "private" variable >:O
-        # Some real-life collected ball data when it was moving
-        ball_data = deque([
-            (1572297310.7425327, np.array([1241.970703125, 260.635528564453])),
-            (1572297310.7324636, np.array([1218.429443359, 252.887451171875])),
-            (1572297310.7223923, np.array([1218.429443359, 252.887451171875])),
-            (1572297310.7123000, np.array([1182.462158203, 244.924942016601])),
-            (1572297310.7022493, np.array([1182.462158203, 244.924942016601])),
-            (1572297310.6921763, np.array([1125.279785150, 245.633651733398])),
-        ], maxlen=20)
-        self._gamestate._ball_position = self.adjust_timestamps(ball_data)
 
     def start_simulating(self):
         self._is_simulating = True
@@ -56,9 +38,8 @@ class Simulator(object):
         self._gamestate.wait_until_game_begins()
 
         # initialize a scenario
-        self.put_fake_ball(np.array([0, 0]))
+        self.put_fake_ball(np.array([0, 0]), np.array([1000, 0]))
         self.put_fake_robot('blue', 8, np.array([100, 100, 0]))
-        self.initialize_ball_move()
 
         while self._is_simulating:
             delta_time = 0
@@ -95,6 +76,11 @@ class Simulator(object):
                 for robot_id in self._gamestate.get_robot_ids(team):
                     pos = self._gamestate.get_robot_position(team, robot_id)
                     self._gamestate.update_robot_position(team, robot_id, pos)
+                    # collisions between robots
+                    for other in self._gamestate.get_all_robot_positions():
+                        if (other != pos).any():
+                            overlap = self._gamestate.robot_collision(other, pos)
+                            print(overlap)
             # yield to other threads - loop at most 20 times per second
             time.sleep(.05)
 

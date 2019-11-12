@@ -137,6 +137,9 @@ class Visualizer(object):
                     self.user_click = np.array(pygame.mouse.get_pos())
                     self._gamestate.user_click_field = \
                         self.screen_to_field(self.user_click)
+                    # print(self._gamestate.is_pos_valid(
+                    #     self._gamestate.user_click_field, 'yellow', 1
+                    # ))
                     for label, rect in self.buttons.items():
                         if rect.collidepoint(self.user_click):
                             # prints current location of mouse

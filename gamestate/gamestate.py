@@ -16,6 +16,8 @@ ROBOT_LOST_TIME = .2
 FIELD_X_LENGTH = 9000
 FIELD_Y_LENGTH = 6000
 GOAL_WIDTH = 1000
+DEFENSE_AREA_X_LENGTH = 1000
+DEFENSE_AREA_Y_LENGTH = 2000
 ROBOT_DIAMETER = 180
 BALL_RADIUS = 21
 
@@ -190,19 +192,27 @@ class GameState(object):
     def is_goalie(self, team, robot_id):
         return False
 
+    def is_in_defense_area(self, pos, team):
+        if team == "blue" and self.is_blue_defense_side_left or \
+           team == "yellow" and not self.is_blue_defense_side_left:
+            min_x = -FIELD_X_LENGTH / 2
+        else:
+            min_x = FIELD_X_LENGTH / 2 - DEFENSE_AREA_X_LENGTH
+        min_y = -DEFENSE_AREA_Y_LENGTH / 2
+        # defense area is a box centered at y = 0
+        return ((min_x <= pos[0] <= min_x + DEFENSE_AREA_X_LENGTH) and
+                min_y <= pos[1] <= min_y + DEFENSE_AREA_Y_LENGTH)
+
+    def is_in_play(self, pos):
+        return ((-FIELD_X_LENGTH / 2 <= pos[0] <= FIELD_X_LENGTH / 2) and
+                (-FIELD_Y_LENGTH / 2 <= pos[1] <= FIELD_Y_LENGTH / 2))
+
     def is_pos_in_bounds(self, pos, team, robot_id):
-        in_play = (-FIELD_X_LENGTH / 2 <= pos[0] <=  FIELD_X_LENGTH / 2) and \
-            (-FIELD_Y_LENGTH / 2 <= pos[1] <= FIELD_Y_LENGTH / 2)
-        if (-FIELD_X_LENGTH / 2 <= pos[0] <= -FIELD_X_LENGTH / 2 + 1000) or \
-           (FIELD_X_LENGTH / 2 - 1000 <= pos[0] <= FIELD_X_LENGTH / 2):
-            if -1000 <= pos[1] <= 1000:
-                in_goalie_area = True
-        # TODO: distingush own vs opponnet goalie area
         # TODO: during free kicks must be away from opponent area
         # + ALL OTHER RULES
-        if not in_play:
-            return False
-        return self.is_goalie(team, robot_id) or (not in_goalie_area)
+        is_defender_too_close = self.is_in_defense_area(pos, team) and \
+                not self.is_goalie(team, robot_id)
+        return self.is_in_play(pos) and not is_defender_too_close
 
     # ANALYSIS FUNCTIONS
     # returns the amount of overlap between circles as (x, y) vector
@@ -227,7 +237,7 @@ class GameState(object):
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):
-        for key, robot_pos in self.get_all_robot_positions():
+        for key, robot_pos in self.get_all_robot_positions().items():
             if self.robot_overlap(pos, robot_pos).any():
                 return False
         return True
@@ -308,11 +318,15 @@ class GameState(object):
         return self.is_position_open(pos) and \
             self.is_pos_in_bounds(pos, team, robot_id)
 
+    # returns the top and bottom goalposts for a team
     def get_defense_goal(self, team):
-        if (is_blue_defense_side_left and team == 'blue') or (not is_blue_defense_side_left and team == 'yellow'):
-            return np.array[-FIELD_X_LENGTH, GOAL_WIDTH/2], np.array[-FIELD_X_LENGTH, -GOAL_WIDTH/2]
+        if (self.is_blue_defense_side_left and team == 'blue') or \
+           (not self.is_blue_defense_side_left and team == 'yellow'):
+            return (np.array[-FIELD_X_LENGTH, GOAL_WIDTH/2],
+                    np.array[-FIELD_X_LENGTH, -GOAL_WIDTH/2])
         else:
-            return np.array[FIELD_X_LENGTH, GOAL_WIDTH/2], np.array[FIELD_X_LENGTH, -GOAL_WIDTH/2]
+            return (np.array[FIELD_X_LENGTH, GOAL_WIDTH/2],
+                    np.array[FIELD_X_LENGTH, -GOAL_WIDTH/2])
 
     def get_attack_goal(self, team):
         if team == 'yellow':
@@ -320,7 +334,6 @@ class GameState(object):
         else:
             assert(team == 'blue')
             return self.get_defense_goal('yellow')
-
 
     def best_goalie_pos(self, team):
         ball_pos = self.get_ball_position()

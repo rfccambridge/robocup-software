@@ -128,14 +128,14 @@ class GameState(object):
         robot_positions = self.get_team_positions(team)
         return tuple(robot_positions.keys())
 
-    # returns a list of all robot positions
+    # returns a dict from (team, robot_id) : position
     def get_all_robot_positions(self):
-        all_robot_positions = []
+        all_robot_positions = {}
         for team in ['blue', 'yellow']:
             for robot_id in self.get_robot_ids(team):
-                # get just the x, y for this robot
                 robot_pos = self.get_robot_position(team, robot_id)
-                all_robot_positions.append(robot_pos)
+                key = (team, robot_id)
+                all_robot_positions[key] = robot_pos
         return all_robot_positions
 
     # returns position robot was last seen at
@@ -152,6 +152,7 @@ class GameState(object):
         pos = pos.copy().astype(float)
         robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
+            assert(len(robot_positions) < 6)
             robot_positions[robot_id] = deque([], ROBOT_POS_HISTORY_LENGTH)
         robot_positions[robot_id].appendleft((time.time(), pos))
 
@@ -226,7 +227,7 @@ class GameState(object):
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):
-        for robot_pos in self.get_all_robot_positions():
+        for key, robot_pos in self.get_all_robot_positions():
             if self.robot_overlap(pos, robot_pos).any():
                 return False
         return True

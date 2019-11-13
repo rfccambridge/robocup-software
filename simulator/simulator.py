@@ -14,6 +14,8 @@ class Simulator(object):
         self._thread = None
         self._last_step_time = None
 
+        self._initial_setup = None
+
     # TODO: flush out system for initializing test scenarios
     def put_fake_robot(self, team, robot_id, position):
         self._gamestate.update_robot_position(team, robot_id, position)
@@ -26,7 +28,8 @@ class Simulator(object):
         time.sleep(dt)
         self._gamestate.update_ball_position(position)
 
-    def start_simulating(self):
+    def start_simulating(self, inital_setup=None):
+        self._initial_setup = inital_setup
         self._is_simulating = True
         self._thread = threading.Thread(target=self.simulation_loop)
         # set to daemon mode so it will be easily killed
@@ -36,12 +39,29 @@ class Simulator(object):
     def simulation_loop(self):
         # wait until game begins (while other threads are initializing)
         self._gamestate.wait_until_game_begins()
+        print("\nSimulator running with initial setup: {}".format(
+            self._initial_setup
+        ))
+        # initialize the chosen scenario
+        if self._initial_setup is None:
+            print('(initial_setup = None, putting in full teams)')
+            for i in range(1, 7):
+                left_pos = np.array([-3000, 200 * (i - 3.5), 0])
+                right_pos = np.array([3000, 200 * (i - 3.5), 3.14])
+                if self._gamestate.is_blue_defense_side_left:
+                    blue_pos = left_pos
+                    yellow_pos = right_pos
+                else:
+                    blue_pos = right_pos
+                    yellow_pos = left_pos
+                self.put_fake_robot('blue', i, blue_pos)
+                self.put_fake_robot('yellow', i, yellow_pos)
+            self.put_fake_ball(np.array([0, 0]))
+        elif self._initial_setup == "Moving Ball":
+            self.put_fake_robot('blue', 1, np.array([0, 0, 0]))
+            self.put_fake_ball(np.array([1000, 1000]), np.array([0, -1000]))
 
-        # initialize a scenario
-        self.put_fake_ball(np.array([0, -100]), np.array([1000, 0]))
-        self.put_fake_robot('blue', 8, np.array([100, 100, 0]))
-        self.put_fake_robot('blue', 7, np.array([100, 300, 0]))
-
+        # run the simulation loop
         while self._is_simulating:
             delta_time = 0
             if self._last_step_time is not None:
@@ -73,25 +93,30 @@ class Simulator(object):
                     self._gamestate.update_robot_position(
                         team, robot_id, new_pos
                     )
+
+            for (team, robot_id), pos in \
+                    self._gamestate.get_all_robot_positions().items():
                 # refresh positions of all robots
-                for robot_id in self._gamestate.get_robot_ids(team):
-                    pos = self._gamestate.get_robot_position(team, robot_id)
-                    self._gamestate.update_robot_position(team, robot_id, pos)
-                    # collisions between robots - TODO: make symmetric!!!
-                    for other in self._gamestate.get_all_robot_positions():
-                        if (other != pos).any():
-                            overlap = self._gamestate.robot_overlap(other, pos)
-                            overlap = np.append(overlap, 0)
-                            self._gamestate.update_robot_position(
-                                team,
-                                robot_id,
-                                pos + overlap / 2
-                            )
-                    # collision with ball
-                    ball_overlap = self._gamestate.ball_overlap(pos)
-                    if ball_overlap.any():
-                        ball_pos = self._gamestate.get_ball_position()
-                        self._gamestate.update_ball_position(ball_pos + ball_overlap)
+                pos = self._gamestate.get_robot_position(team, robot_id)
+                self._gamestate.update_robot_position(team, robot_id, pos)
+                    
+                # handle collisions with other robots
+                for (team2, robot_id2), pos2 in \
+                        self._gamestate.get_all_robot_positions().items():
+                    if (team2, robot_id2) != (team, robot_id) and \
+                       self._gamestate.robot_overlap(pos, pos2).any():
+                        overlap = self._gamestate.robot_overlap(pos, pos2)
+                        overlap = np.append(overlap, 0)
+                        self._gamestate.update_robot_position(
+                            team, robot_id, pos - overlap / 2)
+                        self._gamestate.update_robot_position(
+                            team2, robot_id2, pos2 + overlap / 2)
+                # collision with ball
+                ball_overlap = self._gamestate.ball_overlap(pos)
+                if ball_overlap.any():
+                    ball_pos = self._gamestate.get_ball_position()
+                    new_pos = ball_pos + ball_overlap
+                    self._gamestate.update_ball_position(new_pos)
             # yield to other threads - loop at most 20 times per second
             time.sleep(.05)
 

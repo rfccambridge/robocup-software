@@ -31,13 +31,13 @@ class Strategy(object):
             self._control_thread = None
 
     def control_loop(self):
-        print("Running strategy for {} team, mode: {}".format(
+        # wait until game begins (while other threads are initializing)
+        self._gamestate.wait_until_game_begins()
+        print("\nRunning strategy for {} team, mode: {}".format(
             self._team, self._mode)
         )
         if self._mode is None:
             print('(mode = None, doing nothing)')
-        # wait until game begins (while other threads are initializing)
-        self._gamestate.wait_until_game_begins()
         while self._is_controlling:
             # run the strategy corresponding to the given mode
             if self._mode == "follow_click":

@@ -9,7 +9,7 @@ from comms import Comms
 from simulator import Simulator
 
 # whether or not we are running with real field and robots
-IS_SIMULATION = False
+IS_SIMULATION = True
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'

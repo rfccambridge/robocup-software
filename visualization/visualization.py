@@ -155,13 +155,7 @@ class Visualizer(object):
         dims = (gs.FIELD_X_LENGTH * SCALE, gs.FIELD_Y_LENGTH * SCALE)
         boundary_lines_rect = [*top_left, *dims]
         pygame.draw.rect(self._viewer, LINE_COLOR, boundary_lines_rect, FIELD_LINE_WIDTH)
-        pygame.draw.line(
-            self._viewer,
-            LINE_COLOR,
-            self.field_to_screen(np.array([0, hh])),
-            self.field_to_screen(np.array([0, -hh])),
-            FIELD_LINE_WIDTH
-        )
+        self.draw_line(LINE_COLOR, np.array([0, hh]), np.array([0, -hh]), FIELD_LINE_WIDTH)
         # Center Circle
         pygame.draw.circle(
             self._viewer,
@@ -185,13 +179,7 @@ class Visualizer(object):
             # defense_area_rect = list(map(tuple, defense_area_rect))
             pygame.draw.rect(self._viewer, LINE_COLOR, defense_area_rect, FIELD_LINE_WIDTH)
             goalposts = self._gamestate.get_defense_goal(team)
-            pygame.draw.line(
-                self._viewer,
-                GOAL_COLOR,
-                self.field_to_screen(goalposts[0]),
-                self.field_to_screen(goalposts[1]),
-                FIELD_LINE_WIDTH * 2
-            )
+            self.draw_line(GOAL_COLOR, *goalposts, FIELD_LINE_WIDTH * 2)
 
         # Draw all the robots
         for (team, robot_id), pos in self._gamestate.get_all_robot_positions():
@@ -208,27 +196,18 @@ class Visualizer(object):
             )
             # indicate direction of robot
             arrow_scale = int(gs.ROBOT_RADIUS * SCALE) * 5
-            pygame.draw.line(
-                self._viewer,
+            self.draw_line(
                 (255, 0, 0),
-                self.field_to_screen(pos[:2]),
-                self.field_to_screen(np.array([
-                    x + math.cos(w) * arrow_scale,
-                    y + math.sin(w) * arrow_scale
-                ])),
+                pos[:2],
+                np.array([x + math.cos(w) * arrow_scale,
+                          y + math.sin(w) * arrow_scale]),
                 2
             )
             # draw waypoints for this robot
             robot_commands = self._gamestate.get_robot_commands(team, robot_id)
             prev_waypoint = pos
             for waypoint, min_speed, max_speed in robot_commands.waypoints:
-                pygame.draw.line(
-                    self._viewer,
-                    (255, 0, 0),
-                    self.field_to_screen(prev_waypoint[:2]),
-                    self.field_to_screen(waypoint[:2]),
-                    1
-                )
+                self.draw_line((255, 0, 0), prev_waypoint[:2], waypoint[:2], 1)
                 prev_waypoint = waypoint
 
         # Draw ball
@@ -241,16 +220,8 @@ class Visualizer(object):
                 int(gs.BALL_RADIUS * SCALE)
             )
             # draw ball velocity
-            ball_screen_velocity = self.scale_vector(
-                self._gamestate.get_ball_velocity()
-            )
-            pygame.draw.line(
-                self._viewer,
-                TRAJECTORY_COLOR,
-                self.field_to_screen(ball_pos),
-                self.field_to_screen(ball_pos) + ball_screen_velocity,
-                1
-            )
+            velocity = self._gamestate.get_ball_velocity()
+            self.draw_line(TRAJECTORY_COLOR, ball_pos, ball_pos + velocity, 1)
             # draw where we think ball will be in 1s
             pygame.draw.circle(
                 self._viewer,
@@ -261,7 +232,7 @@ class Visualizer(object):
 
         # draw user click location with a red 'X'
         if self.user_click is not None:
-            self.draw_X(self.user_click, (255, 0, 0), 5, 2)
+            self.draw_X(self._gamestate.user_click_field, (255, 0, 0), 50, 2)
 
         # Draw buttons :)
         for label, rect in self.buttons.items():
@@ -277,10 +248,20 @@ class Visualizer(object):
             self._viewer = None
 
     # drawing helper functions
+    # takes field positions
+    def draw_line(self, color, start, end, width):
+        pygame.draw.line(
+            self._viewer,
+            color,
+            self.field_to_screen(start),
+            self.field_to_screen(end),
+            width
+        )
+
     def draw_X(self, pos, color, size, width):
-        top_left = (pos[0] - size, pos[1] - size)
-        bottom_right = (pos[0] + size, pos[1] + size)
-        top_right = (pos[0] + size, pos[1] - size)
-        bottom_left = (pos[0] - size, pos[1] + size)
-        pygame.draw.line(self._viewer, color, top_left, bottom_right, width)
-        pygame.draw.line(self._viewer, color, bottom_left, top_right, width)
+        top_left = np.array([pos[0] - size, pos[1] - size])
+        bottom_right = np.array([pos[0] + size, pos[1] + size])
+        top_right = np.array([pos[0] + size, pos[1] - size])
+        bottom_left = np.array([pos[0] - size, pos[1] + size])
+        self.draw_line(color, top_left, bottom_right, width)
+        self.draw_line(color, bottom_left, top_right, width)

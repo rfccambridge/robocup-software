@@ -84,25 +84,24 @@ class Simulator(object):
                 self._gamestate.update_ball_position(new_ball_pos)
                 # TODO: collisions, + randomness?
 
-            for team in ['blue', 'yellow']:
+            for (team, robot_id), robot_commands in \
+                    self._gamestate.get_all_robot_commands():
                 # move robots according to commands
-                team_commands = self._gamestate.get_team_commands(team)
-                for robot_id, robot_commands in team_commands.items():
-                    pos = self._gamestate.get_robot_position(team, robot_id)
-                    new_pos = robot_commands.predict_pos(pos, delta_time)
-                    self._gamestate.update_robot_position(
-                        team, robot_id, new_pos
-                    )
+                pos = self._gamestate.get_robot_position(team, robot_id)
+                new_pos = robot_commands.predict_pos(pos, delta_time)
+                self._gamestate.update_robot_position(
+                    team, robot_id, new_pos
+                )
 
             for (team, robot_id), pos in \
-                    self._gamestate.get_all_robot_positions().items():
+                    self._gamestate.get_all_robot_positions():
                 # refresh positions of all robots
                 pos = self._gamestate.get_robot_position(team, robot_id)
                 self._gamestate.update_robot_position(team, robot_id, pos)
-                    
+
                 # handle collisions with other robots
                 for (team2, robot_id2), pos2 in \
-                        self._gamestate.get_all_robot_positions().items():
+                        self._gamestate.get_all_robot_positions():
                     if (team2, robot_id2) != (team, robot_id) and \
                        self._gamestate.robot_overlap(pos, pos2).any():
                         overlap = self._gamestate.robot_overlap(pos, pos2)

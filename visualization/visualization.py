@@ -137,9 +137,9 @@ class Visualizer(object):
                     self.user_click = np.array(pygame.mouse.get_pos())
                     self._gamestate.user_click_field = \
                         self.screen_to_field(self.user_click)
-                    print(self._gamestate.is_pos_valid(
-                        self._gamestate.user_click_field, 'blue', 1
-                    ))
+                    # print(self._gamestate.is_pos_valid(
+                    #     self._gamestate.user_click_field, 'blue', 1
+                    # ))
                     for label, rect in self.buttons.items():
                         if rect.collidepoint(self.user_click):
                             # prints current location of mouse
@@ -176,34 +176,43 @@ class Visualizer(object):
             FIELD_LINE_WIDTH
         )
 
-        # Draw all the robots - TODO: draw both teams, with distinguishment
-        for team in ['blue', 'yellow']:
-            for robot_id in self._gamestate.get_robot_ids(team):
-                pos = self._gamestate.get_robot_position(team, robot_id)
-                robot_color = BLUE_TEAM_COLOR if team == 'blue' else YELLOW_TEAM_COLOR
-                if self._gamestate.is_robot_lost(team, robot_id):
-                    robot_color = ROBOT_LOST_COLOR
-                (x, y, w) = pos
-                pygame.draw.circle(
-                    self._viewer,
-                    robot_color,
-                    self.field_to_screen(np.array([x, y])),
-                    int(ROBOT_SIZE * SCALE)
-                )
-                # indicate direction of robot
-                arrow_scale = int(ROBOT_SIZE * SCALE) * 5
+        # Draw all the robots
+        for (team, robot_id), pos in self._gamestate.get_all_robot_positions():
+            pos = self._gamestate.get_robot_position(team, robot_id)
+            robot_color = BLUE_TEAM_COLOR if team == 'blue' else YELLOW_TEAM_COLOR
+            if self._gamestate.is_robot_lost(team, robot_id):
+                robot_color = ROBOT_LOST_COLOR
+            (x, y, w) = pos
+            pygame.draw.circle(
+                self._viewer,
+                robot_color,
+                self.field_to_screen(pos[:2]),
+                int(ROBOT_SIZE * SCALE)
+            )
+            # indicate direction of robot
+            arrow_scale = int(ROBOT_SIZE * SCALE) * 5
+            pygame.draw.line(
+                self._viewer,
+                (255, 0, 0),
+                self.field_to_screen(pos[:2]),
+                self.field_to_screen(np.array([
+                    x + math.cos(w) * arrow_scale,
+                    y + math.sin(w) * arrow_scale
+                ])),
+                2
+            )
+            # draw waypoints for this robot
+            robot_commands = self._gamestate.get_robot_commands(team, robot_id)
+            prev_waypoint = pos
+            for waypoint, min_speed, max_speed in robot_commands.waypoints:
                 pygame.draw.line(
                     self._viewer,
                     (255, 0, 0),
-                    self.field_to_screen(np.array([x, y])),
-                    self.field_to_screen(np.array([
-                        x + math.cos(w) * arrow_scale,
-                        y + math.sin(w) * arrow_scale
-                    ])),
-                    2
+                    self.field_to_screen(prev_waypoint[:2]),
+                    self.field_to_screen(waypoint[:2]),
+                    1
                 )
-
-                # TODO: draw commands + analyzed trajectories for this robot
+                prev_waypoint = waypoint
 
         # Draw ball
         ball_screen_pos = self.field_to_screen(self._gamestate.get_ball_position())

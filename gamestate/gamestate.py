@@ -130,16 +130,6 @@ class GameState(object):
         robot_positions = self.get_team_positions(team)
         return tuple(robot_positions.keys())
 
-    # returns a dict from (team, robot_id) : position
-    def get_all_robot_positions(self):
-        all_robot_positions = {}
-        for team in ['blue', 'yellow']:
-            for robot_id in self.get_robot_ids(team):
-                robot_pos = self.get_robot_position(team, robot_id)
-                key = (team, robot_id)
-                all_robot_positions[key] = robot_pos
-        return all_robot_positions
-
     # returns position robot was last seen at
     def get_robot_position(self, team, robot_id):
         robot_positions = self.get_team_positions(team)
@@ -148,6 +138,16 @@ class GameState(object):
             return None
         timestamp, pos = robot_positions[robot_id][0]
         return pos
+
+    # returns a list of ((team, robot_id), position) for iteration
+    def get_all_robot_positions(self):
+        all_robot_positions = []
+        for team in ['blue', 'yellow']:
+            for robot_id in self.get_robot_ids(team):
+                robot_pos = self.get_robot_position(team, robot_id)
+                key = (team, robot_id)
+                all_robot_positions.append((key, robot_pos))
+        return all_robot_positions
 
     def update_robot_position(self, team, robot_id, pos):
         assert(len(pos) == 3 and type(pos) == np.ndarray)
@@ -185,6 +185,16 @@ class GameState(object):
         if robot_id not in team_commands:
             team_commands[robot_id] = RobotCommands()
         return team_commands[robot_id]
+
+    # returns a list of ((team, robot_id), commands) for iteration
+    def get_all_robot_commands(self):
+        all_robot_commands = []
+        for team in ['blue', 'yellow']:
+            for robot_id in self.get_robot_ids(team):
+                robot_commands = self.get_robot_commands(team, robot_id)
+                key = (team, robot_id)
+                all_robot_commands.append((key, robot_commands))
+        return all_robot_commands
 
     # GAME RULES FUNCTIONS
     # TODO write a "is_goalie(self, team, robot_id)" function to determine
@@ -237,7 +247,7 @@ class GameState(object):
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):
-        for key, robot_pos in self.get_all_robot_positions().items():
+        for key, robot_pos in self.get_all_robot_positions():
             if self.robot_overlap(pos, robot_pos).any():
                 return False
         return True

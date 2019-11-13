@@ -156,8 +156,10 @@ class RobotCommands:
         og_x, og_y, og_w = current_position
         if self.waypoints:
             # if close enough to first waypoint, delete and move to next one
+            goal_pos, min_speed, max_speed = self.waypoints[0]
             while len(self.waypoints) > 1 and \
-                  self.close_enough(current_position, self.waypoints[0]):
+                  self.close_enough(current_position, goal_pos):
+                goal_pos, min_speed, max_speed = self.waypoints[0]
                 self.waypoints.pop(0)
             goal_pos, min_speed, max_speed = self.waypoints[0]
             goal_x, goal_y, goal_w = goal_pos
@@ -183,12 +185,10 @@ class RobotCommands:
 
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
-        cx, cy, cw = current
-        gx, gy, gw = current
-        dx, dy, dw = abs(cx - gx), abs(cy - gy), abs(cw - gw)
+        dx, dy, dw = goal - current
         # for now ignoring rotation
-        DISTANCE_THRESHOLD = 10
-        return (dx + dy) ** .5 < DISTANCE_THRESHOLD
+        DISTANCE_THRESHOLD = 50
+        return (dx ** 2 + dy ** 2) ** .5 < DISTANCE_THRESHOLD
 
     # HELPER FUNCTIONS
     # Transforms field x, y into a vector in the robot's perspective

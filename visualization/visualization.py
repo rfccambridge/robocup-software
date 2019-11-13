@@ -232,12 +232,12 @@ class Visualizer(object):
                 prev_waypoint = waypoint
 
         # Draw ball
-        ball_screen_pos = self.field_to_screen(self._gamestate.get_ball_position())
+        ball_pos = self._gamestate.get_ball_position()
         if not self._gamestate.is_ball_lost():
             pygame.draw.circle(
                 self._viewer,
                 BALL_COLOR,
-                ball_screen_pos,
+                self.field_to_screen(ball_pos),
                 int(gs.BALL_RADIUS * SCALE)
             )
             # draw ball velocity
@@ -247,8 +247,8 @@ class Visualizer(object):
             pygame.draw.line(
                 self._viewer,
                 TRAJECTORY_COLOR,
-                ball_screen_pos,
-                ball_screen_pos + ball_screen_velocity,
+                self.field_to_screen(ball_pos),
+                self.field_to_screen(ball_pos) + ball_screen_velocity,
                 1
             )
             # draw where we think ball will be in 1s

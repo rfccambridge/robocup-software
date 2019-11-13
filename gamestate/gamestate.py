@@ -10,7 +10,10 @@ from comms import RobotCommands
 BALL_POS_HISTORY_LENGTH = 20
 BALL_LOST_TIME = .1
 ROBOT_POS_HISTORY_LENGTH = 20
+# time after which robot is considered lost by gamestate
 ROBOT_LOST_TIME = .2
+# time after which lost robot is deleted from the gamestate
+ROBOT_REMOVE_TIME = 5
 
 # FIELD + ROBOT DIMENSIONS (mm)
 FIELD_X_LENGTH = 9000
@@ -146,8 +149,9 @@ class GameState(object):
         for team in ['blue', 'yellow']:
             for robot_id in self.get_robot_ids(team):
                 robot_pos = self.get_robot_position(team, robot_id)
-                key = (team, robot_id)
-                all_robot_positions.append((key, robot_pos))
+                if robot_pos is not None:
+                    key = (team, robot_id)
+                    all_robot_positions.append((key, robot_pos))
         return all_robot_positions
 
     def update_robot_position(self, team, robot_id, pos):
@@ -159,12 +163,21 @@ class GameState(object):
             robot_positions[robot_id] = deque([], ROBOT_POS_HISTORY_LENGTH)
         robot_positions[robot_id].appendleft((time.time(), pos))
 
+    def remove_robot(self, team, robot_id):
+        team_positions = self.get_team_positions(team)
+        del team_positions[robot_id]
+        team_commands = self.get_team_commands(team)
+        del team_commands[robot_id]
+        
     def get_robot_last_update_time(self, team, robot_id):
         robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
             # print("getting update time of robot never seen?!?")
             return None
         timestamp, pos = robot_positions[robot_id][0]
+        # remove lost robots after a while
+        if time.time() - timestamp > ROBOT_REMOVE_TIME:
+            self.remove_robot(team, robot_id)
         return timestamp
 
     # check if robot hasn't been seen by cameras in a while
@@ -276,10 +289,6 @@ class GameState(object):
         time2, pos2 = positions[0]
         delta_pos = pos2 - pos1
         delta_time = time2 - time1
-        if delta_pos[0] > 400:
-            for time, pos in self._ball_position:
-                print(pos)
-            assert(False)
         midpoint_velocity = delta_pos / delta_time
         if not midpoint_velocity.any():
             return np.array([0, 0])

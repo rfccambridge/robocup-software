@@ -34,7 +34,7 @@ Also specifies message serialization to interface with firmware.
 class RobotCommands:
     # constants for deriving speed from waypoints TODO: obselete?
     # default proportional scaling constant for distance differences
-    SPEED_SCALE = 2
+    SPEED_SCALE = 1.5
     # Max speed from max power to motors => [no-load] 1090 mm/s (see firmware)
     # Reduce that by multiplying by min(sin(theta), cos(theta)) of wheels
     # Goal is to get upper bound on what firmware can obey accurately

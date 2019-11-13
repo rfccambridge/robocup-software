@@ -2,6 +2,7 @@ import sslclient
 import threading
 import time
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 '''
@@ -78,27 +79,28 @@ class SSLVisionDataProvider(PositionDataProvider):
             # update positions of all (blue team) robots seen by data feed
             robot_positions = self.get_robot_positions('blue')
             for robot_id, pos in robot_positions.items():
-                loc = pos.x, pos.y, pos.orientation
+                loc = np.array([pos.x, pos.y, pos.orientation])
                 self._gamestate.update_robot_position('blue', robot_id, loc)
             # update positions of all (yellow team) robots seen by data feed
             robot_positions = self.get_robot_positions('yellow')
             for robot_id, pos in robot_positions.items():
-                loc = pos.x, pos.y, pos.orientation
+                loc = np.array([pos.x, pos.y, pos.orientation])
                 self._gamestate.update_robot_position('yellow', robot_id, loc)
             # update position of the ball
             ball_data = self.get_ball_position()
             if ball_data:
-                self._gamestate.update_ball_position((ball_data.x, ball_data.y))
+                ball_pos = np.array([ball_data.x, ball_data.y])
+                self._gamestate.update_ball_position(ball_pos)
 
-            if self._last_update_time is not None:      
+            if self._last_update_time is not None:
                 delta = time.time() - self._last_update_time
                 if delta > .1:
-                    print("SSL-vision data loop unexpectedly large delay: " + str(delta))
+                    print("SSL-vision data loop large delay: " + str(delta))
             self._last_update_time = time.time()
 
-            # yield to other threads - run this loop at most 100 times per second
+            # yield to other threads - loop at most 100 times per second
             time.sleep(.01)
-        
+
     def start_updating(self):
         self._is_running = True
         self._ssl_vision_client = sslclient.client()

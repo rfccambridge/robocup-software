@@ -56,7 +56,7 @@ class Radio(object):
                 # long messages (>30?) take longer because they must be split
                 self.device.send_data_async(remote_device, message)
                 delta = time.time() - start
-                if delta > .001:
+                if delta > .002:
                     print('xbee send is taking a long time, too long/many?')
                     print("time taken: " + str(delta))
                     print("message length: " + str(len(message)))

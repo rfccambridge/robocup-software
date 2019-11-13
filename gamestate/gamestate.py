@@ -15,14 +15,15 @@ ROBOT_LOST_TIME = .2
 # FIELD + ROBOT DIMENSIONS (mm)
 FIELD_X_LENGTH = 9000
 FIELD_Y_LENGTH = 6000
+CENTER_CIRCLE_RADIUS = 495
 GOAL_WIDTH = 1000
 DEFENSE_AREA_X_LENGTH = 1000
 DEFENSE_AREA_Y_LENGTH = 2000
-ROBOT_DIAMETER = 180
+ROBOT_RADIUS = 90
 BALL_RADIUS = 21
 
 # PHYSICS CONSTANTS
-# models constant slowdown due to friction
+# ball constant slowdown due to friction
 BALL_DECCELERATION = 350  # mm/s^2
 
 
@@ -202,13 +203,18 @@ class GameState(object):
     def is_goalie(self, team, robot_id):
         return False
 
-    def is_in_defense_area(self, pos, team):
+    # returns bottom left corner of defense area
+    def defense_area_corner(self, team):
         if team == "blue" and self.is_blue_defense_side_left or \
            team == "yellow" and not self.is_blue_defense_side_left:
             min_x = -FIELD_X_LENGTH / 2
         else:
             min_x = FIELD_X_LENGTH / 2 - DEFENSE_AREA_X_LENGTH
         min_y = -DEFENSE_AREA_Y_LENGTH / 2
+        return np.array([min_x, min_y])
+
+    def is_in_defense_area(self, pos, team):
+        min_x, min_y = self.defense_area_corner(team)
         # defense area is a box centered at y = 0
         return ((min_x <= pos[0] <= min_x + DEFENSE_AREA_X_LENGTH) and
                 min_y <= pos[1] <= min_y + DEFENSE_AREA_Y_LENGTH)
@@ -238,12 +244,12 @@ class GameState(object):
 
     # overlap between two robots
     def robot_overlap(self, pos1, pos2):
-        return self.overlap(pos1, pos2, ROBOT_DIAMETER)
+        return self.overlap(pos1, pos2, ROBOT_RADIUS * 2)
 
     # overlap between robot and ball
     def ball_overlap(self, pos):
         ball_pos = self.get_ball_position()
-        return self.overlap(pos, ball_pos, ROBOT_DIAMETER / 2 + BALL_RADIUS)
+        return self.overlap(pos, ball_pos, ROBOT_RADIUS + BALL_RADIUS)
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):
@@ -332,11 +338,11 @@ class GameState(object):
     def get_defense_goal(self, team):
         if (self.is_blue_defense_side_left and team == 'blue') or \
            (not self.is_blue_defense_side_left and team == 'yellow'):
-            return (np.array[-FIELD_X_LENGTH, GOAL_WIDTH/2],
-                    np.array[-FIELD_X_LENGTH, -GOAL_WIDTH/2])
+            return (np.array([-FIELD_X_LENGTH / 2, GOAL_WIDTH/2]),
+                    np.array([-FIELD_X_LENGTH / 2, -GOAL_WIDTH/2]))
         else:
-            return (np.array[FIELD_X_LENGTH, GOAL_WIDTH/2],
-                    np.array[FIELD_X_LENGTH, -GOAL_WIDTH/2])
+            return (np.array([FIELD_X_LENGTH / 2, GOAL_WIDTH/2]),
+                    np.array([FIELD_X_LENGTH / 2, -GOAL_WIDTH/2]))
 
     def get_attack_goal(self, team):
         if team == 'yellow':

@@ -3,31 +3,23 @@ import math
 import time
 import numpy as np
 import pygame
-
-
-# The size of the field (should match location data from ssl-vision)
-FIELD_W = 9000
-FIELD_H = 6000
-CENTER_CIRCLE_RADIUS = 495
-FIELD_LINE_WIDTH = 3
+# import gamestate file to use field dimension constants
+# (as opposed to importing the class GameState)
+sys.path.append('..')
+from gamestate import gamestate as gs
 
 # rendering constants
+FIELD_LINE_WIDTH = 3
 FIELD_COLOR = (0, 255, 0)
 LINE_COLOR = (255, 255, 255)
+GOAL_COLOR = (0, 0, 0)
 
-ROBOT_SIZE = 90  # mm
-ROBOT_COLOR = (0, 0, 0)
 ROBOT_LOST_COLOR = (200, 200, 200)
 BLUE_TEAM_COLOR = (0, 0, 255)
 YELLOW_TEAM_COLOR = (255, 255, 0)
 
-BALL_SIZE = 21  # mm
 BALL_COLOR = (255, 125, 0)
 
-WAYPOINT_SIZE = 3
-WAYPOINT_COLOR = (0, 0, 0)
-
-VECTOR_SCALE = 1  # px / (mm/s) ?
 TRAJECTORY_COLOR = (255, 0, 0)
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
@@ -43,8 +35,9 @@ BUTTON_TEXT_COLOR = (255, 255, 255)
 
 # how much space to include outside the field
 WINDOW_BUFFER_PX = 20
-TOTAL_SCREEN_WIDTH = int(FIELD_W * SCALE) + WINDOW_BUFFER_PX * 2
-TOTAL_SCREEN_HEIGHT = int(FIELD_H * SCALE) + WINDOW_BUFFER_PX * 2 + UI_BUFFER_PX
+TOTAL_SCREEN_WIDTH = int(gs.FIELD_X_LENGTH * SCALE) + WINDOW_BUFFER_PX * 2
+TOTAL_SCREEN_HEIGHT = \
+    int(gs.FIELD_Y_LENGTH * SCALE) + WINDOW_BUFFER_PX * 2 + UI_BUFFER_PX
 
 
 class Visualizer(object):
@@ -90,7 +83,7 @@ class Visualizer(object):
         assert(len(pos) == 2 and type(pos) == np.ndarray)
         pos = pos.copy().astype(float)
         # shift position so (0, 0) is the center of the field, as in ssl-vision
-        pos += np.array([FIELD_W / 2, FIELD_H / 2])
+        pos += np.array([gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2])
         # scale for display
         pos *= SCALE
         pos = pos.astype(int)
@@ -111,7 +104,7 @@ class Visualizer(object):
         # unscale display
         pos /= SCALE
         # shift position so that center becomes (0, 0)
-        pos -= np.array([FIELD_W / 2, FIELD_H / 2])
+        pos -= np.array([gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2])
         return pos
 
     # map vector in ssl-vision coordinates (mm) to vector in x,y viewer pixels
@@ -155,17 +148,11 @@ class Visualizer(object):
 
     def render(self):
         assert(self._viewer is not None)
-        # draw field landmarks
-        pygame.draw.circle(
-            self._viewer,
-            LINE_COLOR,
-            self.field_to_screen(np.array([0, 0])),
-            int(CENTER_CIRCLE_RADIUS * SCALE),
-            FIELD_LINE_WIDTH
-        )
-        hw, hh = FIELD_W / 2, FIELD_H / 2
+        # Draw Field
+        # Boundary Lines
+        hw, hh = gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2
         top_left = self.field_to_screen(np.array([-hw, hh]))
-        dims = (FIELD_W * SCALE, FIELD_H * SCALE)
+        dims = (gs.FIELD_X_LENGTH * SCALE, gs.FIELD_Y_LENGTH * SCALE)
         boundary_lines_rect = [*top_left, *dims]
         pygame.draw.rect(self._viewer, LINE_COLOR, boundary_lines_rect, FIELD_LINE_WIDTH)
         pygame.draw.line(
@@ -175,6 +162,36 @@ class Visualizer(object):
             self.field_to_screen(np.array([0, -hh])),
             FIELD_LINE_WIDTH
         )
+        # Center Circle
+        pygame.draw.circle(
+            self._viewer,
+            LINE_COLOR,
+            self.field_to_screen(np.array([0, 0])),
+            int(gs.CENTER_CIRCLE_RADIUS * SCALE),
+            FIELD_LINE_WIDTH
+        )
+        # Goals + Defence areas
+        for team in ['blue', 'yellow']:
+            top_left = self._gamestate.defense_area_corner(team) + \
+                np.array([0, gs.DEFENSE_AREA_Y_LENGTH])
+            dims = np.array([
+                gs.DEFENSE_AREA_X_LENGTH * SCALE,
+                gs.DEFENSE_AREA_Y_LENGTH * SCALE
+            ])
+            defense_area_rect = [
+                *self.field_to_screen(top_left),
+                *dims
+            ]
+            # defense_area_rect = list(map(tuple, defense_area_rect))
+            pygame.draw.rect(self._viewer, LINE_COLOR, defense_area_rect, FIELD_LINE_WIDTH)
+            goalposts = self._gamestate.get_defense_goal(team)
+            pygame.draw.line(
+                self._viewer,
+                GOAL_COLOR,
+                self.field_to_screen(goalposts[0]),
+                self.field_to_screen(goalposts[1]),
+                FIELD_LINE_WIDTH * 2
+            )
 
         # Draw all the robots
         for (team, robot_id), pos in self._gamestate.get_all_robot_positions():
@@ -187,10 +204,10 @@ class Visualizer(object):
                 self._viewer,
                 robot_color,
                 self.field_to_screen(pos[:2]),
-                int(ROBOT_SIZE * SCALE)
+                int(gs.ROBOT_RADIUS * SCALE)
             )
             # indicate direction of robot
-            arrow_scale = int(ROBOT_SIZE * SCALE) * 5
+            arrow_scale = int(gs.ROBOT_RADIUS * SCALE) * 5
             pygame.draw.line(
                 self._viewer,
                 (255, 0, 0),
@@ -221,7 +238,7 @@ class Visualizer(object):
                 self._viewer,
                 BALL_COLOR,
                 ball_screen_pos,
-                int(BALL_SIZE * SCALE)
+                int(gs.BALL_RADIUS * SCALE)
             )
             # draw ball velocity
             ball_screen_velocity = self.scale_vector(
@@ -239,7 +256,7 @@ class Visualizer(object):
                 self._viewer,
                 (0, 0, 0),
                 self.field_to_screen(self._gamestate.predict_ball_pos(1)),
-                int(BALL_SIZE * SCALE)
+                int(gs.BALL_RADIUS * SCALE)
             )
 
         # draw user click location with a red 'X'

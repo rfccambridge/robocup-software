@@ -8,8 +8,8 @@ import pygame
 sys.path.append('..')
 from gamestate import gamestate as gs
 
-# rendering constants
-FIELD_LINE_WIDTH = 3
+# rendering constants (dimensions are in field - mm)
+FIELD_LINE_WIDTH = 20
 FIELD_COLOR = (0, 255, 0)
 LINE_COLOR = (255, 255, 255)
 GOAL_COLOR = (0, 0, 0)
@@ -21,6 +21,7 @@ YELLOW_TEAM_COLOR = (255, 255, 0)
 BALL_COLOR = (255, 125, 0)
 
 TRAJECTORY_COLOR = (255, 0, 0)
+TRAJECTORY_LINE_WIDTH = 10
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
 SCALE = 0.15
@@ -34,7 +35,7 @@ BUTTON_COLOR = (0, 0, 100)
 BUTTON_TEXT_COLOR = (255, 255, 255)
 
 # how much space to include outside the field
-WINDOW_BUFFER_PX = 20
+WINDOW_BUFFER_PX = 15
 TOTAL_SCREEN_WIDTH = int(gs.FIELD_X_LENGTH * SCALE) + WINDOW_BUFFER_PX * 2
 TOTAL_SCREEN_HEIGHT = \
     int(gs.FIELD_Y_LENGTH * SCALE) + WINDOW_BUFFER_PX * 2 + UI_BUFFER_PX
@@ -153,15 +154,14 @@ class Visualizer(object):
         hw, hh = gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2
         top_left = self.field_to_screen(np.array([-hw, hh]))
         dims = (gs.FIELD_X_LENGTH * SCALE, gs.FIELD_Y_LENGTH * SCALE)
-        boundary_lines_rect = [*top_left, *dims]
-        pygame.draw.rect(self._viewer, LINE_COLOR, boundary_lines_rect, FIELD_LINE_WIDTH)
+        self.draw_rect(LINE_COLOR, top_left, dims, FIELD_LINE_WIDTH)
+        # Mid line
         self.draw_line(LINE_COLOR, np.array([0, hh]), np.array([0, -hh]), FIELD_LINE_WIDTH)
         # Center Circle
-        pygame.draw.circle(
-            self._viewer,
+        self.draw_circle(
             LINE_COLOR,
-            self.field_to_screen(np.array([0, 0])),
-            int(gs.CENTER_CIRCLE_RADIUS * SCALE),
+            np.array([0, 0]),
+            gs.CENTER_CIRCLE_RADIUS,
             FIELD_LINE_WIDTH
         )
         # Goals + Defence areas
@@ -172,12 +172,7 @@ class Visualizer(object):
                 gs.DEFENSE_AREA_X_LENGTH * SCALE,
                 gs.DEFENSE_AREA_Y_LENGTH * SCALE
             ])
-            defense_area_rect = [
-                *self.field_to_screen(top_left),
-                *dims
-            ]
-            # defense_area_rect = list(map(tuple, defense_area_rect))
-            pygame.draw.rect(self._viewer, LINE_COLOR, defense_area_rect, FIELD_LINE_WIDTH)
+            self.draw_rect(LINE_COLOR, top_left, dims, FIELD_LINE_WIDTH)
             goalposts = self._gamestate.get_defense_goal(team)
             self.draw_line(GOAL_COLOR, *goalposts, FIELD_LINE_WIDTH * 2)
 
@@ -188,47 +183,37 @@ class Visualizer(object):
             if self._gamestate.is_robot_lost(team, robot_id):
                 robot_color = ROBOT_LOST_COLOR
             (x, y, w) = pos
-            pygame.draw.circle(
-                self._viewer,
-                robot_color,
-                self.field_to_screen(pos[:2]),
-                int(gs.ROBOT_RADIUS * SCALE)
-            )
+            self.draw_circle(robot_color, pos[:2], gs.ROBOT_RADIUS)
             # indicate direction of robot
-            arrow_scale = int(gs.ROBOT_RADIUS * SCALE) * 5
-            self.draw_line(
-                (255, 0, 0),
-                pos[:2],
-                np.array([x + math.cos(w) * arrow_scale,
-                          y + math.sin(w) * arrow_scale]),
-                2
-            )
+            arrow = gs.ROBOT_RADIUS * np.array([math.cos(w), math.sin(w)])
+            arrow_end = np.array([x, y]) + arrow
+            self.draw_line((255, 0, 0), pos[:2], arrow_end, 15)
             # draw waypoints for this robot
             robot_commands = self._gamestate.get_robot_commands(team, robot_id)
             prev_waypoint = pos
             for waypoint, min_speed, max_speed in robot_commands.waypoints:
-                self.draw_line((255, 0, 0), prev_waypoint[:2], waypoint[:2], 1)
+                self.draw_line(
+                    TRAJECTORY_COLOR,
+                    prev_waypoint[:2],
+                    waypoint[:2],
+                    TRAJECTORY_LINE_WIDTH
+                )
                 prev_waypoint = waypoint
 
         # Draw ball
         ball_pos = self._gamestate.get_ball_position()
         if not self._gamestate.is_ball_lost():
-            pygame.draw.circle(
-                self._viewer,
-                BALL_COLOR,
-                self.field_to_screen(ball_pos),
-                int(gs.BALL_RADIUS * SCALE)
-            )
+            self.draw_circle(BALL_COLOR, ball_pos, gs.BALL_RADIUS)
             # draw ball velocity
             velocity = self._gamestate.get_ball_velocity()
-            self.draw_line(TRAJECTORY_COLOR, ball_pos, ball_pos + velocity, 1)
-            # draw where we think ball will be in 1s
-            pygame.draw.circle(
-                self._viewer,
-                (0, 0, 0),
-                self.field_to_screen(self._gamestate.predict_ball_pos(1)),
-                int(gs.BALL_RADIUS * SCALE)
+            self.draw_line(
+                TRAJECTORY_COLOR,
+                ball_pos,
+                ball_pos + velocity,
+                TRAJECTORY_LINE_WIDTH
             )
+            # draw where we think ball will be in 1s
+            self.draw_circle((0, 0, 0), self._gamestate.predict_ball_pos(1), gs.BALL_RADIUS)
 
         # draw user click location with a red 'X'
         if self.user_click is not None:
@@ -236,27 +221,48 @@ class Visualizer(object):
 
         # Draw buttons :)
         for label, rect in self.buttons.items():
-            # TODO: produces false/misleading font errors when other things break
+            # produces false/misleading font errors when other things break
             pygame.draw.rect(self._viewer, BUTTON_COLOR, rect)
-            myfont = pygame.font.SysFont('Arial', 30)
-            textsurface = myfont.render(label, False, BUTTON_TEXT_COLOR)
-            self._viewer.blit(textsurface, rect)
+            self.draw_text(label, rect, 30, BUTTON_TEXT_COLOR, 'Arial')
 
     def close(self):
         if self._viewer is not None:
             self._viewer.close()
             self._viewer = None
 
-    # drawing helper functions
-    # takes field positions
+    # drawing helper functions (that take field position args)
     def draw_line(self, color, start, end, width):
         pygame.draw.line(
             self._viewer,
             color,
             self.field_to_screen(start),
             self.field_to_screen(end),
-            width
+            int(width * SCALE)
         )
+
+    def draw_circle(self, color, center, radius, width=None):
+        if width is None:
+            width = radius
+        pygame.draw.circle(
+            self._viewer,
+            color,
+            self.field_to_screen(center),
+            int(radius * SCALE),
+            int(width * SCALE)
+        )
+
+    def draw_rect(self, color, top_left, dims, width):
+        pygame.draw.rect(
+            self._viewer,
+            color,
+            [*top_left, *dims],
+            int(width * SCALE)
+        )
+
+    def draw_text(self, text, top_left, size, color, font):
+        myfont = pygame.font.SysFont(font, size)
+        textsurface = myfont.render(text, False, color)
+        self._viewer.blit(textsurface, top_left)
 
     def draw_X(self, pos, color, size, width):
         top_left = np.array([pos[0] - size, pos[1] - size])

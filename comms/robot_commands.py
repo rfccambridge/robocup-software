@@ -42,7 +42,6 @@ class RobotCommands:
     # constants for deriving speed from waypoints
     # default proportional scaling constant for distance differences
     SPEED_SCALE = 1.5
-    # TODO: make rotation actually work
     ROTATION_SPEED_SCALE = 3
 
     def __init__(self):
@@ -185,7 +184,7 @@ class RobotCommands:
             self._y = linear_speed * norm_y
             # print("w: {}, goal_w: {}, d_w: {}".format(og_w, goal_w, norm_w))
             self._w = norm_w * self.ROTATION_SPEED_SCALE
-            self._w = max(self._w, self.ROBOT_MAX_W)
+            self._w = min(self._w, self.ROBOT_MAX_W)
 
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):

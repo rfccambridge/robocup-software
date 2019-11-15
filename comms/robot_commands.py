@@ -185,6 +185,7 @@ class RobotCommands:
             # print("w: {}, goal_w: {}, d_w: {}".format(og_w, goal_w, norm_w))
             self._w = norm_w * self.ROTATION_SPEED_SCALE
             self._w = min(self._w, self.ROBOT_MAX_W)
+            self._w = max(self._w, -self.ROBOT_MAX_W)
 
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):

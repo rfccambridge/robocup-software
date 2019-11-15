@@ -1,7 +1,6 @@
 import math
 import numpy as np
 
-# TODO: move serialization into separate file?
 # serialization constants - must match with firmware
 MIN_X = -1000
 MAX_X = 1000
@@ -32,18 +31,23 @@ Also specifies message serialization to interface with firmware.
 
 
 class RobotCommands:
-    # constants for deriving speed from waypoints TODO: obselete?
-    # default proportional scaling constant for distance differences
-    SPEED_SCALE = 1.5
+    # Robot Capability Constants
     # Max speed from max power to motors => [no-load] 1090 mm/s (see firmware)
     # Reduce that by multiplying by min(sin(theta), cos(theta)) of wheels
     # Goal is to get upper bound on what firmware can obey accurately
-    DEFAULT_MAX_SPEED = 650  # maybe we can be more aggressive?
-    DEFAULT_MIN_SPEED = 0
+    ROBOT_MAX_SPEED = 600
+    ROBOT_MAX_W = 6.14
+    MAX_KICK_SPEED = None  # TODO
+
+    # constants for deriving speed from waypoints
+    # default proportional scaling constant for distance differences
+    SPEED_SCALE = 1.5
     # TODO: make rotation actually work
-    ROTATION_SPEED_SCALE = 0
+    ROTATION_SPEED_SCALE = 3
 
     def __init__(self):
+        # maximum speed at which robot will pursue waypoints
+        self._speed_limit = self.ROBOT_MAX_SPEED
         # each waypoint is (pos, speed)?
         self.waypoints = []
         # (private) speed values from robot's perspective
@@ -54,6 +58,12 @@ class RobotCommands:
         self.is_dribbling = False
         self.is_charging = False
         self.is_kicking = False
+
+    # function for limiting robot speeds in the case of ref commands
+    def set_speed_limit(self, speed=None):
+        if speed is None:
+            speed = self.ROBOT_MAX_SPEED
+        self._speed_limit = speed
 
     # returns serialized commands for single robot in 4 bytes
     def get_serialized_command(self, robot_id):
@@ -156,17 +166,12 @@ class RobotCommands:
         og_x, og_y, og_w = current_position
         if self.waypoints:
             # if close enough to first waypoint, delete and move to next one
-            goal_pos, min_speed, max_speed = self.waypoints[0]
             while len(self.waypoints) > 1 and \
-                  self.close_enough(current_position, goal_pos):
-                goal_pos, min_speed, max_speed = self.waypoints[0]
+                  self.close_enough(current_position, self.waypoints[0]):
+                goal_pos = self.waypoints[0]
                 self.waypoints.pop(0)
-            goal_pos, min_speed, max_speed = self.waypoints[0]
+            goal_pos = self.waypoints[0]
             goal_x, goal_y, goal_w = goal_pos
-            if min_speed is None:
-                min_speed = self.DEFAULT_MIN_SPEED
-            if max_speed is None:
-                max_speed = self.DEFAULT_MAX_SPEED
             delta = (goal_pos - current_position)[:2]
             # normalized offsets from robot's perspective
             robot_vector = self.field_to_robot_perspective(og_w, delta)
@@ -174,14 +179,13 @@ class RobotCommands:
             norm_w = self.trim_angle(goal_w - og_w)
             # move with speed proportional to delta
             linear_speed = self.magnitude(delta) * self.SPEED_SCALE
-            # only use if pid is crappy
-            linear_speed = min_speed + linear_speed
-            if linear_speed > max_speed:
-                linear_speed = max_speed
+            linear_speed = min(linear_speed, self._speed_limit)
             self._x = linear_speed * norm_x
-            # print("og_x: {}, goal_x: {}, vx: {}".format(og_x, goal_x, self._x))
+            # print("x: {}, goal_x: {}, vx: {}".format(og_x, goal_x, self._x))
             self._y = linear_speed * norm_y
-            self._z = norm_w * self.ROTATION_SPEED_SCALE,
+            # print("w: {}, goal_w: {}, d_w: {}".format(og_w, goal_w, norm_w))
+            self._w = norm_w * self.ROTATION_SPEED_SCALE
+            self._w = max(self._w, self.ROBOT_MAX_W)
 
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):

@@ -22,8 +22,8 @@ CENTER_CIRCLE_RADIUS = 495
 GOAL_WIDTH = 1000
 DEFENSE_AREA_X_LENGTH = 1000
 DEFENSE_AREA_Y_LENGTH = 2000
-ROBOT_RADIUS = 90
 BALL_RADIUS = 21
+ROBOT_RADIUS = 90
 
 # PHYSICS CONSTANTS
 # ball constant slowdown due to friction
@@ -329,15 +329,19 @@ class GameState(object):
     def get_ball_interception_point(self, team, robot_id):
         robot_pos = self.get_robot_position(team, robot_id)
         delta_t = .05
-        robot_max_speed = 500
         time = 0
         while(True):
             interception_pos = self.predict_ball_pos(time)
             separation_distance = np.linalg.norm(robot_pos - interception_pos)
-            if separation_distance <= time * robot_max_speed:
+            if separation_distance <= time * RobotCommands.ROBOT_MAX_SPEED:
                 return interception_pos
             else:
                 time += delta_t
+
+    # return a random position inside the field
+    def random_position(self):
+        return (np.random.randint(0, FIELD_X_LENGTH),
+                np.random.randint(0, FIELD_Y_LENGTH))
 
     def is_pos_valid(self, pos, team, robot_id):
         return self.is_position_open(pos) and \

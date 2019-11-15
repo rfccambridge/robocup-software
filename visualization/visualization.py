@@ -24,7 +24,7 @@ TRAJECTORY_COLOR = (255, 0, 0)
 TRAJECTORY_LINE_WIDTH = 10
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
-SCALE = 0.1  # below .1 messes stuff up
+SCALE = 0.15  # below .1 messes stuff up
 # how much space above the field for UI
 UI_BUFFER_PX = 50
 BUTTON_OFFSET_X = 5
@@ -172,19 +172,19 @@ class Visualizer(object):
             if self._gamestate.is_robot_lost(team, robot_id):
                 robot_color = ROBOT_LOST_COLOR
             (x, y, w) = pos
-            self.draw_circle(robot_color, pos[:2], gs.ROBOT_RADIUS)
+            self.draw_circle(robot_color, pos, gs.ROBOT_RADIUS)
             # indicate direction of robot
             arrow = gs.ROBOT_RADIUS * np.array([math.cos(w), math.sin(w)])
             arrow_end = np.array([x, y]) + arrow
-            self.draw_line((255, 0, 0), pos[:2], arrow_end, 15)
+            self.draw_line((255, 0, 0), pos, arrow_end, 15)
             # draw waypoints for this robot
             robot_commands = self._gamestate.get_robot_commands(team, robot_id)
             prev_waypoint = pos
-            for waypoint, min_speed, max_speed in robot_commands.waypoints:
+            for waypoint in robot_commands.waypoints:
                 self.draw_line(
                     TRAJECTORY_COLOR,
-                    prev_waypoint[:2],
-                    waypoint[:2],
+                    prev_waypoint,
+                    waypoint,
                     TRAJECTORY_LINE_WIDTH
                 )
                 prev_waypoint = waypoint

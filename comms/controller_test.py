@@ -54,7 +54,7 @@ while True:
     button_lb = js.get_button(4)
     button_rb = js.get_button(5)
     speed_lateral, speed_forward = a * MAX_XY_SPEED, -b * MAX_XY_SPEED
-    speed_rotation = c * MAX_ROTATION_SPEED
+    speed_rotation = -c * MAX_ROTATION_SPEED
     robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)
     robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)
 

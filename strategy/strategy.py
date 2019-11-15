@@ -76,7 +76,7 @@ class Strategy(object):
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        commands.waypoints = [(goal_pos, None, None)]
+        commands.waypoints = [goal_pos]
 
     # RRT
     def RRT_path_find(self, robot_id, goal_pos, lim=1000):
@@ -87,10 +87,12 @@ class Strategy(object):
         prev = {start_pos: None}
         cnt = 0
         while cnt < lim:
+            # use gamestate.random_position()
             new_pos = (np.random.randint(0, FIELD_W), np.random.randint(0, FIELD_H))
             if np.random.random() < 0.05:
                 new_pos = goal_pos
 
+            # use gamestate.is_pos_valid
             if not self._gamestate.is_position_open(new_pos) or new_pos in graph:
                 continue
 
@@ -111,7 +113,7 @@ class Strategy(object):
             path.append(pos)
             pos = prev[pos]
         path.reverse()
-        waypoints = [(pos, None, None) for pos in path]
+        waypoints = [pos for pos in path]
         robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
         robot_commands.waypoints = waypoints
 

@@ -24,7 +24,7 @@ TRAJECTORY_COLOR = (255, 0, 0)
 TRAJECTORY_LINE_WIDTH = 10
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
-SCALE = 0.15
+SCALE = 0.1  # below .1 messes stuff up
 # how much space above the field for UI
 UI_BUFFER_PX = 50
 BUTTON_OFFSET_X = 5
@@ -81,8 +81,10 @@ class Visualizer(object):
 
     # map ssl-vision field position to pixel x,y on viewer
     def field_to_screen(self, pos):
-        assert(len(pos) == 2 and type(pos) == np.ndarray)
-        pos = pos.copy().astype(float)
+        if len(pos) == 3:
+            # only consider x, y of robot positions
+            pos = pos[:2]
+        pos = np.array(pos).astype(float)
         # shift position so (0, 0) is the center of the field, as in ssl-vision
         pos += np.array([gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2])
         # scale for display
@@ -96,8 +98,7 @@ class Visualizer(object):
 
     # map screen pixels to field position
     def screen_to_field(self, pos):
-        assert(len(pos) == 2 and type(pos) == np.ndarray)
-        pos = pos.copy().astype(float)
+        pos = np.array(pos).astype(float)
         # revert y axis
         pos[1] = TOTAL_SCREEN_HEIGHT - pos[1]
         # account for buffer space outside of field
@@ -107,16 +108,6 @@ class Visualizer(object):
         # shift position so that center becomes (0, 0)
         pos -= np.array([gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2])
         return pos
-
-    # map vector in ssl-vision coordinates (mm) to vector in x,y viewer pixels
-    def scale_vector(self, vector):
-        vector = vector.copy().astype(float)
-        assert(len(vector) == 2 and type(vector) == np.ndarray)
-        # scale for display
-        vector *= SCALE
-        # y becomes axis inverted in pygame (top left screen is 0,0)
-        vector[1] *= -1
-        return vector
 
     def visualization_loop(self):
         # wait until game begins (while other threads are initializing)
@@ -128,7 +119,7 @@ class Visualizer(object):
                 if event.type == pygame.QUIT:
                     self._updating = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.user_click = np.array(pygame.mouse.get_pos())
+                    self.user_click = pygame.mouse.get_pos()
                     self._gamestate.user_click_field = \
                         self.screen_to_field(self.user_click)
                     # print(self._gamestate.is_pos_valid(
@@ -151,27 +142,25 @@ class Visualizer(object):
         assert(self._viewer is not None)
         # Draw Field
         # Boundary Lines
-        hw, hh = gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2
-        top_left = self.field_to_screen(np.array([-hw, hh]))
-        dims = (gs.FIELD_X_LENGTH * SCALE, gs.FIELD_Y_LENGTH * SCALE)
+        top_left = (-gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2)
+        dims = (gs.FIELD_X_LENGTH, gs.FIELD_Y_LENGTH)
         self.draw_rect(LINE_COLOR, top_left, dims, FIELD_LINE_WIDTH)
         # Mid line
-        self.draw_line(LINE_COLOR, np.array([0, hh]), np.array([0, -hh]), FIELD_LINE_WIDTH)
+        top_mid = (0, gs.FIELD_Y_LENGTH / 2)
+        bottom_mid = (0, -gs.FIELD_Y_LENGTH / 2)
+        self.draw_line(LINE_COLOR, top_mid, bottom_mid, FIELD_LINE_WIDTH)
         # Center Circle
         self.draw_circle(
             LINE_COLOR,
-            np.array([0, 0]),
+            (0, 0),
             gs.CENTER_CIRCLE_RADIUS,
             FIELD_LINE_WIDTH
         )
         # Goals + Defence areas
         for team in ['blue', 'yellow']:
             top_left = self._gamestate.defense_area_corner(team) + \
-                np.array([0, gs.DEFENSE_AREA_Y_LENGTH])
-            dims = np.array([
-                gs.DEFENSE_AREA_X_LENGTH * SCALE,
-                gs.DEFENSE_AREA_Y_LENGTH * SCALE
-            ])
+                (0, gs.DEFENSE_AREA_Y_LENGTH)
+            dims = (gs.DEFENSE_AREA_X_LENGTH, gs.DEFENSE_AREA_Y_LENGTH)
             self.draw_rect(LINE_COLOR, top_left, dims, FIELD_LINE_WIDTH)
             goalposts = self._gamestate.get_defense_goal(team)
             self.draw_line(GOAL_COLOR, *goalposts, FIELD_LINE_WIDTH * 2)
@@ -203,6 +192,10 @@ class Visualizer(object):
         # Draw ball
         ball_pos = self._gamestate.get_ball_position()
         if not self._gamestate.is_ball_lost():
+            # draw where we think ball will be in 1s
+            predicted_pos = self._gamestate.predict_ball_pos(1)
+            self.draw_circle((0, 0, 0), predicted_pos, gs.BALL_RADIUS)
+            # draw actual ball
             self.draw_circle(BALL_COLOR, ball_pos, gs.BALL_RADIUS)
             # draw ball velocity
             velocity = self._gamestate.get_ball_velocity()
@@ -212,12 +205,10 @@ class Visualizer(object):
                 ball_pos + velocity,
                 TRAJECTORY_LINE_WIDTH
             )
-            # draw where we think ball will be in 1s
-            self.draw_circle((0, 0, 0), self._gamestate.predict_ball_pos(1), gs.BALL_RADIUS)
 
         # draw user click location with a red 'X'
         if self.user_click is not None:
-            self.draw_X(self._gamestate.user_click_field, (255, 0, 0), 50, 2)
+            self.draw_X(self._gamestate.user_click_field, (255, 0, 0), 50, 15)
 
         # Draw buttons :)
         for label, rect in self.buttons.items():
@@ -252,10 +243,11 @@ class Visualizer(object):
         )
 
     def draw_rect(self, color, top_left, dims, width):
+        dims = np.array(dims).astype(float) * SCALE
         pygame.draw.rect(
             self._viewer,
             color,
-            [*top_left, *dims],
+            [*self.field_to_screen(top_left), *dims],
             int(width * SCALE)
         )
 
@@ -265,9 +257,10 @@ class Visualizer(object):
         self._viewer.blit(textsurface, top_left)
 
     def draw_X(self, pos, color, size, width):
-        top_left = np.array([pos[0] - size, pos[1] - size])
-        bottom_right = np.array([pos[0] + size, pos[1] + size])
-        top_right = np.array([pos[0] + size, pos[1] - size])
-        bottom_left = np.array([pos[0] - size, pos[1] + size])
+        pos = np.array(pos).astype(float)
+        top_left = pos - size
+        bottom_right = pos + size
+        top_right = (pos[0] + size, pos[1] - size)
+        bottom_left = (pos[0] - size, pos[1] + size)
         self.draw_line(color, top_left, bottom_right, width)
         self.draw_line(color, bottom_left, top_right, width)

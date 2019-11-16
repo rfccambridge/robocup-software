@@ -47,7 +47,8 @@ class Strategy(object):
 
             # tell robots to refresh their speeds based on waypoints
             team_commands = self._gamestate.get_team_commands(self._team)
-            for robot_id, robot_commands in team_commands.items():
+            team_commands = list(team_commands.items())
+            for robot_id, robot_commands in team_commands:
                 pos = self._gamestate.get_robot_position(self._team, robot_id)
                 # stop the robot if we've lost track of it
                 if self._gamestate.is_robot_lost(self._team, robot_id):

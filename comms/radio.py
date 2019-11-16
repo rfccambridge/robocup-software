@@ -54,7 +54,12 @@ class Radio(object):
                 start = time.time()
                 # asynchronous send is fast for first msg, but waits if more
                 # long messages (>30?) take longer because they must be split
-                self.device.send_data_async(remote_device, message)
+                try:
+                    self.device.send_data_async(remote_device, message)
+                except Exception as e:
+                    print('xbee error - something using same port? (xtcu):')
+                    print(e)
+                    # TODO: reconnect when error?
                 delta = time.time() - start
                 if delta > .002:
                     print('xbee send is taking a long time, too long/many?')

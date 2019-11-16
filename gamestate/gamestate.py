@@ -375,9 +375,9 @@ class GameState(object):
 
     def face_pos(self, team, robot_id, pos):
         robot_pos = self.get_robot_position(team, robot_id)
-        slope = pos[1] - robot_pos[1])/(pos[0] - robot_pos[0])
+        slope = (pos[1] - robot_pos[1])/(pos[0] - robot_pos[0])
 # The arctan of the slope gives the angle relative to the x axis, which is the angle we would want to rotate.
         return np.arctan(slope)
 
-    def face_ball(self, team, robot_id)
+    def face_ball(self, team, robot_id):
         return self.face_pos(team, robot_id, self.get_ball_position())

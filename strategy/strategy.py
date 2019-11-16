@@ -71,12 +71,19 @@ class Strategy(object):
             goal_x, goal_y = self._gamestate.user_click_field
             robot_ids = self._gamestate.get_robot_ids(self._team)
             if robot_ids:
-                self.move_straight(robot_ids[0], np.array([goal_x, goal_y, 0]))
+                # self.move_straight(robot_ids[0], np.array([goal_x, goal_y, 0]))
+                self.append_waypoint(robot_ids[0], np.array([goal_x, goal_y, 0]))
 
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
         commands.waypoints = [goal_pos]
+
+    def append_waypoint(self, robot_id, goal_pos):
+        commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        if (len(commands.waypoints) == 0 or
+                (commands.waypoints[-1] != goal_pos).any()):
+            commands.waypoints.append(goal_pos)
 
     # RRT
     def RRT_path_find(self, robot_id, goal_pos, lim=1000):

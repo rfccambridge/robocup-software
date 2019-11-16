@@ -49,6 +49,7 @@ class RobotCommands:
         self._speed_limit = self.ROBOT_MAX_SPEED
         # each waypoint is (pos, speed)?
         self.waypoints = []
+        self._prev_waypoint = None
         # (private) speed values from robot's perspective
         self._x = 0  # speed x mm/s
         self._y = 0  # speed y mm/s
@@ -163,12 +164,14 @@ class RobotCommands:
     # use the waypoints to calculate desired speeds from robot perspective
     def derive_speeds(self, current_position):
         og_x, og_y, og_w = current_position
+        if self._prev_waypoint is None:
+            self._prev_waypoint = current_position
         if self.waypoints:
             # if close enough to first waypoint, delete and move to next one
             while len(self.waypoints) > 1 and \
                   self.close_enough(current_position, self.waypoints[0]):
                 goal_pos = self.waypoints[0]
-                self.waypoints.pop(0)
+                self._prev_waypoint = self.waypoints.pop(0)
             goal_pos = self.waypoints[0]
             goal_x, goal_y, goal_w = goal_pos
             delta = (goal_pos - current_position)[:2]
@@ -178,6 +181,18 @@ class RobotCommands:
             norm_w = self.trim_angle(goal_w - og_w)
             # move with speed proportional to delta
             linear_speed = self.magnitude(delta) * self.SPEED_SCALE
+            # slow down less for intermediate waypoints based on angle
+            min_waypoint_speed = 0
+            if len(self.waypoints) > 1:
+                next_delta = (self.waypoints[1] - goal_pos)[:2]
+                m1 = np.linalg.norm(delta)
+                m2 = np.linalg.norm(next_delta)
+                trimmed_angle = np.arccos(np.dot(delta, next_delta)/(m1*m2))
+                # slow down completely for >90 degree turns, not for straight
+                angle_factor = np.cos(trimmed_angle)  # does cos make sense ???
+                min_waypoint_speed = self._speed_limit * angle_factor
+                print(min_waypoint_speed)
+            linear_speed = max(linear_speed, min_waypoint_speed)
             linear_speed = min(linear_speed, self._speed_limit)
             self._x = linear_speed * norm_x
             # print("x: {}, goal_x: {}, vx: {}".format(og_x, goal_x, self._x))
@@ -189,10 +204,22 @@ class RobotCommands:
 
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
-        dx, dy, dw = goal - current
+        # distance condition helpful for simulator b.c. won't overrun waypoint
+        DISTANCE_THRESHOLD = 20
+        delta = goal - current
         # for now ignoring rotation
-        DISTANCE_THRESHOLD = 50
-        return (dx ** 2 + dy ** 2) ** .5 < DISTANCE_THRESHOLD
+        linear_distance = np.linalg.norm(delta[:2])
+        is_close = linear_distance < DISTANCE_THRESHOLD
+        # is_past will probably be the main one used in real life:
+        # move to next waypoint if we've gone past this one
+        is_past = False
+        if self._prev_waypoint is not None:
+            delta_from_prev = current - self._prev_waypoint
+            distance_from_prev = np.linalg.norm(delta_from_prev[:2])
+            waypoint_delta = goal - self._prev_waypoint
+            waypoint_distance = np.linalg.norm(waypoint_delta[:2])
+            is_past = distance_from_prev > waypoint_distance
+        return is_close or is_past
 
     # HELPER FUNCTIONS
     # Transforms field x, y into a vector in the robot's perspective

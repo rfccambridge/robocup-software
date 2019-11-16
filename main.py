@@ -34,7 +34,7 @@ if __name__ == '__main__':
     print('Spinning up Threads...')
     if IS_SIMULATION:
         # spin up simulator to replace actual vision data + comms
-        simulator.start_simulating()
+        simulator.start_simulating("Moving Ball")
     else:
         # spin up ssl-vision data polling to update gamestate
         vision.start_updating()

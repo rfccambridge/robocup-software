@@ -24,9 +24,13 @@ class Simulator(object):
     def put_fake_ball(self, position, velocity=np.array([0, 0])):
         # use small dt to minimize deceleration correction
         dt = .05
-        self._gamestate.update_ball_position(position - velocity * dt)
-        time.sleep(dt)
-        self._gamestate.update_ball_position(position)
+        prev_pos = position - velocity * dt
+        self._gamestate._ball_position.append((time.time() - dt, prev_pos))
+        self._gamestate._ball_position.append((time.time(), position))
+        # self._gamestate.update_ball_position(position - velocity * dt)
+        # time.sleep(dt)
+        # self._gamestate.update_ball_position(position)
+        print(f"{self._gamestate._ball_position}")
 
     def start_simulating(self, inital_setup=None):
         self._initial_setup = inital_setup
@@ -59,7 +63,7 @@ class Simulator(object):
             self.put_fake_ball(np.array([0, 0]))
         elif self._initial_setup == "Moving Ball":
             self.put_fake_robot('blue', 1, np.array([0, 0, 0]))
-            self.put_fake_ball(np.array([1000, 1000]), np.array([0, -1000]))
+            self.put_fake_ball(np.array([1000, 0]), np.array([0, -10000]))
 
         # run the simulation loop
         while self._is_simulating:

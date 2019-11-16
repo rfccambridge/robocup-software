@@ -309,6 +309,7 @@ class GameState(object):
 
     def predict_ball_pos(self, delta_time):
         velocity_initial = self.get_ball_velocity()
+        print(f"{velocity_initial}")
         if not velocity_initial.any():
             return (self.get_ball_position())
         accel_direction = -velocity_initial / np.linalg.norm(velocity_initial)
@@ -317,7 +318,12 @@ class GameState(object):
         velocity_final = accel * delta_time + velocity_initial
         if ((velocity_initial * velocity_final) < 0).any():
             assert(((velocity_initial * velocity_final) <= 0).all())
-            time_to_stop = -1 * velocity_initial[0] / accel[0]
+# We need to use two cases here because one coordinate of initial velocity can be zero which
+# would cause us to divide by zero if we use that axis.
+            if not accel[0] == 0:
+                time_to_stop = -1 * velocity_initial[0] / accel[0]
+            else:
+                time_to_stop = -1 * velocity_initial[1] / accel[1]
             # print("dt: {} TTS: {}".format(delta_time, time_to_stop))
             delta_time = time_to_stop
         predicted_pos_change = \

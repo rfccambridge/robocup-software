@@ -168,7 +168,7 @@ class GameState(object):
         del team_positions[robot_id]
         team_commands = self.get_team_commands(team)
         del team_commands[robot_id]
-        
+
     def get_robot_last_update_time(self, team, robot_id):
         robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
@@ -370,6 +370,14 @@ class GameState(object):
         center_of_goal = (defense_goal[0] + defense_goal[1])/2
 # The average of the two post locations will be the center of the goal.
         goal_to_ball_slope = (ball_pos[1] - center_of_goal[1])/(ball_pos[0] - center_of_goal[0])
-        best_displacement_along_line = goal_to_ball_slope * 400
-        return np.array([0, 0])
-        # return np.array[ ,,np.arctan(goal_to_ball_slope)]
+        #return np.array([0, 0])
+        return np.array[600*np.sin(np.artan(goal_to_ball_slope)), 600*np.cos(np.artan(goal_to_ball_slope)), np.arctan(goal_to_ball_slope)]
+
+    def face_pos(self, team, robot_id, pos):
+        robot_pos = self.get_robot_position(team, robot_id)
+        slope = (pos[1] - robot_pos[1])/(pos[0] - robot_pos[0])
+# The arctan of the slope gives the angle relative to the x axis, which is the angle we would want to rotate.
+        return np.arctan(slope)
+
+    def face_ball(self, team, robot_id):
+        return self.face_pos(team, robot_id, self.get_ball_position())

@@ -14,6 +14,8 @@ CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
+# which simulator initial setup to use (if simulating)
+SIMULATION_SETUP = 'moving_ball'
 # which strategies each team is running (see strategy module)
 HOME_STRATEGY = 'follow_click'
 AWAY_STRATEGY = None
@@ -34,7 +36,7 @@ if __name__ == '__main__':
     print('Spinning up Threads...')
     if IS_SIMULATION:
         # spin up simulator to replace actual vision data + comms
-        simulator.start_simulating("Moving Ball")
+        simulator.start_simulating(SIMULATION_SETUP)
     else:
         # spin up ssl-vision data polling to update gamestate
         vision.start_updating()

@@ -45,8 +45,7 @@ class Simulator(object):
             self._initial_setup
         ))
         # initialize the chosen scenario
-        if self._initial_setup is None:
-            print('(initial_setup = None, putting in full teams)')
+        if self._initial_setup == 'full_teams':
             for i in range(1, 7):
                 left_pos = np.array([-3000, 200 * (i - 3.5), 0])
                 right_pos = np.array([3000, 200 * (i - 3.5), 3.14])
@@ -59,9 +58,11 @@ class Simulator(object):
                 self.put_fake_robot('blue', i, blue_pos)
                 self.put_fake_robot('yellow', i, yellow_pos)
             self.put_fake_ball(np.array([0, 0]))
-        elif self._initial_setup == "Moving Ball":
+        elif self._initial_setup == "moving_ball":
             self.put_fake_robot('blue', 1, np.array([0, 0, 0]))
             self.put_fake_ball(np.array([1000, 1200]), np.array([0, -1200]))
+        else:
+            print('(initial_setup not recognized, empty field)')
 
         # run the simulation loop
         while self._is_simulating:

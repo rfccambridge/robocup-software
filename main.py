@@ -47,6 +47,8 @@ if __name__ == '__main__':
     home_strategy.start_controlling(HOME_STRATEGY)
     if CONTROL_BOTH_TEAMS:
         away_strategy.start_controlling(AWAY_STRATEGY)
+    # run visualization to show robots on screen
+    visualizer = Visualizer(gamestate, home_strategy, away_strategy)
     # start the game  - now everything should be going
     gamestate.start_game()
 
@@ -74,9 +76,7 @@ if __name__ == '__main__':
 
     print('Running! Ctrl-c repeatedly to quit')
 
-    # run visualization to show robots on screen
-    visualizer = Visualizer(gamestate, home_strategy, away_strategy)
-    # (runs on main thread to work on all platforms)
+    # (visualizer runs on main thread to work on all platforms)
     visualizer.visualization_loop()
 
 # import logging

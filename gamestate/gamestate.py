@@ -309,7 +309,7 @@ class GameState(object):
 
     def predict_ball_pos(self, delta_time):
         velocity_initial = self.get_ball_velocity()
-        print(f"{velocity_initial}")
+        # print(f"{velocity_initial}")
         if not velocity_initial.any():
             return (self.get_ball_position())
         accel_direction = -velocity_initial / np.linalg.norm(velocity_initial)

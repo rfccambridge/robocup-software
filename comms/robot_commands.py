@@ -188,11 +188,14 @@ class RobotCommands:
                 m1 = np.linalg.norm(delta)
                 m2 = np.linalg.norm(next_delta)
                 trimmed_angle = np.arccos(np.dot(delta, next_delta)/(m1*m2))
-                # slow down completely for >90 degree turns, not for straight
-                angle_factor = np.cos(trimmed_angle)  # does cos make sense ???
-                min_waypoint_speed = self._speed_limit * angle_factor
-                print(min_waypoint_speed)
-            linear_speed = max(linear_speed, min_waypoint_speed)
+                # slow down to floor for >90 degree turns, for straight
+                floor = .1  # (proportion of max speed)
+                trimmed_angle = min(trimmed_angle, np.pi / 2)
+                slowdown_factor = 1 - trimmed_angle / (np.pi / 2)
+                slowdown_factor = max(slowdown_factor, floor)
+                assert(slowdown_factor <= 1)
+                min_waypoint_speed = self._speed_limit * slowdown_factor
+            linear_speed = linear_speed + min_waypoint_speed
             linear_speed = min(linear_speed, self._speed_limit)
             self._x = linear_speed * norm_x
             # print("x: {}, goal_x: {}, vx: {}".format(og_x, goal_x, self._x))
@@ -205,7 +208,7 @@ class RobotCommands:
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
         # distance condition helpful for simulator b.c. won't overrun waypoint
-        DISTANCE_THRESHOLD = 20
+        DISTANCE_THRESHOLD = 50
         delta = goal - current
         # for now ignoring rotation
         linear_distance = np.linalg.norm(delta[:2])

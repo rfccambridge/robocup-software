@@ -43,6 +43,7 @@ class GameState(object):
         # Thread keeps track of game status/events
         self._is_playing = False
         self._game_thread = None
+        self._game_loop_sleep = None
         self._last_step_time = None
 
         # RAW POSITION DATA (updated by vision data or simulator)
@@ -63,7 +64,8 @@ class GameState(object):
         # TODO: enum all ref box restart commands
         self.user_click_field = None
 
-    def start_game(self):
+    def start_game(self, loop_sleep):
+        self._game_loop_sleep = loop_sleep
         self._is_playing = True
         self._game_thread = threading.Thread(target=self.game_loop)
         # set to daemon mode so it will be easily killed
@@ -83,13 +85,13 @@ class GameState(object):
             delta_time = 0
             if self._last_step_time is not None:
                 delta_time = time.time() - self._last_step_time
-                if delta_time > .3:
+                if delta_time > self._game_loop_sleep * 3:
                     print("Game loop large delay: " + str(delta_time))
             self._last_step_time = time.time()
 
             self.game_clock += delta_time
-            # yield to other threads - loop at most 10 times per second
-            time.sleep(.1)
+            # yield to other threads
+            time.sleep(self._game_loop_sleep)
 
     # GAME STATUS/EVENT FUNCTIONS
     def wait_until_game_begins(self):

@@ -70,8 +70,36 @@ class SSLVisionDataProvider(PositionDataProvider):
         self._gamestate = gamestate
         self._gamestate_update_thread = None
         self._is_running = False
+        self._vision_loop_sleep = None
         self._last_update_time = None
 
+    def start_updating(self, loop_sleep):
+        self._is_running = True
+        self._ssl_vision_client = sslclient.client()
+        self._ssl_vision_client.connect()
+        self._ssl_vision_client_thread = DataThread(self._ssl_vision_client)
+        # set to daemon mode so it will be easily killed
+        self._ssl_vision_client_thread.daemon = True
+        self._ssl_vision_client_thread.start()
+        # BUG: sensible defaults when data hasn't loaded yet (@dinge)
+        time.sleep(0.1)
+        self._vision_loop_sleep = loop_sleep
+        self._gamestate_update_thread = threading.Thread(
+            target=self.gamestate_update_loop
+        )
+        # set to daemon mode so it will be easily killed
+        self._gamestate_update_thread.daemon = True
+        self._gamestate_update_thread.start()
+
+    def stop_updating(self):
+        if self._is_running:
+            self._is_running = False
+            self._gamestate_update_thread.join()
+            self._gamestate_update_thread = None
+            self._ssl_vision_client_thread.stop()
+            self._ssl_vision_client_thread.join()
+            self._ssl_vision_client = None
+        
     def gamestate_update_loop(self):
         # wait until game begins (while other threads are initializing)
         self._gamestate.wait_until_game_begins()
@@ -94,38 +122,12 @@ class SSLVisionDataProvider(PositionDataProvider):
 
             if self._last_update_time is not None:
                 delta = time.time() - self._last_update_time
-                if delta > .1:
+                if delta > self._vision_loop_sleep * 3:
                     print("SSL-vision data loop large delay: " + str(delta))
             self._last_update_time = time.time()
 
-            # yield to other threads - loop at most 100 times per second
-            time.sleep(.01)
-
-    def start_updating(self):
-        self._is_running = True
-        self._ssl_vision_client = sslclient.client()
-        self._ssl_vision_client.connect()
-        self._ssl_vision_client_thread = DataThread(self._ssl_vision_client)
-        # set to daemon mode so it will be easily killed
-        self._ssl_vision_client_thread.daemon = True
-        self._ssl_vision_client_thread.start()
-        # BUG: sensible defaults when data hasn't loaded yet (@dinge)
-        time.sleep(0.1)
-        self._gamestate_update_thread = threading.Thread(
-            target=self.gamestate_update_loop
-        )
-        # set to daemon mode so it will be easily killed
-        self._gamestate_update_thread.daemon = True
-        self._gamestate_update_thread.start()
-
-    def stop_updating(self):
-        if self._is_running:
-            self._is_running = False
-            self._gamestate_update_thread.join()
-            self._gamestate_update_thread = None
-            self._ssl_vision_client_thread.stop()
-            self._ssl_vision_client_thread.join()
-            self._ssl_vision_client = None
+            # yield to other threads
+            time.sleep(self._vision_loop_sleep)
 
     def get_raw_detection_data(self):
         return self._ssl_vision_client_thread.detection_cache

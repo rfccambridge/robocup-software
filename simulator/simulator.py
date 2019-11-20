@@ -12,6 +12,7 @@ class Simulator(object):
         self._gamestate = gamestate
         self._is_simulating = False
         self._thread = None
+        self._simulation_loop_sleep = None
         self._last_step_time = None
 
         self._initial_setup = None
@@ -30,8 +31,9 @@ class Simulator(object):
         # print(f"{self._gamestate._ball_position}")
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
-    def start_simulating(self, inital_setup=None):
+    def start_simulating(self, inital_setup, loop_sleep):
         self._initial_setup = inital_setup
+        self._simulation_loop_sleep = loop_sleep
         self._is_simulating = True
         self._thread = threading.Thread(target=self.simulation_loop)
         # set to daemon mode so it will be easily killed
@@ -69,7 +71,7 @@ class Simulator(object):
             delta_time = 0
             if self._last_step_time is not None:
                 delta_time = time.time() - self._last_step_time
-                if delta_time > .3:
+                if delta_time > self._simulation_loop_sleep * 3:
                     print("Simulation loop large delay: " + str(delta_time))
             self._last_step_time = time.time()
 
@@ -117,8 +119,8 @@ class Simulator(object):
                     ball_pos = self._gamestate.get_ball_position()
                     new_pos = ball_pos + ball_overlap
                     self._gamestate.update_ball_position(new_pos)
-            # yield to other threads - loop at most 20 times per second
-            time.sleep(.05)
+            # yield to other threads
+            time.sleep(self._simulation_loop_sleep)
 
     def stop_simulating(self):
         if self._is_simulating:

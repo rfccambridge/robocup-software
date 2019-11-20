@@ -109,7 +109,8 @@ class Visualizer(object):
         pos -= np.array([gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2])
         return pos
 
-    def visualization_loop(self):
+    # designed to run in main thread, for pygame to work on all platforms
+    def visualization_loop(self, loop_sleep):
         # wait until game begins (while other threads are initializing)
         self._gamestate.wait_until_game_begins()
         while self._updating:
@@ -132,9 +133,8 @@ class Visualizer(object):
             self._viewer.fill(FIELD_COLOR)
             self.render()
             pygame.display.flip()
-            # yield to other threads - loop at most 20 times per second
-            # is this the same as pygame.clock.tick()?
-            time.sleep(.05)
+            # yield to other threads
+            time.sleep(loop_sleep)
         print("Exiting Pygame")
         pygame.quit()
 

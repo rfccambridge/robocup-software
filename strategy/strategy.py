@@ -13,11 +13,13 @@ class Strategy(object):
 
         self._is_controlling = False
         self._control_thread = None
+        self._control_loop_sleep = None
         self._last_control_loop_time = None
         self._mode = None
 
-    def start_controlling(self, mode=None):
+    def start_controlling(self, mode, loop_sleep):
         self._mode = mode
+        self._control_loop_sleep = loop_sleep
         self._is_controlling = True
         self._control_thread = threading.Thread(target=self.control_loop)
         # set to daemon mode so it will be easily killed
@@ -36,14 +38,12 @@ class Strategy(object):
         print("\nRunning strategy for {} team, mode: {}".format(
             self._team, self._mode)
         )
-        if self._mode is None:
-            print('(mode = None, doing nothing)')
         while self._is_controlling:
             # run the strategy corresponding to the given mode
             if self._mode == "follow_click":
                 self.follow_click()
             else:
-                assert(self._mode is None)
+                print('(unrecognized mode, doing nothing)')
 
             # tell robots to refresh their speeds based on waypoints
             team_commands = self._gamestate.get_team_commands(self._team)
@@ -59,11 +59,11 @@ class Strategy(object):
 
             if self._last_control_loop_time is not None:
                 delta = time.time() - self._last_control_loop_time
-                if delta > .3:
+                if delta > self._control_loop_sleep * 3:
                     print("Control loop large delay: " + str(delta))
             self._last_control_loop_time = time.time()
             # yield to other threads
-            time.sleep(0.05)
+            time.sleep(self._control_loop_sleep)
 
     # tell first robot on a team to go straight towards mouse click
     def follow_click(self):

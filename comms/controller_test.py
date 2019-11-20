@@ -58,10 +58,21 @@ while True:
     robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)
     robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)
 
+    # if button_lb:
+    #     robot_commands.dribble(False)
+    # elif button_rb:
+    #     robot_commands.dribble(True)
+
     if button_lb:
-        robot_commands.dribble(False)
-    elif button_rb:
-        robot_commands.dribble(True)
+        robot_commands.is_charging = True
+    else:
+        robot_commands.is_charging = False
+
+    if button_rb:
+        robot_commands.is_kicking = True
+    else:
+        robot_commands.is_kicking = False
+    
 
     print(robot_commands)
 

@@ -25,12 +25,10 @@ class Simulator(object):
         # use small dt to minimize deceleration correction
         dt = .05
         prev_pos = position - velocity * dt
-        self._gamestate._ball_position.append((time.time() - dt, prev_pos))
-        self._gamestate._ball_position.append((time.time(), position))
-        # self._gamestate.update_ball_position(position - velocity * dt)
-        # time.sleep(dt)
-        # self._gamestate.update_ball_position(position)
-        print(f"{self._gamestate._ball_position}")
+        self._gamestate._ball_position.appendleft((time.time() - dt, prev_pos))
+        self._gamestate._ball_position.appendleft((time.time(), position))
+        # print(f"{self._gamestate._ball_position}")
+        # print(f"v: {self._gamestate.get_ball_velocity()}")
 
     def start_simulating(self, inital_setup=None):
         self._initial_setup = inital_setup
@@ -47,8 +45,7 @@ class Simulator(object):
             self._initial_setup
         ))
         # initialize the chosen scenario
-        if self._initial_setup is None:
-            print('(initial_setup = None, putting in full teams)')
+        if self._initial_setup == 'full_teams':
             for i in range(1, 7):
                 left_pos = np.array([-3000, 200 * (i - 3.5), 0])
                 right_pos = np.array([3000, 200 * (i - 3.5), 3.14])
@@ -61,9 +58,11 @@ class Simulator(object):
                 self.put_fake_robot('blue', i, blue_pos)
                 self.put_fake_robot('yellow', i, yellow_pos)
             self.put_fake_ball(np.array([0, 0]))
-        elif self._initial_setup == "Moving Ball":
+        elif self._initial_setup == "moving_ball":
             self.put_fake_robot('blue', 1, np.array([0, 0, 0]))
-            self.put_fake_ball(np.array([1000, 0]), np.array([0, -10000]))
+            self.put_fake_ball(np.array([1000, 1200]), np.array([0, -1200]))
+        else:
+            print('(initial_setup not recognized, empty field)')
 
         # run the simulation loop
         while self._is_simulating:
@@ -82,11 +81,9 @@ class Simulator(object):
                 # print(time.time())
                 # print("v: {}".format(self._gamestate.get_ball_velocity()))
                 # print(self._gamestate.predict_ball_pos(0))
-                # print(self._gamestate.predict_ball_pos(1))
 
                 # print(self._gamestate.get_ball_velocity())
                 self._gamestate.update_ball_position(new_ball_pos)
-                # TODO: collisions, + randomness?
 
             for (team, robot_id), robot_commands in \
                     self._gamestate.get_all_robot_commands():

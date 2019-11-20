@@ -309,7 +309,7 @@ class GameState(object):
 
     def predict_ball_pos(self, delta_time):
         velocity_initial = self.get_ball_velocity()
-        print(f"{velocity_initial}")
+        # print(f"{velocity_initial}")
         if not velocity_initial.any():
             return (self.get_ball_position())
         accel_direction = -velocity_initial / np.linalg.norm(velocity_initial)
@@ -377,7 +377,8 @@ class GameState(object):
 # The average of the two post locations will be the center of the goal.
         goal_to_ball_slope = (ball_pos[1] - center_of_goal[1])/(ball_pos[0] - center_of_goal[0])
         #return np.array([0, 0])
-        return np.array[600*np.sin(np.artan(goal_to_ball_slope)), 600*np.cos(np.artan(goal_to_ball_slope)), np.arctan(goal_to_ball_slope)]
+        best_pos = (center_of_goal + np.array[600*np.cos(np.artan(goal_to_ball_slope)), 600*np.sin(np.artan(goal_to_ball_slope)), np.arctan(goal_to_ball_slope)])
+        return best_pos
 
     def face_pos(self, team, robot_id, pos):
         robot_pos = self.get_robot_position(team, robot_id)
@@ -387,3 +388,18 @@ class GameState(object):
 
     def face_ball(self, team, robot_id):
         return self.face_pos(team, robot_id, self.get_ball_position())
+
+    def is_path_blocked(self, s_pos, g_pos):
+        if not is_position_open(g_pos):
+            return True
+# explicitly putting this case in to avoid worrying too much about the step size in the while loop. Also it saves
+# runtime if the goal position is blocked anyway. (Returning True is intended to say the path is blocked.)
+        path_slope = (g_pos[1]-s_pos[1])/(g_pos[0]-s_pos[0])
+        i = 1
+        while (i*ROBOT_RADIUS < np.linalg.norm(g_pos - s_pos)):
+            # The np expression above gives the length of the path
+            if not self.is_position_open(s_pos + i*ROBOT_RADIUS*np.array[np.cos(np.arctan(path_slope)), np.sin(np.arctan(path_slope))]):
+                return True
+            i +=1
+        return False
+# Not sure if this should be switched but currently if the path is blocked we get True

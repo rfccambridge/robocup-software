@@ -48,7 +48,7 @@ class GameState(object):
 
         # RAW POSITION DATA (updated by vision data or simulator)
         # [most recent data is stored at the front of the queue]
-        # queue of (time, pos), where positions are in the form np.array([x, y])
+        # queue of (time, pos) where positions are in the form np.array([x, y])
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
         # robot positions are np.array([x, y, w]) where w = rotation
         self._blue_robot_positions = dict()  # Robot ID: queue of (time, pos)
@@ -62,7 +62,10 @@ class GameState(object):
         self.game_clock = None
         self.is_blue_defense_side_left = True
         # TODO: enum all ref box restart commands
-        self.user_click_field = None
+
+        # UI Inputs - set from visualizer
+        self.user_click_position = None
+        self.user_selected_robot = None
 
     def start_game(self, loop_sleep):
         self._game_loop_sleep = loop_sleep
@@ -90,6 +93,7 @@ class GameState(object):
             self._last_step_time = time.time()
 
             self.game_clock += delta_time
+
             # yield to other threads
             time.sleep(self._game_loop_sleep)
 
@@ -272,6 +276,13 @@ class GameState(object):
             if self.robot_overlap(pos, robot_pos).any():
                 return False
         return True
+
+    # return robot team and id occupying a current position, if any
+    def robot_at_position(self, pos):
+        for (team, robot_id), robot_pos in self.get_all_robot_positions():
+            if self.overlap(pos, robot_pos, ROBOT_RADIUS).any():
+                return (team, robot_id)
+        return None
 
     # Here we find ball velocity at most recent timestamp from position data
     def get_ball_velocity(self):

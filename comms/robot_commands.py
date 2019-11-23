@@ -47,7 +47,7 @@ class RobotCommands:
     def __init__(self):
         # maximum speed at which robot will pursue waypoints
         self._speed_limit = self.ROBOT_MAX_SPEED
-        # each waypoint is (pos, speed)?
+        # each waypoint is a position (x, y, w)
         self.waypoints = []
         self._prev_waypoint = None
         # (private) speed values from robot's perspective
@@ -141,7 +141,34 @@ class RobotCommands:
         assert(len(team_command_message) == TEAM_COMMAND_MESSAGE_LENGTH)
         return team_command_message
 
-    # directly set the robot speed fields (ignoring waypoints)
+    def clear_waypoints(self):
+        self.waypoints = []
+
+    def append_waypoint(self, waypoint, current_position):
+        if self.waypoints:
+            initial_pos = self.waypoints[-1]
+        else:
+            initial_pos = current_position
+        # do not append redundant waypoints
+        if (waypoint[:2] == initial_pos[:2]).all() and \
+           (waypoint[2] == initial_pos[2] or waypoint[2] is None):
+            return
+        # print(f"{initial_pos}, {waypoint}")
+        # default to face waypoint (drives smoother)
+        # TODO: only for longer distances?
+        x, y, w = waypoint
+        if w is None:
+            dx, dy = waypoint[:2] - initial_pos[:2]
+            dw = np.arctan2(dy, dx) - initial_pos[2]
+            w = initial_pos[2] + self.trim_angle_90(dw)
+        self.waypoints.append(np.array([x, y, w]))
+
+    def set_waypoints(self, waypoints, current_position):
+        self.clear_waypoints()
+        for waypoint in waypoints:
+            self.append_waypoint(waypoint, current_position)
+
+    # directly set the robot speed
     def set_speeds(self, x, y, w):
         self._x = x
         self._y = y
@@ -163,28 +190,31 @@ class RobotCommands:
 
     # use the waypoints to calculate desired speeds from robot perspective
     def derive_speeds(self, current_position):
+        if not self.waypoints:
+            self.set_speeds(0, 0, 0)
+            return
         og_x, og_y, og_w = current_position
         if self._prev_waypoint is None:
             self._prev_waypoint = current_position
-        if self.waypoints:
-            # if close enough to first waypoint, delete and move to next one
-            while len(self.waypoints) > 1 and \
-                  self.close_enough(current_position, self.waypoints[0]):
-                goal_pos = self.waypoints[0]
-                self._prev_waypoint = self.waypoints.pop(0)
+        # if close enough to first waypoint, delete and move to next one
+        while len(self.waypoints) > 1 and \
+                self.close_enough(current_position, self.waypoints[0]):
             goal_pos = self.waypoints[0]
-            goal_x, goal_y, goal_w = goal_pos
-            delta = (goal_pos - current_position)[:2]
-            # normalized offsets from robot's perspective
-            robot_vector = self.field_to_robot_perspective(og_w, delta)
-            norm_x, norm_y = self.normalize(robot_vector)
-            norm_w = self.trim_angle(goal_w - og_w)
-            # move with speed proportional to delta
-            linear_speed = self.magnitude(delta) * self.SPEED_SCALE
-            # slow down less for intermediate waypoints based on angle
-            min_waypoint_speed = 0
-            if len(self.waypoints) > 1:
-                next_delta = (self.waypoints[1] - goal_pos)[:2]
+            self._prev_waypoint = self.waypoints.pop(0)
+        goal_pos = self.waypoints[0]
+        goal_x, goal_y, goal_w = goal_pos
+        delta = (goal_pos - current_position)[:2]
+        # normalized offsets from robot's perspective
+        robot_vector = self.field_to_robot_perspective(og_w, delta)
+        norm_x, norm_y = self.normalize(robot_vector)
+        norm_w = self.trim_angle(goal_w - og_w)
+        # move with speed proportional to delta
+        linear_speed = self.magnitude(delta) * self.SPEED_SCALE
+        # slow down less for intermediate waypoints based on angle
+        min_waypoint_speed = 0
+        if len(self.waypoints) > 1:
+            next_delta = (self.waypoints[1] - goal_pos)[:2]
+            if next_delta.any():
                 m1 = np.linalg.norm(delta)
                 m2 = np.linalg.norm(next_delta)
                 trimmed_angle = np.arccos(np.dot(delta, next_delta)/(m1*m2))
@@ -195,15 +225,15 @@ class RobotCommands:
                 slowdown_factor = max(slowdown_factor, floor)
                 assert(slowdown_factor <= 1)
                 min_waypoint_speed = self._speed_limit * slowdown_factor
-            linear_speed = linear_speed + min_waypoint_speed
-            linear_speed = min(linear_speed, self._speed_limit)
-            self._x = linear_speed * norm_x
-            # print("x: {}, goal_x: {}, vx: {}".format(og_x, goal_x, self._x))
-            self._y = linear_speed * norm_y
-            # print("w: {}, goal_w: {}, d_w: {}".format(og_w, goal_w, norm_w))
-            self._w = norm_w * self.ROTATION_SPEED_SCALE
-            self._w = min(self._w, self.ROBOT_MAX_W)
-            self._w = max(self._w, -self.ROBOT_MAX_W)
+        linear_speed = linear_speed + min_waypoint_speed
+        linear_speed = min(linear_speed, self._speed_limit)
+        self._x = linear_speed * norm_x
+        # print("x: {}, goal_x: {}, vx: {}".format(og_x, goal_x, self._x))
+        self._y = linear_speed * norm_y
+        # print("w: {}, goal_w: {}, d_w: {}".format(og_w, goal_w, norm_w))
+        self._w = norm_w * self.ROTATION_SPEED_SCALE
+        self._w = min(self._w, self.ROBOT_MAX_W)
+        self._w = max(self._w, -self.ROBOT_MAX_W)
 
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
@@ -265,6 +295,17 @@ class RobotCommands:
             angle -= 2 * math.pi
         if angle < -math.pi:
             angle += 2 * math.pi
+        return angle
+
+    def trim_angle_90(self, angle):
+        """Transforms angle into range -pi/2 to pi/2, for shortest turning
+           Treats 180 degrees reflection as equivalent.
+        """
+        angle = self.trim_angle(angle)
+        if angle > math.pi / 2:
+            angle -= math.pi
+        if angle < -math.pi / 2:
+            angle += math.pi
         return angle
 
     def __str__(self):

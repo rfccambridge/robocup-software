@@ -59,8 +59,8 @@ class Comms(object):
     def sending_loop(self):
         self._gamestate.wait_until_game_begins()
         while self._is_sending:
-            # send serialized message for whole team
             team_commands = self._gamestate.get_team_commands(self._team)
+            # send serialized message for whole team
             # for robot_id, commands in team_commands.items():
             #     print(commands)
             message = RobotCommands.get_serialized_team_command(team_commands)

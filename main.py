@@ -1,3 +1,7 @@
+""" This is the control center, configures + launches all threads
+    To run: python3 main.py
+    (on Windows maybe just use: python main.py)
+"""
 import sys
 import signal
 
@@ -9,15 +13,15 @@ from comms import Comms
 from simulator import Simulator
 
 # whether or not we are running with real field and robots
-IS_SIMULATION = False
+IS_SIMULATION = True
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
 # which simulator initial setup to use (if simulating)
-SIMULATION_SETUP = 'moving_ball'
+SIMULATION_SETUP = 'full_teams'
 # which strategies each team is running (see strategy module)
-HOME_STRATEGY = 'follow_click'
+HOME_STRATEGY = 'UI'
 AWAY_STRATEGY = None
 
 # loop wait times for each thread - how much to sleep between loops
@@ -50,7 +54,7 @@ if __name__ == '__main__':
         # spin up ssl-vision data polling to update gamestate
         vision.start_updating(VISION_LOOP_SLEEP)
         # spin up comms to send commands to robots
-        # home_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
+        home_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
         # home_comms.start_receiving(COMMS_RECEIVE_LOOP_SLEEP)
         if CONTROL_BOTH_TEAMS:
             away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)

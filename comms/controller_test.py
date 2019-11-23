@@ -72,9 +72,11 @@ while True:
         robot_commands.is_kicking = True
     else:
         robot_commands.is_kicking = False
-    
 
-    print(robot_commands)
+    # print(robot_commands)
+    info = radio.read()
+    if info is not None:
+        print(info)
 
     # send serialized message for whole team (just 1 robot)
     team_commands = {ROBOT_ID: robot_commands}

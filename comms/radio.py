@@ -61,7 +61,7 @@ class Radio(object):
                     print(e)
                     # TODO: reconnect when error?
                 delta = time.time() - start
-                if delta > .002:
+                if delta > .003:
                     print('xbee send is taking a long time, too long/many?')
                     print("time taken: " + str(delta))
                     print("message length: " + str(len(message)))

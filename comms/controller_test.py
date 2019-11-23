@@ -53,15 +53,19 @@ while True:
     button_y = js.get_button(3)
     button_lb = js.get_button(4)
     button_rb = js.get_button(5)
+    button_lt = js.get_button(6)
+    button_rt = js.get_button(7)
     speed_lateral, speed_forward = a * MAX_XY_SPEED, -b * MAX_XY_SPEED
     speed_rotation = -c * MAX_ROTATION_SPEED
     robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)
     robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)
 
-    # if button_lb:
-    #     robot_commands.dribble(False)
-    # elif button_rb:
-    #     robot_commands.dribble(True)
+    if button_lt:
+        print("Stopping Dribble")
+        robot_commands.is_dribble = False
+    if button_rt:
+        print("Starting Dribble")
+        robot_commands.is_dribble = True
 
     if button_lb:
         robot_commands.is_charging = True

@@ -40,12 +40,12 @@ class Strategy(object):
         )
         while self._is_controlling:
             # run the strategy corresponding to the given mode
-            if self._mode == "follow_click":
-                self.follow_click()
+            if self._mode == "UI":
+                self.UI()
             else:
                 print('(unrecognized mode, doing nothing)')
 
-            # tell robots to refresh their speeds based on waypoints
+            # tell all robots to refresh their speeds based on waypoints
             team_commands = self._gamestate.get_team_commands(self._team)
             team_commands = list(team_commands.items())
             for robot_id, robot_commands in team_commands:
@@ -65,26 +65,27 @@ class Strategy(object):
             # yield to other threads
             time.sleep(self._control_loop_sleep)
 
-    # tell first robot on a team to go straight towards mouse click
-    def follow_click(self):
+    # follow the user-input commands through visualizer
+    def UI(self):
         # set goal pos to click location on visualization window
-        if self._gamestate.user_click_field is not None:
-            goal_x, goal_y = self._gamestate.user_click_field
-            robot_ids = self._gamestate.get_robot_ids(self._team)
-            if robot_ids:
-                # self.move_straight(robot_ids[0], np.array([goal_x, goal_y, 0]))
-                self.append_waypoint(robot_ids[0], np.array([goal_x, goal_y, 0]))
+        if self._gamestate.user_click_position is not None:
+            goal_pos = self._gamestate.user_click_position
+            if self._gamestate.user_selected_robot is not None:
+                team, robot_id = self._gamestate.user_selected_robot
+                if team == self._team:
+                    # self.move_straight(robot_ids[0], np.array(goal_pos))
+                    self.append_waypoint(robot_id, np.array(goal_pos))
 
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):
+        current_pos = self._gamestate.get_robot_position(self._team, robot_id)
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        commands.waypoints = [goal_pos]
+        commands.set_waypoints([goal_pos], current_pos)
 
     def append_waypoint(self, robot_id, goal_pos):
+        current_pos = self._gamestate.get_robot_position(self._team, robot_id)
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        if (len(commands.waypoints) == 0 or
-                (commands.waypoints[-1] != goal_pos).any()):
-            commands.waypoints.append(goal_pos)
+        commands.append_waypoint(goal_pos, current_pos)
 
     # RRT
     def RRT_path_find(self, robot_id, goal_pos, lim=1000):

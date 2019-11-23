@@ -15,6 +15,8 @@ LINE_COLOR = (255, 255, 255)
 GOAL_COLOR = (0, 0, 0)
 
 ROBOT_LOST_COLOR = (200, 200, 200)
+ROBOT_SELECTION_COLOR = (255, 0, 255)
+ROBOT_SELECTION_WIDTH = 10
 BLUE_TEAM_COLOR = (0, 0, 255)
 YELLOW_TEAM_COLOR = (255, 255, 0)
 
@@ -22,6 +24,7 @@ BALL_COLOR = (255, 125, 0)
 
 TRAJECTORY_COLOR = (255, 0, 0)
 TRAJECTORY_LINE_WIDTH = 10
+WAYPOINT_RADIUS = 25
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
 SCALE = 0.15  # below .1 messes stuff up
@@ -49,7 +52,8 @@ class Visualizer(object):
         self._viewer = None
         self._clock = None
 
-        self.user_click = None
+        self.user_click_down = None
+        self.user_click_up = None
 
         self._gamestate = gamestate
         # get references to strategy objects to display strategic information
@@ -120,16 +124,51 @@ class Visualizer(object):
                 if event.type == pygame.QUIT:
                     self._updating = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.user_click = pygame.mouse.get_pos()
-                    self._gamestate.user_click_field = \
-                        self.screen_to_field(self.user_click)
-                    # print(self._gamestate.is_pos_valid(
-                    #     self._gamestate.user_click_field, 'blue', 1
-                    # ))
+                    self.user_click_up = None
+                    self.user_click_down = self.screen_to_field(
+                        pygame.mouse.get_pos()
+                    )
+
+                    # trigger button clicks
                     for label, rect in self.buttons.items():
-                        if rect.collidepoint(self.user_click):
+                        if rect.collidepoint(pygame.mouse.get_pos()):
                             # prints current location of mouse
                             print('button pressed: ' + label)
+
+                    # FOR DEBUGGING:
+                    # print(self._gamestate.is_pos_valid(
+                    #     self.user_click_down, 'blue', 1
+                    # ))
+
+                if event.type == pygame.MOUSEBUTTONUP:
+                    self.user_click_up = self.screen_to_field(
+                        pygame.mouse.get_pos()
+                    )
+                    # robot selection
+                    robot_clicked = self._gamestate.robot_at_position(
+                        self.user_click_down
+                    )
+                    if robot_clicked is not None:
+                        robot_now_clicked = self._gamestate.robot_at_position(
+                            self.user_click_up
+                        )
+                        if robot_clicked == robot_now_clicked:
+                            self._gamestate.user_selected_robot = robot_clicked
+                            self.user_click_down = None
+                            self._gamestate.user_click_position = None
+
+                    if self.user_click_down is not None:
+                        # store xy of original mouse down, but use drag
+                        # direction to determine the rotation of position
+                        x, y = self.user_click_down
+                        if (self.user_click_down == self.user_click_up).all():
+                            w = None
+                        else:
+                            # else face the dragged direction
+                            dx, dy = self.user_click_up - self.user_click_down
+                            w = np.arctan2(dy, dx)
+                        self._gamestate.user_click_position = (x, y, w)
+
             self._viewer.fill(FIELD_COLOR)
             self.render()
             pygame.display.flip()
@@ -181,6 +220,7 @@ class Visualizer(object):
             robot_commands = self._gamestate.get_robot_commands(team, robot_id)
             prev_waypoint = pos
             for waypoint in robot_commands.waypoints:
+                self.draw_waypoint(waypoint)
                 self.draw_line(
                     TRAJECTORY_COLOR,
                     prev_waypoint,
@@ -188,6 +228,14 @@ class Visualizer(object):
                     TRAJECTORY_LINE_WIDTH
                 )
                 prev_waypoint = waypoint
+            # highlight selected robot
+            if (team, robot_id) == self._gamestate.user_selected_robot:
+                self.draw_circle(
+                    ROBOT_SELECTION_COLOR,
+                    pos,
+                    gs.ROBOT_RADIUS + ROBOT_SELECTION_WIDTH,
+                    ROBOT_SELECTION_WIDTH
+                )
 
         # Draw ball
         ball_pos = self._gamestate.get_ball_position()
@@ -207,8 +255,15 @@ class Visualizer(object):
             )
 
         # draw user click location with a red 'X'
-        if self.user_click is not None:
-            self.draw_X(self._gamestate.user_click_field, (255, 0, 0), 50, 15)
+        if self.user_click_down is not None and self.user_click_up is None:
+            self.draw_X(self.user_click_down, (255, 0, 0), 50, 15)
+            # draw drag direction
+            self.draw_line(
+                TRAJECTORY_COLOR,
+                self.user_click_down,
+                self.screen_to_field(pygame.mouse.get_pos()),
+                15
+            )
 
         # Draw buttons :)
         for label, rect in self.buttons.items():
@@ -255,6 +310,13 @@ class Visualizer(object):
         myfont = pygame.font.SysFont(font, size)
         textsurface = myfont.render(text, False, color)
         self._viewer.blit(textsurface, top_left)
+
+    def draw_waypoint(self, pos):
+        self.draw_circle(TRAJECTORY_COLOR, pos, WAYPOINT_RADIUS)
+        x, y, w = pos
+        arrow = WAYPOINT_RADIUS * 2 * np.array([math.cos(w), math.sin(w)])
+        end = np.array([x, y]) + arrow
+        self.draw_line(TRAJECTORY_COLOR, pos, end, TRAJECTORY_LINE_WIDTH)
 
     def draw_X(self, pos, color, size, width):
         pos = np.array(pos).astype(float)

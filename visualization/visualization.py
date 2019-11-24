@@ -90,7 +90,7 @@ class Visualizer(object):
             pos = pos[:2]
         pos = np.array(pos).astype(float)
         # shift position so (0, 0) is the center of the field, as in ssl-vision
-        pos += np.array([gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2])
+        pos += np.array([gs.FIELD_MAX_X, gs.FIELD_MAX_Y])
         # scale for display
         pos *= SCALE
         pos = pos.astype(int)
@@ -110,7 +110,7 @@ class Visualizer(object):
         # unscale display
         pos /= SCALE
         # shift position so that center becomes (0, 0)
-        pos -= np.array([gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2])
+        pos -= np.array([gs.FIELD_MAX_X, gs.FIELD_MAX_Y])
         return pos
 
     # designed to run in main thread, for pygame to work on all platforms
@@ -181,12 +181,12 @@ class Visualizer(object):
         assert(self._viewer is not None)
         # Draw Field
         # Boundary Lines
-        top_left = (-gs.FIELD_X_LENGTH / 2, gs.FIELD_Y_LENGTH / 2)
+        top_left = (gs.FIELD_MIN_X, gs.FIELD_MAX_Y)
         dims = (gs.FIELD_X_LENGTH, gs.FIELD_Y_LENGTH)
         self.draw_rect(LINE_COLOR, top_left, dims, FIELD_LINE_WIDTH)
         # Mid line
-        top_mid = (0, gs.FIELD_Y_LENGTH / 2)
-        bottom_mid = (0, -gs.FIELD_Y_LENGTH / 2)
+        top_mid = (0, gs.FIELD_MAX_Y)
+        bottom_mid = (0, gs.FIELD_MIN_Y)
         self.draw_line(LINE_COLOR, top_mid, bottom_mid, FIELD_LINE_WIDTH)
         # Center Circle
         self.draw_circle(

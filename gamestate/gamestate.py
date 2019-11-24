@@ -18,6 +18,10 @@ ROBOT_REMOVE_TIME = 5
 # FIELD + ROBOT DIMENSIONS (mm)
 FIELD_X_LENGTH = 9000
 FIELD_Y_LENGTH = 6000
+FIELD_MIN_X = -FIELD_X_LENGTH / 2
+FIELD_MAX_X = FIELD_X_LENGTH / 2
+FIELD_MIN_Y = -FIELD_Y_LENGTH / 2
+FIELD_MAX_Y = FIELD_Y_LENGTH / 2
 CENTER_CIRCLE_RADIUS = 495
 GOAL_WIDTH = 1000
 DEFENSE_AREA_X_LENGTH = 1000
@@ -226,9 +230,9 @@ class GameState(object):
     def defense_area_corner(self, team):
         if team == "blue" and self.is_blue_defense_side_left or \
            team == "yellow" and not self.is_blue_defense_side_left:
-            min_x = -FIELD_X_LENGTH / 2
+            min_x = FIELD_MIN_X
         else:
-            min_x = FIELD_X_LENGTH / 2 - DEFENSE_AREA_X_LENGTH
+            min_x = FIELD_MAX_X - DEFENSE_AREA_X_LENGTH
         min_y = -DEFENSE_AREA_Y_LENGTH / 2
         return np.array([min_x, min_y])
 
@@ -239,8 +243,8 @@ class GameState(object):
                 min_y <= pos[1] <= min_y + DEFENSE_AREA_Y_LENGTH)
 
     def is_in_play(self, pos):
-        return ((-FIELD_X_LENGTH / 2 <= pos[0] <= FIELD_X_LENGTH / 2) and
-                (-FIELD_Y_LENGTH / 2 <= pos[1] <= FIELD_Y_LENGTH / 2))
+        return ((FIELD_MIN_X <= pos[0] <= FIELD_MAX_X) and
+                (FIELD_MIN_Y <= pos[1] <= FIELD_MAX_Y))
 
     def is_pos_in_bounds(self, pos, team, robot_id):
         # TODO: during free kicks must be away from opponent area
@@ -370,11 +374,11 @@ class GameState(object):
     def get_defense_goal(self, team):
         if (self.is_blue_defense_side_left and team == 'blue') or \
            (not self.is_blue_defense_side_left and team == 'yellow'):
-            return (np.array([-FIELD_X_LENGTH / 2, GOAL_WIDTH/2]),
-                    np.array([-FIELD_X_LENGTH / 2, -GOAL_WIDTH/2]))
+            return (np.array([FIELD_MIN_X, GOAL_WIDTH/2]),
+                    np.array([FIELD_MIN_X, -GOAL_WIDTH/2]))
         else:
-            return (np.array([FIELD_X_LENGTH / 2, GOAL_WIDTH/2]),
-                    np.array([FIELD_X_LENGTH / 2, -GOAL_WIDTH/2]))
+            return (np.array([FIELD_MAX_X, GOAL_WIDTH/2]),
+                    np.array([FIELD_MAX_X, -GOAL_WIDTH/2]))
 
     def get_attack_goal(self, team):
         if team == 'yellow':

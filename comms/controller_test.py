@@ -62,10 +62,10 @@ while True:
 
     if button_lt:
         print("Stopping Dribble")
-        robot_commands.is_dribble = False
+        robot_commands.is_dribbling = False
     if button_rt:
         print("Starting Dribble")
-        robot_commands.is_dribble = True
+        robot_commands.is_dribbling = True
 
     if button_lb:
         robot_commands.is_charging = True

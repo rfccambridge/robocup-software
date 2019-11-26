@@ -148,8 +148,10 @@ class GameState(object):
     def get_robot_position(self, team, robot_id):
         robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
-            # print("getting position of robot never seen?!?")
-            return None
+            # is_robot_lost should be used to check if robot exists
+            # here we return a position to avoid crashing the program
+            print("getting position of robot never seen?!?")
+            return np.array([0, 0, 0])
         timestamp, pos = robot_positions[robot_id][0]
         return pos
 
@@ -209,6 +211,10 @@ class GameState(object):
         if robot_id not in team_commands:
             team_commands[robot_id] = RobotCommands()
         return team_commands[robot_id]
+
+    def robot_max_speed(self, team, robot_id):
+        # in the future this could vary between teams/robots?
+        return RobotCommands.ROBOT_MAX_SPEED
 
     # returns a list of ((team, robot_id), commands) for iteration
     def get_all_robot_commands(self):
@@ -349,18 +355,6 @@ class GameState(object):
         predicted_pos = predicted_pos_change + self.get_ball_position()
         return predicted_pos
 
-    def get_ball_interception_point(self, team, robot_id):
-        robot_pos = self.get_robot_position(team, robot_id)
-        delta_t = .05
-        time = 0
-        while(True):
-            interception_pos = self.predict_ball_pos(time)
-            separation_distance = np.linalg.norm(robot_pos - interception_pos)
-            if separation_distance <= time * RobotCommands.ROBOT_MAX_SPEED:
-                return interception_pos
-            else:
-                time += delta_t
-
     # return a random position inside the field
     def random_position(self):
         return (np.random.randint(0, FIELD_X_LENGTH),
@@ -386,46 +380,3 @@ class GameState(object):
         else:
             assert(team == 'blue')
             return self.get_defense_goal('yellow')
-
-    def best_goalie_pos(self, team):
-        ball_pos = self.get_ball_position()
-        goal_top, goal_bottom = self.get_defense_goal(team)
-        goal_center = (goal_top + goal_bottom) / 2
-        # for now, look at vector from goal center to ball
-        goal_to_ball = ball_pos - goal_center
-        if not goal_to_ball.any():
-            # should never happen, but good to prevent crash, and for debugging
-            print('ball is exactly on goal center w0t')
-            return np.array([*goal_center, 0])
-        angle_to_ball = np.arctan2(goal_to_ball[1], goal_to_ball[0])
-        norm_to_ball = goal_to_ball / np.linalg.norm(goal_to_ball)
-        GOALIE_OFFSET = 600  # goalie stays this far from goal center
-        x, y = goal_center + norm_to_ball * GOALIE_OFFSET
-        best_pos = np.array([x, y, angle_to_ball])
-        return best_pos
-
-    def face_pos(self, team, robot_id, pos):
-        robot_pos = self.get_robot_position(team, robot_id)
-        slope = (pos[1] - robot_pos[1])/(pos[0] - robot_pos[0])
-        # The arctan of the slope gives the angle relative to the x axis
-        # use atan2 instead of atan because it takes into account x/y signs
-        # to give angle from -pi to pi, instead of limiting to -pi/2 to pi/2
-        return np.arctan(slope)
-
-    def face_ball(self, team, robot_id):
-        return self.face_pos(team, robot_id, self.get_ball_position())
-
-    def is_path_blocked(self, s_pos, g_pos):
-        if not is_position_open(g_pos):
-            return True
-# explicitly putting this case in to avoid worrying too much about the step size in the while loop. Also it saves
-# runtime if the goal position is blocked anyway. (Returning True is intended to say the path is blocked.)
-        path_slope = (g_pos[1]-s_pos[1])/(g_pos[0]-s_pos[0])
-        i = 1
-        while (i*ROBOT_RADIUS < np.linalg.norm(g_pos - s_pos)):
-            # The np expression above gives the length of the path
-            if not self.is_position_open(s_pos + i*ROBOT_RADIUS*np.array[np.cos(np.arctan(path_slope)), np.sin(np.arctan(path_slope))]):
-                return True
-            i +=1
-        return False
-# Not sure if this should be switched but currently if the path is blocked we get True

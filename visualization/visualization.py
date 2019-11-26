@@ -255,7 +255,7 @@ class Visualizer(object):
             )
 
         # debug best goalie pos
-        self.draw_waypoint(self._gamestate.best_goalie_pos("blue"))
+        self.draw_waypoint(self._home_strategy.best_goalie_pos())
 
         # draw user click location with a red 'X'
         if self.user_click_down is not None and self.user_click_up is None:

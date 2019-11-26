@@ -107,11 +107,11 @@ class GameState(object):
             time.sleep(.01)
 
     # RAW DATA GET/SET FUNCTIONS
-    # returns position ball was last seen at
+    # returns position ball was last seen at, or (0, 0) if unseen
     def get_ball_position(self):
         if len(self._ball_position) == 0:
             # print("getting ball position but ball never seen?!?")
-            return None
+            return np.array([0, 0])
         timestamp, pos = self._ball_position[0]
         return pos
 
@@ -389,18 +389,27 @@ class GameState(object):
 
     def best_goalie_pos(self, team):
         ball_pos = self.get_ball_position()
-        defense_goal = self.get_defense_goal(team)
-        center_of_goal = (defense_goal[0] + defense_goal[1])/2
-# The average of the two post locations will be the center of the goal.
-        goal_to_ball_slope = (ball_pos[1] - center_of_goal[1])/(ball_pos[0] - center_of_goal[0])
-        #return np.array([0, 0])
-        best_pos = (center_of_goal + np.array[600*np.cos(np.artan(goal_to_ball_slope)), 600*np.sin(np.artan(goal_to_ball_slope)), np.arctan(goal_to_ball_slope)])
+        goal_top, goal_bottom = self.get_defense_goal(team)
+        goal_center = (goal_top + goal_bottom) / 2
+        # for now, look at vector from goal center to ball
+        goal_to_ball = ball_pos - goal_center
+        if not goal_to_ball.any():
+            # should never happen, but good to prevent crash, and for debugging
+            print('ball is exactly on goal center w0t')
+            return np.array([*goal_center, 0])
+        angle_to_ball = np.arctan2(goal_to_ball[1], goal_to_ball[0])
+        norm_to_ball = goal_to_ball / np.linalg.norm(goal_to_ball)
+        GOALIE_OFFSET = 600  # goalie stays this far from goal center
+        x, y = goal_center + norm_to_ball * GOALIE_OFFSET
+        best_pos = np.array([x, y, angle_to_ball])
         return best_pos
 
     def face_pos(self, team, robot_id, pos):
         robot_pos = self.get_robot_position(team, robot_id)
         slope = (pos[1] - robot_pos[1])/(pos[0] - robot_pos[0])
-# The arctan of the slope gives the angle relative to the x axis, which is the angle we would want to rotate.
+        # The arctan of the slope gives the angle relative to the x axis
+        # use atan2 instead of atan because it takes into account x/y signs
+        # to give angle from -pi to pi, instead of limiting to -pi/2 to pi/2
         return np.arctan(slope)
 
     def face_ball(self, team, robot_id):

@@ -254,9 +254,12 @@ class Visualizer(object):
                 TRAJECTORY_LINE_WIDTH
             )
 
+        # debug best goalie pos
+        self.draw_waypoint(self._gamestate.best_goalie_pos("blue"))
+
         # draw user click location with a red 'X'
         if self.user_click_down is not None and self.user_click_up is None:
-            self.draw_X(self.user_click_down, (255, 0, 0), 50, 15)
+            self.draw_X(self.user_click_down, (255, 0, 0), 30, 15)
             # draw drag direction
             self.draw_line(
                 TRAJECTORY_COLOR,

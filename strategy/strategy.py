@@ -197,3 +197,12 @@ class Strategy(object):
                 min_dist = dist
                 rtn = pos
         return rtn
+
+# determine best robot position (including rotation) to shoot or pass ie kick given the position or desired future location
+# of the ball (x,y) after the kick and before the kick (self, from_pos, to_pos)
+# determine location of robot including rotation to recieve as pass given
+# rotation to recieve the ball in current pos
+# go to the ball (and rotate to receive it)
+# assume the ball has already been kicked. add a buffer... "relax" parameter
+# min and max distance to ball path while still intercept
+# posssible interception points (first_intercept_point, last_intercept point) ****important edge case: ball stops in range

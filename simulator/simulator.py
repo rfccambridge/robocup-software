@@ -1,6 +1,7 @@
 import threading
 import time
 import numpy as np
+from collections import deque
 
 
 class Simulator(object):
@@ -23,11 +24,12 @@ class Simulator(object):
 
     # initialize ball position data to reflect desired position + velocity
     def put_fake_ball(self, position, velocity=np.array([0, 0])):
+        self._gamestate.clear_ball_position()
         # use small dt to minimize deceleration correction
         dt = .05
         prev_pos = position - velocity * dt
-        self._gamestate._ball_position.appendleft((time.time() - dt, prev_pos))
-        self._gamestate._ball_position.appendleft((time.time(), position))
+        self._gamestate.update_ball_position(prev_pos, time.time() - dt)
+        self._gamestate.update_ball_position(position, time.time())
         # print(f"{self._gamestate._ball_position}")
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
@@ -74,6 +76,15 @@ class Simulator(object):
                 if delta_time > self._simulation_loop_sleep * 3:
                     print("Simulation loop large delay: " + str(delta_time))
             self._last_step_time = time.time()
+            # allow user to move the ball via UI
+            if self._gamestate.user_selected_ball:
+                new_pos = self._gamestate.user_click_position
+                if new_pos is not None:
+                    v = self._gamestate.user_drag_vector
+                    v = np.array([0, 0]) if v is None else v
+                    self.put_fake_ball(new_pos[:2], v)
+                    self._gamestate.user_click_position = None
+                    self._gamestate.user_drag_vector = None
 
             # move ball according to prediction
             ball_pos = self._gamestate.get_ball_position()

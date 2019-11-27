@@ -69,7 +69,9 @@ class GameState(object):
 
         # UI Inputs - set from visualizer
         self.user_click_position = None
-        self.user_selected_robot = None
+        self.user_drag_vector = None
+        self.user_selected_robot = None  # (team, id) of robot
+        self.user_selected_ball = False
 
     def start_game(self, loop_sleep):
         self._game_loop_sleep = loop_sleep
@@ -115,10 +117,15 @@ class GameState(object):
         timestamp, pos = self._ball_position[0]
         return pos
 
-    def update_ball_position(self, pos):
+    def clear_ball_position(self):
+        self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
+
+    def update_ball_position(self, pos, timestamp=None):
+        if timestamp is None:
+            timestamp = time.time()
         assert(len(pos) == 2 and type(pos) == np.ndarray)
         pos = pos.copy().astype(float)
-        self._ball_position.appendleft((time.time(), pos))
+        self._ball_position.appendleft((timestamp, pos))
 
     def get_ball_last_update_time(self):
         if len(self._ball_position) == 0:

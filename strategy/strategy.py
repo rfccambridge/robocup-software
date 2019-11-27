@@ -74,7 +74,14 @@ class Strategy(object):
     def UI(self):
         # set goal pos to click location on visualization window
         if self._gamestate.user_click_position is not None:
-            goal_pos = self._gamestate.user_click_position
+            x, y = self._gamestate.user_click_position
+            if self._gamestate.user_drag_vector.any():
+                # face the dragged direction
+                dx, dy = self._gamestate.user_drag_vector
+                w = np.arctan2(dy, dx)
+            else:
+                w = None
+            goal_pos = np.array([x, y, w])
             if self._gamestate.user_selected_robot is not None:
                 team, robot_id = self._gamestate.user_selected_robot
                 if team == self._team:

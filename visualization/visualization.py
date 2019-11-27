@@ -15,8 +15,8 @@ LINE_COLOR = (255, 255, 255)
 GOAL_COLOR = (0, 0, 0)
 
 ROBOT_LOST_COLOR = (200, 200, 200)
-ROBOT_SELECTION_COLOR = (255, 0, 255)
-ROBOT_SELECTION_WIDTH = 10
+SELECTION_COLOR = (255, 0, 255)
+SELECTION_WIDTH = 10
 BLUE_TEAM_COLOR = (0, 0, 255)
 YELLOW_TEAM_COLOR = (255, 255, 0)
 
@@ -144,30 +144,31 @@ class Visualizer(object):
                     self.user_click_up = self.screen_to_field(
                         pygame.mouse.get_pos()
                     )
-                    # robot selection
-                    robot_clicked = self._gamestate.robot_at_position(
-                        self.user_click_down
-                    )
-                    if robot_clicked is not None:
-                        robot_now_clicked = self._gamestate.robot_at_position(
-                            self.user_click_up
-                        )
-                        if robot_clicked == robot_now_clicked:
+                    # ball/robot selection
+                    down, up = self.user_click_down, self.user_click_up
+                    robot_clicked = \
+                        self._gamestate.robot_at_position(down) and \
+                        self._gamestate.robot_at_position(up)
+                    ball_clicked = \
+                        self._gamestate.ball_overlap(down).any() and \
+                        self._gamestate.ball_overlap(up).any()
+                    if robot_clicked or ball_clicked:
+                        self.user_click_down = None
+                        self._gamestate.user_click_position = None
+                        self._gamestate.user_drag_vector = None
+                        if ball_clicked:
+                            self._gamestate.user_selected_ball = True
+                            self._gamestate.user_selected_robot = None
+                        elif robot_clicked:
                             self._gamestate.user_selected_robot = robot_clicked
-                            self.user_click_down = None
-                            self._gamestate.user_click_position = None
+                            self._gamestate.user_selected_ball = False
 
                     if self.user_click_down is not None:
-                        # store xy of original mouse down, but use drag
-                        # direction to determine the rotation of position
-                        x, y = self.user_click_down
-                        if (self.user_click_down == self.user_click_up).all():
-                            w = None
-                        else:
-                            # else face the dragged direction
-                            dx, dy = self.user_click_up - self.user_click_down
-                            w = np.arctan2(dy, dx)
-                        self._gamestate.user_click_position = (x, y, w)
+                        # store xy of original mouse down, and drag vector
+                        self._gamestate.user_click_position = \
+                            self.user_click_down
+                        self._gamestate.user_drag_vector = \
+                            self.user_click_up - self.user_click_down
 
             self._viewer.fill(FIELD_COLOR)
             self.render()
@@ -231,10 +232,10 @@ class Visualizer(object):
             # highlight selected robot
             if (team, robot_id) == self._gamestate.user_selected_robot:
                 self.draw_circle(
-                    ROBOT_SELECTION_COLOR,
+                    SELECTION_COLOR,
                     pos,
-                    gs.ROBOT_RADIUS + ROBOT_SELECTION_WIDTH,
-                    ROBOT_SELECTION_WIDTH
+                    gs.ROBOT_RADIUS + SELECTION_WIDTH,
+                    SELECTION_WIDTH
                 )
 
         # Draw ball
@@ -245,6 +246,15 @@ class Visualizer(object):
             self.draw_circle((0, 0, 0), predicted_pos, gs.BALL_RADIUS)
             # draw actual ball
             self.draw_circle(BALL_COLOR, ball_pos, gs.BALL_RADIUS)
+            # highlight ball if selected
+            if self._gamestate.user_selected_ball:
+                self.draw_circle(
+                    SELECTION_COLOR,
+                    ball_pos,
+                    gs.BALL_RADIUS + SELECTION_WIDTH,
+                    SELECTION_WIDTH
+                )
+
             # draw ball velocity
             velocity = self._gamestate.get_ball_velocity()
             self.draw_line(

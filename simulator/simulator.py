@@ -125,7 +125,7 @@ class Simulator(object):
                         self._gamestate.update_robot_position(
                             team2, robot_id2, pos2 + overlap / 2)
                 # collision with ball
-                ball_overlap = self._gamestate.ball_overlap(pos)
+                ball_overlap = self._gamestate.robot_ball_overlap(pos)
                 if ball_overlap.any():
                     ball_pos = self._gamestate.get_ball_position()
                     new_pos = ball_pos + ball_overlap

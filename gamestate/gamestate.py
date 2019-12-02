@@ -283,9 +283,14 @@ class GameState(object):
         return self.overlap(pos1, pos2, ROBOT_RADIUS * 2)
 
     # overlap between robot and ball
+    def robot_ball_overlap(self, robot_pos):
+        ball_pos = self.get_ball_position()
+        return self.overlap(robot_pos, ball_pos, ROBOT_RADIUS + BALL_RADIUS)
+
+    # overlap of position and ball
     def ball_overlap(self, pos):
         ball_pos = self.get_ball_position()
-        return self.overlap(pos, ball_pos, ROBOT_RADIUS + BALL_RADIUS)
+        return self.overlap(pos, ball_pos, BALL_RADIUS)    
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):

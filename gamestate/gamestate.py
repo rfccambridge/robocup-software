@@ -290,7 +290,22 @@ class GameState(object):
     # overlap of position and ball
     def ball_overlap(self, pos):
         ball_pos = self.get_ball_position()
-        return self.overlap(pos, ball_pos, BALL_RADIUS)    
+        return self.overlap(pos, ball_pos, BALL_RADIUS)
+
+    # returns the x, y position in center of robot's dribbler
+    def dribbler_pos(self, team, robot_id):
+        x, y, w = self.get_robot_position(team, robot_id)
+        direction = np.array([np.cos(w), np.sin(w)])
+        relative_pos = direction * (ROBOT_RADIUS + BALL_RADIUS)
+        return np.array([x, y]) + relative_pos
+
+    # if ball is in position to be dribbled
+    def ball_in_dribbler(self, team, robot_id):
+        ball_pos = self.get_ball_position()
+        ideal_pos = self.dribbler_pos(team, robot_id)
+        # TODO: kicking version of this function incorporates breakbeam sensor?
+        DRIBBLE_ZONE_THRESHOLD = 40
+        return np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_THRESHOLD
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):

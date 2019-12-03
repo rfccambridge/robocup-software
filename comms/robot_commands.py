@@ -38,6 +38,8 @@ class RobotCommands:
     ROBOT_MAX_SPEED = 600
     ROBOT_MAX_W = 6.14
     MAX_KICK_SPEED = None  # TODO
+    MAX_CHARGE_LEVEL = 250  # volts? should be whatever the board measures in
+    CHARGE_RATE = 20  # volts per second?
 
     # constants for deriving speed from waypoints
     # default proportional scaling constant for distance differences
@@ -54,10 +56,12 @@ class RobotCommands:
         self._x = 0  # speed x mm/s
         self._y = 0  # speed y mm/s
         self._w = 0  # speed robot radians/s
-        # other commands - TODO: create interfaces i.e. charge_until?
+        # other commands
         self.is_dribbling = False
         self.is_charging = False
         self.is_kicking = False
+        # other info
+        self.charge_level = 0
 
     # function for limiting robot speeds in the case of ref commands
     def set_speed_limit(self, speed=None):
@@ -173,6 +177,16 @@ class RobotCommands:
         self._x = x
         self._y = y
         self._w = w
+
+    # estimate increase in charge level based on time elapsed
+    def simulate_charge(self, delta_time):
+        self.charge_level += delta_time * self.CHARGE_RATE
+        if self.charge_level > self.MAX_CHARGE_LEVEL:
+            self.charge_level = self.MAX_CHARGE_LEVEL
+
+    def kick_velocity(self):
+        # TODO
+        return MAX_KICK_SPEED
 
     # predict where the robot will be if it follows the current command
     def predict_pos(self, pos, delta_time):

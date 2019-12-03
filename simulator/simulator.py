@@ -43,8 +43,9 @@ class Simulator(object):
         self._thread.start()
 
     def simulation_loop(self):
+        gs = self._gamestate
         # wait until game begins (while other threads are initializing)
-        self._gamestate.wait_until_game_begins()
+        gs.wait_until_game_begins()
         print("\nSimulator running with initial setup: {}".format(
             self._initial_setup
         ))
@@ -53,7 +54,7 @@ class Simulator(object):
             for i in range(1, 7):
                 left_pos = np.array([-3000, 200 * (i - 3.5), 0])
                 right_pos = np.array([3000, 200 * (i - 3.5), 3.14])
-                if self._gamestate.is_blue_defense_side_left:
+                if gs.is_blue_defense_side_left:
                     blue_pos = left_pos
                     yellow_pos = right_pos
                 else:
@@ -77,59 +78,85 @@ class Simulator(object):
                     print("Simulation loop large delay: " + str(delta_time))
             self._last_step_time = time.time()
             # allow user to move the ball via UI
-            if self._gamestate.user_selected_ball:
-                new_pos = self._gamestate.user_click_position
+            if gs.user_selected_ball:
+                new_pos = gs.user_click_position
                 if new_pos is not None:
-                    v = self._gamestate.user_drag_vector
+                    v = gs.user_drag_vector
                     v = np.array([0, 0]) if v is None else v
                     self.put_fake_ball(new_pos[:2], v)
-                    self._gamestate.user_click_position = None
-                    self._gamestate.user_drag_vector = None
+                    gs.user_click_position = None
+                    gs.user_drag_vector = None
 
             # move ball according to prediction
-            ball_pos = self._gamestate.get_ball_position()
+            ball_pos = gs.get_ball_position()
             if ball_pos is not None:
-                new_ball_pos = self._gamestate.predict_ball_pos(delta_time)
+                new_ball_pos = gs.predict_ball_pos(delta_time)
                 # print("dt: {}, new_pos: {}".format(delta_time, new_ball_pos))
                 # print(time.time())
-                # print("v: {}".format(self._gamestate.get_ball_velocity()))
-                # print(self._gamestate.predict_ball_pos(0))
+                # print("v: {}".format(gs.get_ball_velocity()))
+                # print(gs.predict_ball_pos(0))
 
-                # print(self._gamestate.get_ball_velocity())
-                self._gamestate.update_ball_position(new_ball_pos)
+                # print(gs.get_ball_velocity())
+                gs.update_ball_position(new_ball_pos)
 
             for (team, robot_id), robot_commands in \
-                    self._gamestate.get_all_robot_commands():
+                    gs.get_all_robot_commands():
                 # move robots according to commands
-                pos = self._gamestate.get_robot_position(team, robot_id)
+                pos = gs.get_robot_position(team, robot_id)
                 new_pos = robot_commands.predict_pos(pos, delta_time)
-                self._gamestate.update_robot_position(
+                gs.update_robot_position(
                     team, robot_id, new_pos
                 )
+                # charge capacitors according to commands
+                if robot_commands.is_charging:
+                    robot_commands.simulate_charge(delta_time)
+                # simulate dribbling as gravity zone
+                if robot_commands.is_dribbling or True and \
+                   gs.ball_in_dribbler(team, robot_id):
+                    ball_pos = gs.get_ball_position()
+                    dribbler_center = gs.dribbler_pos(team, robot_id)
+                    robot_pos = gs.get_robot_position(team, robot_id)
+                    # TODO: factor out physics constants
+                    # TODO: could even model spin behavior
+                    pullback_velocity = (robot_pos[:2] - ball_pos) * 3
+                    centering_velocity = (dribbler_center - ball_pos) * 3
+                    dribble_velocity = pullback_velocity + centering_velocity
+                    new_pos = ball_pos + dribble_velocity * delta_time
+                    gs.clear_ball_position()
+                    gs.update_ball_position(new_pos)
+                # kick according to commands
+                if robot_commands.is_kicking:
+                    robot_commands.charge_level = 0
+                    if gs.ball_in_dribbler(team, robot_id):
+                        ball_pos = gs.get_ball_position()
+                        new_velocity = robot_commands.kick_velocity()
+                        self.put_fake_ball(ball_pos, new_velocity)
 
             for (team, robot_id), pos in \
-                    self._gamestate.get_all_robot_positions():
+                    gs.get_all_robot_positions():
                 # refresh positions of all robots
-                pos = self._gamestate.get_robot_position(team, robot_id)
-                self._gamestate.update_robot_position(team, robot_id, pos)
+                pos = gs.get_robot_position(team, robot_id)
+                gs.update_robot_position(team, robot_id, pos)
 
                 # handle collisions with other robots
                 for (team2, robot_id2), pos2 in \
-                        self._gamestate.get_all_robot_positions():
+                        gs.get_all_robot_positions():
                     if (team2, robot_id2) != (team, robot_id) and \
-                       self._gamestate.robot_overlap(pos, pos2).any():
-                        overlap = self._gamestate.robot_overlap(pos, pos2)
+                       gs.robot_overlap(pos, pos2).any():
+                        overlap = gs.robot_overlap(pos, pos2)
                         overlap = np.append(overlap, 0)
-                        self._gamestate.update_robot_position(
+                        gs.update_robot_position(
                             team, robot_id, pos - overlap / 2)
-                        self._gamestate.update_robot_position(
+                        gs.update_robot_position(
                             team2, robot_id2, pos2 + overlap / 2)
                 # collision with ball
-                ball_overlap = self._gamestate.robot_ball_overlap(pos)
+                ball_overlap = gs.robot_ball_overlap(pos)
                 if ball_overlap.any():
-                    ball_pos = self._gamestate.get_ball_position()
+                    # TODO: simulate bounces reasonably
+                    ball_pos = gs.get_ball_position()
                     new_pos = ball_pos + ball_overlap
-                    self._gamestate.update_ball_position(new_pos)
+                    gs.clear_ball_position()
+                    gs.update_ball_position(new_pos)
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)
 

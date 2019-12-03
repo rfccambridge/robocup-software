@@ -216,9 +216,16 @@ class Visualizer(object):
             # indicate direction of robot
             arrow = gs.ROBOT_RADIUS * np.array([math.cos(w), math.sin(w)])
             arrow_end = np.array([x, y]) + arrow
-            self.draw_line((255, 0, 0), pos, arrow_end, 15)
-            # draw waypoints for this robot
-            robot_commands = self._gamestate.get_robot_commands(team, robot_id)
+            self.draw_line(TRAJECTORY_COLOR, pos, arrow_end, 15)
+            robot_commands = self._gamestate.get_robot_commands(team, robot_id)            
+            # draw dribbler zone if on
+            if robot_commands.is_dribbling or True:
+                self.draw_circle(
+                    TRAJECTORY_COLOR,
+                    self._gamestate.dribbler_pos(team, robot_id),
+                    20
+                )
+            # draw waypoints for this robot            
             prev_waypoint = pos
             for waypoint in robot_commands.waypoints:
                 self.draw_waypoint(waypoint)

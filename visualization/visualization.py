@@ -15,8 +15,8 @@ LINE_COLOR = (255, 255, 255)
 GOAL_COLOR = (0, 0, 0)
 
 ROBOT_LOST_COLOR = (200, 200, 200)
-ROBOT_SELECTION_COLOR = (255, 0, 255)
-ROBOT_SELECTION_WIDTH = 10
+SELECTION_COLOR = (255, 0, 255)
+SELECTION_WIDTH = 10
 BLUE_TEAM_COLOR = (0, 0, 255)
 YELLOW_TEAM_COLOR = (255, 255, 0)
 
@@ -123,6 +123,9 @@ class Visualizer(object):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self._updating = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_b:
+                        self.select_ball()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.user_click_up = None
                     self.user_click_down = self.screen_to_field(
@@ -144,30 +147,29 @@ class Visualizer(object):
                     self.user_click_up = self.screen_to_field(
                         pygame.mouse.get_pos()
                     )
-                    # robot selection
-                    robot_clicked = self._gamestate.robot_at_position(
-                        self.user_click_down
-                    )
-                    if robot_clicked is not None:
-                        robot_now_clicked = self._gamestate.robot_at_position(
-                            self.user_click_up
-                        )
-                        if robot_clicked == robot_now_clicked:
-                            self._gamestate.user_selected_robot = robot_clicked
-                            self.user_click_down = None
-                            self._gamestate.user_click_position = None
+                    # ball/robot selection
+                    down, up = self.user_click_down, self.user_click_up
+                    robot_clicked = \
+                        self._gamestate.robot_at_position(down) and \
+                        self._gamestate.robot_at_position(up)
+                    ball_clicked = \
+                        self._gamestate.ball_overlap(down).any() and \
+                        self._gamestate.ball_overlap(up).any()
+                    if robot_clicked or ball_clicked:
+                        self.user_click_down = None
+                        self._gamestate.user_click_position = None
+                        self._gamestate.user_drag_vector = None
+                        if ball_clicked:
+                            self.select_ball()
+                        elif robot_clicked:
+                            self.select_robot(robot_clicked)
 
                     if self.user_click_down is not None:
-                        # store xy of original mouse down, but use drag
-                        # direction to determine the rotation of position
-                        x, y = self.user_click_down
-                        if (self.user_click_down == self.user_click_up).all():
-                            w = None
-                        else:
-                            # else face the dragged direction
-                            dx, dy = self.user_click_up - self.user_click_down
-                            w = np.arctan2(dy, dx)
-                        self._gamestate.user_click_position = (x, y, w)
+                        # store xy of original mouse down, and drag vector
+                        self._gamestate.user_click_position = \
+                            self.user_click_down
+                        self._gamestate.user_drag_vector = \
+                            self.user_click_up - self.user_click_down
 
             self._viewer.fill(FIELD_COLOR)
             self.render()
@@ -176,6 +178,14 @@ class Visualizer(object):
             time.sleep(loop_sleep)
         print("Exiting Pygame")
         pygame.quit()
+
+    def select_ball(self):
+        self._gamestate.user_selected_ball = True
+        self._gamestate.user_selected_robot = None
+
+    def select_robot(self, robot):
+        self._gamestate.user_selected_robot = robot
+        self._gamestate.user_selected_ball = False
 
     def render(self):
         assert(self._viewer is not None)
@@ -215,9 +225,16 @@ class Visualizer(object):
             # indicate direction of robot
             arrow = gs.ROBOT_RADIUS * np.array([math.cos(w), math.sin(w)])
             arrow_end = np.array([x, y]) + arrow
-            self.draw_line((255, 0, 0), pos, arrow_end, 15)
-            # draw waypoints for this robot
-            robot_commands = self._gamestate.get_robot_commands(team, robot_id)
+            self.draw_line(TRAJECTORY_COLOR, pos, arrow_end, 15)
+            robot_commands = self._gamestate.get_robot_commands(team, robot_id)            
+            # draw dribbler zone if on
+            if robot_commands.is_dribbling or True:
+                self.draw_circle(
+                    TRAJECTORY_COLOR,
+                    self._gamestate.dribbler_pos(team, robot_id),
+                    20
+                )
+            # draw waypoints for this robot            
             prev_waypoint = pos
             for waypoint in robot_commands.waypoints:
                 self.draw_waypoint(waypoint)
@@ -231,10 +248,10 @@ class Visualizer(object):
             # highlight selected robot
             if (team, robot_id) == self._gamestate.user_selected_robot:
                 self.draw_circle(
-                    ROBOT_SELECTION_COLOR,
+                    SELECTION_COLOR,
                     pos,
-                    gs.ROBOT_RADIUS + ROBOT_SELECTION_WIDTH,
-                    ROBOT_SELECTION_WIDTH
+                    gs.ROBOT_RADIUS + SELECTION_WIDTH,
+                    SELECTION_WIDTH
                 )
 
         # Draw ball
@@ -245,6 +262,15 @@ class Visualizer(object):
             self.draw_circle((0, 0, 0), predicted_pos, gs.BALL_RADIUS)
             # draw actual ball
             self.draw_circle(BALL_COLOR, ball_pos, gs.BALL_RADIUS)
+            # highlight ball if selected
+            if self._gamestate.user_selected_ball:
+                self.draw_circle(
+                    SELECTION_COLOR,
+                    ball_pos,
+                    gs.BALL_RADIUS + SELECTION_WIDTH,
+                    SELECTION_WIDTH
+                )
+
             # draw ball velocity
             velocity = self._gamestate.get_ball_velocity()
             self.draw_line(
@@ -254,9 +280,12 @@ class Visualizer(object):
                 TRAJECTORY_LINE_WIDTH
             )
 
+        # debug best goalie pos
+        self.draw_waypoint(self._home_strategy.best_goalie_pos())
+
         # draw user click location with a red 'X'
         if self.user_click_down is not None and self.user_click_up is None:
-            self.draw_X(self.user_click_down, (255, 0, 0), 50, 15)
+            self.draw_X(self.user_click_down, (255, 0, 0), 30, 15)
             # draw drag direction
             self.draw_line(
                 TRAJECTORY_COLOR,

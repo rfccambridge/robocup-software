@@ -69,7 +69,9 @@ class GameState(object):
 
         # UI Inputs - set from visualizer
         self.user_click_position = None
-        self.user_selected_robot = None
+        self.user_drag_vector = None
+        self.user_selected_robot = None  # (team, id) of robot
+        self.user_selected_ball = False
 
     def start_game(self, loop_sleep):
         self._game_loop_sleep = loop_sleep
@@ -107,18 +109,23 @@ class GameState(object):
             time.sleep(.01)
 
     # RAW DATA GET/SET FUNCTIONS
-    # returns position ball was last seen at
+    # returns position ball was last seen at, or (0, 0) if unseen
     def get_ball_position(self):
         if len(self._ball_position) == 0:
             # print("getting ball position but ball never seen?!?")
-            return None
+            return np.array([0, 0])
         timestamp, pos = self._ball_position[0]
         return pos
 
-    def update_ball_position(self, pos):
+    def clear_ball_position(self):
+        self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
+
+    def update_ball_position(self, pos, timestamp=None):
+        if timestamp is None:
+            timestamp = time.time()
         assert(len(pos) == 2 and type(pos) == np.ndarray)
         pos = pos.copy().astype(float)
-        self._ball_position.appendleft((time.time(), pos))
+        self._ball_position.appendleft((timestamp, pos))
 
     def get_ball_last_update_time(self):
         if len(self._ball_position) == 0:
@@ -148,8 +155,10 @@ class GameState(object):
     def get_robot_position(self, team, robot_id):
         robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
-            # print("getting position of robot never seen?!?")
-            return None
+            # is_robot_lost should be used to check if robot exists
+            # here we return a position to avoid crashing the program
+            print("getting position of robot never seen?!?")
+            return np.array([0, 0, 0])
         timestamp, pos = robot_positions[robot_id][0]
         return pos
 
@@ -209,6 +218,10 @@ class GameState(object):
         if robot_id not in team_commands:
             team_commands[robot_id] = RobotCommands()
         return team_commands[robot_id]
+
+    def robot_max_speed(self, team, robot_id):
+        # in the future this could vary between teams/robots?
+        return RobotCommands.ROBOT_MAX_SPEED
 
     # returns a list of ((team, robot_id), commands) for iteration
     def get_all_robot_commands(self):
@@ -270,9 +283,30 @@ class GameState(object):
         return self.overlap(pos1, pos2, ROBOT_RADIUS * 2)
 
     # overlap between robot and ball
+    def robot_ball_overlap(self, robot_pos, ball_pos = None):
+        if ball_pos is None:
+            ball_pos = self.get_ball_position()
+        return self.overlap(robot_pos, ball_pos, ROBOT_RADIUS + BALL_RADIUS)
+
+    # overlap of position and ball
     def ball_overlap(self, pos):
         ball_pos = self.get_ball_position()
-        return self.overlap(pos, ball_pos, ROBOT_RADIUS + BALL_RADIUS)
+        return self.overlap(pos, ball_pos, BALL_RADIUS)
+
+    # returns the x, y position in center of robot's dribbler
+    def dribbler_pos(self, team, robot_id):
+        x, y, w = self.get_robot_position(team, robot_id)
+        direction = np.array([np.cos(w), np.sin(w)])
+        relative_pos = direction * (ROBOT_RADIUS + BALL_RADIUS)
+        return np.array([x, y]) + relative_pos
+
+    # if ball is in position to be dribbled
+    def ball_in_dribbler(self, team, robot_id):
+        ball_pos = self.get_ball_position()
+        ideal_pos = self.dribbler_pos(team, robot_id)
+        # TODO: kicking version of this function incorporates breakbeam sensor?
+        DRIBBLE_ZONE_THRESHOLD = 40
+        return np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_THRESHOLD
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos):
@@ -349,18 +383,6 @@ class GameState(object):
         predicted_pos = predicted_pos_change + self.get_ball_position()
         return predicted_pos
 
-    def get_ball_interception_point(self, team, robot_id):
-        robot_pos = self.get_robot_position(team, robot_id)
-        delta_t = .05
-        time = 0
-        while(True):
-            interception_pos = self.predict_ball_pos(time)
-            separation_distance = np.linalg.norm(robot_pos - interception_pos)
-            if separation_distance <= time * RobotCommands.ROBOT_MAX_SPEED:
-                return interception_pos
-            else:
-                time += delta_t
-
     # return a random position inside the field
     def random_position(self):
         return (np.random.randint(0, FIELD_X_LENGTH),
@@ -386,37 +408,3 @@ class GameState(object):
         else:
             assert(team == 'blue')
             return self.get_defense_goal('yellow')
-
-    def best_goalie_pos(self, team):
-        ball_pos = self.get_ball_position()
-        defense_goal = self.get_defense_goal(team)
-        center_of_goal = (defense_goal[0] + defense_goal[1])/2
-# The average of the two post locations will be the center of the goal.
-        goal_to_ball_slope = (ball_pos[1] - center_of_goal[1])/(ball_pos[0] - center_of_goal[0])
-        #return np.array([0, 0])
-        best_pos = (center_of_goal + np.array[600*np.cos(np.artan(goal_to_ball_slope)), 600*np.sin(np.artan(goal_to_ball_slope)), np.arctan(goal_to_ball_slope)])
-        return best_pos
-
-    def face_pos(self, team, robot_id, pos):
-        robot_pos = self.get_robot_position(team, robot_id)
-        slope = (pos[1] - robot_pos[1])/(pos[0] - robot_pos[0])
-# The arctan of the slope gives the angle relative to the x axis, which is the angle we would want to rotate.
-        return np.arctan(slope)
-
-    def face_ball(self, team, robot_id):
-        return self.face_pos(team, robot_id, self.get_ball_position())
-
-    def is_path_blocked(self, s_pos, g_pos):
-        if not is_position_open(g_pos):
-            return True
-# explicitly putting this case in to avoid worrying too much about the step size in the while loop. Also it saves
-# runtime if the goal position is blocked anyway. (Returning True is intended to say the path is blocked.)
-        path_slope = (g_pos[1]-s_pos[1])/(g_pos[0]-s_pos[0])
-        i = 1
-        while (i*ROBOT_RADIUS < np.linalg.norm(g_pos - s_pos)):
-            # The np expression above gives the length of the path
-            if not self.is_position_open(s_pos + i*ROBOT_RADIUS*np.array[np.cos(np.arctan(path_slope)), np.sin(np.arctan(path_slope))]):
-                return True
-            i +=1
-        return False
-# Not sure if this should be switched but currently if the path is blocked we get True

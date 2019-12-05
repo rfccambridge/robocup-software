@@ -1,6 +1,11 @@
+import sys
 import threading
 import numpy as np
 import time
+# import gamestate file to use field dimension constants
+# (as opposed to importing the class GameState)
+sys.path.append('..')
+from gamestate import gamestate as gs
 
 
 class Strategy(object):
@@ -69,7 +74,14 @@ class Strategy(object):
     def UI(self):
         # set goal pos to click location on visualization window
         if self._gamestate.user_click_position is not None:
-            goal_pos = self._gamestate.user_click_position
+            x, y = self._gamestate.user_click_position
+            if self._gamestate.user_drag_vector.any():
+                # face the dragged direction
+                dx, dy = self._gamestate.user_drag_vector
+                w = np.arctan2(dy, dx)
+            else:
+                w = None
+            goal_pos = np.array([x, y, w])
             if self._gamestate.user_selected_robot is not None:
                 team, robot_id = self._gamestate.user_selected_robot
                 if team == self._team:
@@ -86,6 +98,63 @@ class Strategy(object):
         current_pos = self._gamestate.get_robot_position(self._team, robot_id)
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
         commands.append_waypoint(goal_pos, current_pos)
+
+    def get_ball_interception_point(self, robot_id):
+        robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
+        delta_t = .05
+        time = 0
+        while(True):
+            interception_pos = self._gamestate.predict_ball_pos(time)
+            separation_distance = np.linalg.norm(robot_pos - interception_pos)
+            max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
+            if separation_distance <= time * max_speed:
+                return interception_pos
+            else:
+                time += delta_t
+
+    def best_goalie_pos(self):
+        ball_pos = self._gamestate.get_ball_position()
+        goal_top, goal_bottom = self._gamestate.get_defense_goal(self._team)
+        goal_center = (goal_top + goal_bottom) / 2
+        # for now, look at vector from goal center to ball
+        goal_to_ball = ball_pos - goal_center
+        if not goal_to_ball.any():
+            # should never happen, but good to prevent crash, and for debugging
+            print('ball is exactly on goal center w0t')
+            return np.array([*goal_center, 0])
+        angle_to_ball = np.arctan2(goal_to_ball[1], goal_to_ball[0])
+        norm_to_ball = goal_to_ball / np.linalg.norm(goal_to_ball)
+        GOALIE_OFFSET = 600  # goalie stays this far from goal center
+        x, y = goal_center + norm_to_ball * GOALIE_OFFSET
+        best_pos = np.array([x, y, angle_to_ball])
+        return best_pos
+
+    # Return angle (relative to the x axis) for robot to face a position
+    def face_pos(self, robot_id, pos):
+        robot_pos = self._gamestate_get_robot_position(self._team, robot_id)
+        dx, dy = pos - robot_pos
+        # use atan2 instead of atan because it takes into account x/y signs
+        # to give angle from -pi to pi, instead of limiting to -pi/2 to pi/2
+        return np.arctan2(dy, dx)
+
+    def face_ball(self, robot_id):
+        return self.face_pos(robot_id, self._gamestate.get_ball_position())
+
+    def is_path_blocked(self, s_pos, g_pos):
+        if (g_pos == s_pos).all():
+            return False
+        # Check endpoint first to avoid worrying about step size in the loop
+        if not self._gamestate.is_position_open(g_pos):
+            return True
+        path = g_pos - s_pos
+        norm_path = path / np.linalg.norm(path)
+        STEP_SIZE = gs.ROBOT_RADIUS
+        # step along the path and check if any points are blocked
+        for i in range(np.linalg.norm(path) / STEP_SIZE):
+            intermediate_pos = s_pos + norm_path * STEP_SIZE * i
+            if not self.is_position_open(intermediate_pos):
+                return True
+        return False
 
     # RRT
     def RRT_path_find(self, robot_id, goal_pos, lim=1000):
@@ -135,3 +204,50 @@ class Strategy(object):
                 min_dist = dist
                 rtn = pos
         return rtn
+
+# determine best robot position (including rotation) to shoot or pass ie kick given the position or desired future location
+# of the ball (x,y) after the kick and before the kick (self, from_pos, to_pos)
+# determine location of robot including rotation to recieve as pass given
+# rotation to recieve the ball in current pos
+# go to the ball (and rotate to receive it)
+# assume the ball has already been kicked. add a buffer... "relax" parameter
+# min and max distance to ball path while still intercept
+# posssible interception points (first_intercept_point, last_intercept point) ****important edge case: ball stops in range
+# determine best robot position (including rotation) to shoot or pass ie kick given the position or desired future location
+# of the ball (x,y) after the kick and before the kick (self, from_pos, to_pos)
+    def best_kick_pos(self, from_pos, to_pos):
+        x = from_pos[0]
+        y = from_pos[1]
+        dx, dy = to_pos - from_pos
+        angle = np.arctan2(dy, dx)
+        return np.array([x, y, angle])
+    def intercept_range(self, robot_id):
+        first_intercept_point = self.get_ball_interception_point(robot_id)
+        # Now we find the last possible interception point.
+        # We start with code very much like get_ball_interception_point so that we can start our time
+        # variable at the time when the ball first gets within range.
+        robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
+        delta_t = .05
+        time = 0
+        out_of_range = True
+        while(out_of_range):
+            interception_pos = self._gamestate.predict_ball_pos(time)
+            separation_distance = np.linalg.norm(robot_pos - interception_pos)
+            max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
+            if separation_distance <= time * max_speed:
+                out_of_range = False
+            else:
+                time += delta_t
+        while(not out_of_range):
+            # Note that time is starting at the time when the ball first got within range.
+            interception_pos = self._gamestate.predict_ball_pos(time)
+            separation_distance = np.linalg.norm(robot_pos - interception_pos)
+            max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
+            # We have the opposite criteria to find the end of the window than the beginning.
+            if separation_distance > time * max_speed:
+                # we need to subtract delta_t because we found the last
+                last_intercept_point = self._gamestate.predict_ball_pos(time - delta_t)
+                out_of_range = True
+            else:
+                time += delta_t
+        return np.array([first_intercept_point, last_intercept_point])

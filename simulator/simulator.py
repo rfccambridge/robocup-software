@@ -1,6 +1,7 @@
 import threading
 import time
 import numpy as np
+from collections import deque
 
 
 class Simulator(object):
@@ -23,11 +24,12 @@ class Simulator(object):
 
     # initialize ball position data to reflect desired position + velocity
     def put_fake_ball(self, position, velocity=np.array([0, 0])):
+        self._gamestate.clear_ball_position()
         # use small dt to minimize deceleration correction
         dt = .05
         prev_pos = position - velocity * dt
-        self._gamestate._ball_position.appendleft((time.time() - dt, prev_pos))
-        self._gamestate._ball_position.appendleft((time.time(), position))
+        self._gamestate.update_ball_position(prev_pos, time.time() - dt)
+        self._gamestate.update_ball_position(position, time.time())
         # print(f"{self._gamestate._ball_position}")
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
@@ -41,8 +43,9 @@ class Simulator(object):
         self._thread.start()
 
     def simulation_loop(self):
+        gs = self._gamestate
         # wait until game begins (while other threads are initializing)
-        self._gamestate.wait_until_game_begins()
+        gs.wait_until_game_begins()
         print("\nSimulator running with initial setup: {}".format(
             self._initial_setup
         ))
@@ -51,7 +54,7 @@ class Simulator(object):
             for i in range(1, 7):
                 left_pos = np.array([-3000, 200 * (i - 3.5), 0])
                 right_pos = np.array([3000, 200 * (i - 3.5), 3.14])
-                if self._gamestate.is_blue_defense_side_left:
+                if gs.is_blue_defense_side_left:
                     blue_pos = left_pos
                     yellow_pos = right_pos
                 else:
@@ -74,51 +77,100 @@ class Simulator(object):
                 if delta_time > self._simulation_loop_sleep * 3:
                     print("Simulation loop large delay: " + str(delta_time))
             self._last_step_time = time.time()
+            # allow user to move the ball via UI
+            if gs.user_selected_ball:
+                new_pos = gs.user_click_position
+                if new_pos is not None:
+                    v = gs.user_drag_vector
+                    v = np.array([0, 0]) if v is None else v
+                    self.put_fake_ball(new_pos[:2], v)
+                    gs.user_click_position = None
+                    gs.user_drag_vector = None
 
             # move ball according to prediction
-            ball_pos = self._gamestate.get_ball_position()
+            ball_pos = gs.get_ball_position()
             if ball_pos is not None:
-                new_ball_pos = self._gamestate.predict_ball_pos(delta_time)
+                new_ball_pos = gs.predict_ball_pos(delta_time)
                 # print("dt: {}, new_pos: {}".format(delta_time, new_ball_pos))
                 # print(time.time())
-                # print("v: {}".format(self._gamestate.get_ball_velocity()))
-                # print(self._gamestate.predict_ball_pos(0))
+                # print("v: {}".format(gs.get_ball_velocity()))
+                # print(gs.predict_ball_pos(0))
 
-                # print(self._gamestate.get_ball_velocity())
-                self._gamestate.update_ball_position(new_ball_pos)
+                # print(gs.get_ball_velocity())
+                gs.update_ball_position(new_ball_pos)
 
             for (team, robot_id), robot_commands in \
-                    self._gamestate.get_all_robot_commands():
+                    gs.get_all_robot_commands():
                 # move robots according to commands
-                pos = self._gamestate.get_robot_position(team, robot_id)
+                pos = gs.get_robot_position(team, robot_id)
                 new_pos = robot_commands.predict_pos(pos, delta_time)
-                self._gamestate.update_robot_position(
+                gs.update_robot_position(
                     team, robot_id, new_pos
                 )
+                # charge capacitors according to commands
+                if robot_commands.is_charging:
+                    robot_commands.simulate_charge(delta_time)
+                # simulate dribbling as gravity zone
+                if robot_commands.is_dribbling or True and \
+                   gs.ball_in_dribbler(team, robot_id):
+                    ball_pos = gs.get_ball_position()
+                    dribbler_center = gs.dribbler_pos(team, robot_id)
+                    robot_pos = gs.get_robot_position(team, robot_id)
+                    # simplistic model of capturing ball only if slow enough
+                    ball_v = gs.get_ball_velocity()
+                    DRIBBLE_CAPTURE_VELOCITY = 20
+                    if np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
+                        pullback_velocity = (robot_pos[:2] - ball_pos) * 3
+                        centering_velocity = (dribbler_center - ball_pos) * 3
+                        dribble_velocity = pullback_velocity + centering_velocity
+                        new_pos = ball_pos + dribble_velocity * delta_time
+                        self.put_fake_ball(new_pos)
+                # kick according to commands
+                if robot_commands.is_kicking:
+                    robot_commands.charge_level = 0
+                    if gs.ball_in_dribbler(team, robot_id):
+                        ball_pos = gs.get_ball_position()
+                        new_velocity = robot_commands.kick_velocity()
+                        self.put_fake_ball(ball_pos, new_velocity)
 
             for (team, robot_id), pos in \
-                    self._gamestate.get_all_robot_positions():
+                    gs.get_all_robot_positions():
                 # refresh positions of all robots
-                pos = self._gamestate.get_robot_position(team, robot_id)
-                self._gamestate.update_robot_position(team, robot_id, pos)
+                pos = gs.get_robot_position(team, robot_id)
+                gs.update_robot_position(team, robot_id, pos)
 
                 # handle collisions with other robots
                 for (team2, robot_id2), pos2 in \
-                        self._gamestate.get_all_robot_positions():
+                        gs.get_all_robot_positions():
                     if (team2, robot_id2) != (team, robot_id) and \
-                       self._gamestate.robot_overlap(pos, pos2).any():
-                        overlap = self._gamestate.robot_overlap(pos, pos2)
+                       gs.robot_overlap(pos, pos2).any():
+                        overlap = gs.robot_overlap(pos, pos2)
                         overlap = np.append(overlap, 0)
-                        self._gamestate.update_robot_position(
+                        gs.update_robot_position(
                             team, robot_id, pos - overlap / 2)
-                        self._gamestate.update_robot_position(
+                        gs.update_robot_position(
                             team2, robot_id2, pos2 + overlap / 2)
                 # collision with ball
-                ball_overlap = self._gamestate.ball_overlap(pos)
+                ball_pos = gs.get_ball_position()
+                ball_overlap = gs.robot_ball_overlap(pos)
                 if ball_overlap.any():
-                    ball_pos = self._gamestate.get_ball_position()
-                    new_pos = ball_pos + ball_overlap
-                    self._gamestate.update_ball_position(new_pos)
+                    # find where ball collided with robot
+                    collision_pos = ball_pos + ball_overlap
+                    ball_v = gs.get_ball_velocity()
+                    if ball_v.any():
+                        collision_pos = ball_pos
+                        ball_direction = ball_v / np.linalg.norm(ball_v)
+                        step = 1
+                        # trace back one step at a time to collision point
+                        while gs.robot_ball_overlap(pos, collision_pos).any():
+                            collision_pos -= ball_direction * step
+                    # keep velocity in direction tangent to bot at collision
+                    radius_vector = collision_pos - pos[:2]
+                    tangent_vector = np.array([radius_vector[1], -radius_vector[0]])
+                    assert(tangent_vector.any())
+                    tangent_vector /= np.linalg.norm(tangent_vector)
+                    new_v = np.dot(ball_v, tangent_vector) * tangent_vector
+                    self.put_fake_ball(collision_pos, new_v)
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)
 

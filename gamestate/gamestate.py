@@ -283,8 +283,9 @@ class GameState(object):
         return self.overlap(pos1, pos2, ROBOT_RADIUS * 2)
 
     # overlap between robot and ball
-    def robot_ball_overlap(self, robot_pos):
-        ball_pos = self.get_ball_position()
+    def robot_ball_overlap(self, robot_pos, ball_pos = None):
+        if ball_pos is None:
+            ball_pos = self.get_ball_position()
         return self.overlap(robot_pos, ball_pos, ROBOT_RADIUS + BALL_RADIUS)
 
     # overlap of position and ball

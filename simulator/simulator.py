@@ -150,13 +150,27 @@ class Simulator(object):
                         gs.update_robot_position(
                             team2, robot_id2, pos2 + overlap / 2)
                 # collision with ball
+                ball_pos = gs.get_ball_position()
                 ball_overlap = gs.robot_ball_overlap(pos)
                 if ball_overlap.any():
-                    # TODO: simulate bounces reasonably
-                    ball_pos = gs.get_ball_position()
-                    new_pos = ball_pos + ball_overlap
-                    gs.clear_ball_position()
-                    gs.update_ball_position(new_pos)
+                    # find where ball collided with robot
+                    collision_pos = ball_pos + ball_overlap
+                    ball_v = gs.get_ball_velocity()
+                    if ball_v.any():
+                        collision_pos = ball_pos
+                        ball_direction = ball_v / np.linalg.norm(ball_v)
+                        step = 1
+                        # trace back one step at a time to collision point
+                        while gs.robot_ball_overlap(pos, collision_pos).any():
+                            collision_pos -= ball_direction * step
+                    # model dampened bounce effect by adding some speed
+                    reflection_vector = collision_pos - pos[:2]
+                    assert(reflection_vector.any())
+                    reflection_vector /= np.linalg.norm(reflection_vector)
+                    n = reflection_vector
+                    bounce_vector = ball_v - 2 * np.dot(ball_v, n) * n
+                    bounce_vector *= .2
+                    self.put_fake_ball(collision_pos, bounce_vector)
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)
 

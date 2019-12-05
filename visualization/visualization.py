@@ -123,6 +123,9 @@ class Visualizer(object):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self._updating = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_b:
+                        self.select_ball()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.user_click_up = None
                     self.user_click_down = self.screen_to_field(
@@ -157,11 +160,9 @@ class Visualizer(object):
                         self._gamestate.user_click_position = None
                         self._gamestate.user_drag_vector = None
                         if ball_clicked:
-                            self._gamestate.user_selected_ball = True
-                            self._gamestate.user_selected_robot = None
+                            self.select_ball()
                         elif robot_clicked:
-                            self._gamestate.user_selected_robot = robot_clicked
-                            self._gamestate.user_selected_ball = False
+                            self.select_robot(robot_clicked)
 
                     if self.user_click_down is not None:
                         # store xy of original mouse down, and drag vector
@@ -177,6 +178,14 @@ class Visualizer(object):
             time.sleep(loop_sleep)
         print("Exiting Pygame")
         pygame.quit()
+
+    def select_ball(self):
+        self._gamestate.user_selected_ball = True
+        self._gamestate.user_selected_robot = None
+
+    def select_robot(self, robot):
+        self._gamestate.user_selected_robot = robot
+        self._gamestate.user_selected_ball = False
 
     def render(self):
         assert(self._viewer is not None)

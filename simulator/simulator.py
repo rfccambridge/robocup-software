@@ -116,14 +116,15 @@ class Simulator(object):
                     ball_pos = gs.get_ball_position()
                     dribbler_center = gs.dribbler_pos(team, robot_id)
                     robot_pos = gs.get_robot_position(team, robot_id)
-                    # TODO: factor out physics constants
-                    # TODO: could even model spin behavior
-                    pullback_velocity = (robot_pos[:2] - ball_pos) * 3
-                    centering_velocity = (dribbler_center - ball_pos) * 3
-                    dribble_velocity = pullback_velocity + centering_velocity
-                    new_pos = ball_pos + dribble_velocity * delta_time
-                    gs.clear_ball_position()
-                    gs.update_ball_position(new_pos)
+                    # simplistic model of capturing ball only if slow enough
+                    ball_v = gs.get_ball_velocity()
+                    DRIBBLE_CAPTURE_VELOCITY = 20
+                    if np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
+                        pullback_velocity = (robot_pos[:2] - ball_pos) * 3
+                        centering_velocity = (dribbler_center - ball_pos) * 3
+                        dribble_velocity = pullback_velocity + centering_velocity
+                        new_pos = ball_pos + dribble_velocity * delta_time
+                        self.put_fake_ball(new_pos)
                 # kick according to commands
                 if robot_commands.is_kicking:
                     robot_commands.charge_level = 0
@@ -163,14 +164,13 @@ class Simulator(object):
                         # trace back one step at a time to collision point
                         while gs.robot_ball_overlap(pos, collision_pos).any():
                             collision_pos -= ball_direction * step
-                    # model dampened bounce effect by adding some speed
-                    reflection_vector = collision_pos - pos[:2]
-                    assert(reflection_vector.any())
-                    reflection_vector /= np.linalg.norm(reflection_vector)
-                    n = reflection_vector
-                    bounce_vector = ball_v - 2 * np.dot(ball_v, n) * n
-                    bounce_vector *= .2
-                    self.put_fake_ball(collision_pos, bounce_vector)
+                    # keep velocity in direction tangent to bot at collision
+                    radius_vector = collision_pos - pos[:2]
+                    tangent_vector = np.array([radius_vector[1], -radius_vector[0]])
+                    assert(tangent_vector.any())
+                    tangent_vector /= np.linalg.norm(tangent_vector)
+                    new_v = np.dot(ball_v, tangent_vector) * tangent_vector
+                    self.put_fake_ball(collision_pos, new_v)
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)
 

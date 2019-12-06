@@ -72,6 +72,9 @@ class GameState(object):
         self.user_drag_vector = None
         self.user_selected_robot = None  # (team, id) of robot
         self.user_selected_ball = False
+        self.user_charge_command = False
+        self.user_kick_command = False
+        self.user_dribble_command = False
 
     def start_game(self, loop_sleep):
         self._game_loop_sleep = loop_sleep
@@ -161,6 +164,11 @@ class GameState(object):
             return np.array([0, 0, 0])
         timestamp, pos = robot_positions[robot_id][0]
         return pos
+
+    def get_robot_direction(self, team, robot_id):
+        x, y, w = self.get_robot_position(team, robot_id)
+        direction = np.array([np.cos(w), np.sin(w)])
+        return direction / np.linalg.norm(direction)
 
     # returns a list of ((team, robot_id), position) for iteration
     def get_all_robot_positions(self):

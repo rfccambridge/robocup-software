@@ -72,21 +72,27 @@ class Strategy(object):
 
     # follow the user-input commands through visualizer
     def UI(self):
-        # set goal pos to click location on visualization window
-        if self._gamestate.user_click_position is not None:
-            x, y = self._gamestate.user_click_position
-            if self._gamestate.user_drag_vector.any():
-                # face the dragged direction
-                dx, dy = self._gamestate.user_drag_vector
-                w = np.arctan2(dy, dx)
-            else:
-                w = None
-            goal_pos = np.array([x, y, w])
-            if self._gamestate.user_selected_robot is not None:
-                team, robot_id = self._gamestate.user_selected_robot
-                if team == self._team:
+        gs = self._gamestate
+        if gs.user_selected_robot is not None:
+            team, robot_id = gs.user_selected_robot
+            if team == self._team:
+                commands = gs.get_robot_commands(self._team, robot_id)
+                # set goal pos to click location on visualization window
+                if gs.user_click_position is not None:
+                    x, y = gs.user_click_position
+                    if gs.user_drag_vector.any():
+                        # face the dragged direction
+                        dx, dy = gs.user_drag_vector
+                        w = np.arctan2(dy, dx)
+                    else:
+                        w = None
+                    goal_pos = np.array([x, y, w])
                     # self.move_straight(robot_ids[0], np.array(goal_pos))
                     self.append_waypoint(robot_id, np.array(goal_pos))
+                # apply other commands                
+                commands.is_charging = gs.user_charge_command
+                commands.is_kicking = gs.user_kick_command
+                commands.is_dribbling = gs.user_dribble_command
 
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):

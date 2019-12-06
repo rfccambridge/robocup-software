@@ -99,40 +99,6 @@ class Simulator(object):
                 # print(gs.get_ball_velocity())
                 gs.update_ball_position(new_ball_pos)
 
-            for (team, robot_id), robot_commands in \
-                    gs.get_all_robot_commands():
-                # move robots according to commands
-                pos = gs.get_robot_position(team, robot_id)
-                new_pos = robot_commands.predict_pos(pos, delta_time)
-                gs.update_robot_position(
-                    team, robot_id, new_pos
-                )
-                # charge capacitors according to commands
-                if robot_commands.is_charging:
-                    robot_commands.simulate_charge(delta_time)
-                # simulate dribbling as gravity zone
-                if robot_commands.is_dribbling or True and \
-                   gs.ball_in_dribbler(team, robot_id):
-                    ball_pos = gs.get_ball_position()
-                    dribbler_center = gs.dribbler_pos(team, robot_id)
-                    robot_pos = gs.get_robot_position(team, robot_id)
-                    # simplistic model of capturing ball only if slow enough
-                    ball_v = gs.get_ball_velocity()
-                    DRIBBLE_CAPTURE_VELOCITY = 20
-                    if np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
-                        pullback_velocity = (robot_pos[:2] - ball_pos) * 3
-                        centering_velocity = (dribbler_center - ball_pos) * 3
-                        dribble_velocity = pullback_velocity + centering_velocity
-                        new_pos = ball_pos + dribble_velocity * delta_time
-                        self.put_fake_ball(new_pos)
-                # kick according to commands
-                if robot_commands.is_kicking:
-                    robot_commands.charge_level = 0
-                    if gs.ball_in_dribbler(team, robot_id):
-                        ball_pos = gs.get_ball_position()
-                        new_velocity = robot_commands.kick_velocity()
-                        self.put_fake_ball(ball_pos, new_velocity)
-
             for (team, robot_id), pos in \
                     gs.get_all_robot_positions():
                 # refresh positions of all robots
@@ -171,6 +137,41 @@ class Simulator(object):
                     tangent_vector /= np.linalg.norm(tangent_vector)
                     new_v = np.dot(ball_v, tangent_vector) * tangent_vector
                     self.put_fake_ball(collision_pos, new_v)
+
+            for (team, robot_id), robot_commands in \
+                    gs.get_all_robot_commands():
+                # move robots according to commands
+                pos = gs.get_robot_position(team, robot_id)
+                new_pos = robot_commands.predict_pos(pos, delta_time)
+                gs.update_robot_position(
+                    team, robot_id, new_pos
+                )
+                # charge capacitors according to commands
+                if robot_commands.is_charging:
+                    robot_commands.simulate_charge(delta_time)
+                # simulate dribbling as gravity zone
+                if robot_commands.is_dribbling:
+                    ball_pos = gs.get_ball_position()
+                    dribbler_center = gs.dribbler_pos(team, robot_id)
+                    robot_pos = gs.get_robot_position(team, robot_id)
+                    # simplistic model of capturing ball only if slow enough
+                    ball_v = gs.get_ball_velocity()
+                    if gs.ball_in_dribbler(team, robot_id):
+                        DRIBBLE_CAPTURE_VELOCITY = 20
+                        if np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
+                            pullback_velocity = (robot_pos[:2] - ball_pos) * 3
+                            centering_velocity = (dribbler_center - ball_pos) * 3
+                            dribble_velocity = pullback_velocity + centering_velocity
+                            new_pos = ball_pos + dribble_velocity * delta_time
+                            self.put_fake_ball(new_pos)
+                # kick according to commands
+                if robot_commands.is_kicking:
+                    robot_commands.charge_level = 0
+                    if gs.ball_in_dribbler(team, robot_id):
+                        ball_pos = gs.get_ball_position()
+                        new_velocity = robot_commands.kick_velocity() * \
+                            gs.get_robot_direction(team, robot_id)
+                        self.put_fake_ball(ball_pos, new_velocity)
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)
 

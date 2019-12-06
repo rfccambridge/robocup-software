@@ -124,8 +124,25 @@ class Visualizer(object):
                 if event.type == pygame.QUIT:
                     self._updating = False
                 if event.type == pygame.KEYDOWN:
+                    # hotkey controls
                     if event.key == pygame.K_b:
                         self.select_ball()
+                    # toggle dribbler
+                    if event.key == pygame.K_d:
+                        old = self._gamestate.user_dribble_command
+                        self._gamestate.user_dribble_command = not old
+                    # charge while key down
+                    if event.key == pygame.K_c:
+                        self._gamestate.user_charge_command = True
+                    # kick only once
+                    if event.key == pygame.K_k:
+                        self._gamestate.user_kick_command = True
+                    else:
+                        self._gamestate.user_kick_command = False
+                if event.type == pygame.KEYUP:
+                    # stop charging on release
+                    if event.key == pygame.K_c:
+                        self._gamestate.user_charge_command = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.user_click_up = None
                     self.user_click_down = self.screen_to_field(
@@ -226,15 +243,19 @@ class Visualizer(object):
             arrow = gs.ROBOT_RADIUS * np.array([math.cos(w), math.sin(w)])
             arrow_end = np.array([x, y]) + arrow
             self.draw_line(TRAJECTORY_COLOR, pos, arrow_end, 15)
-            robot_commands = self._gamestate.get_robot_commands(team, robot_id)            
+            robot_commands = self._gamestate.get_robot_commands(team, robot_id)
+            # draw charge level
+            charge = robot_commands.charge_level / robot_commands.MAX_CHARGE_LEVEL
+            charge_end = np.array([pos[0], pos[1] + charge * gs.ROBOT_RADIUS])
+            self.draw_line((255, 255, 255), pos, charge_end, 15)            
             # draw dribbler zone if on
-            if robot_commands.is_dribbling or True:
+            if robot_commands.is_dribbling:
                 self.draw_circle(
                     TRAJECTORY_COLOR,
                     self._gamestate.dribbler_pos(team, robot_id),
                     20
                 )
-            # draw waypoints for this robot            
+            # draw waypoints for this robot
             prev_waypoint = pos
             for waypoint in robot_commands.waypoints:
                 self.draw_waypoint(waypoint)

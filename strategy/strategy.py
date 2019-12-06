@@ -219,3 +219,41 @@ class Strategy(object):
 # assume the ball has already been kicked. add a buffer... "relax" parameter
 # min and max distance to ball path while still intercept
 # posssible interception points (first_intercept_point, last_intercept point) ****important edge case: ball stops in range
+# determine best robot position (including rotation) to shoot or pass ie kick given the position or desired future location
+# of the ball (x,y) after the kick and before the kick (self, from_pos, to_pos)
+    def best_kick_pos(self, from_pos, to_pos):
+        x = from_pos[0]
+        y = from_pos[1]
+        dx, dy = to_pos - from_pos
+        angle = np.arctan2(dy, dx)
+        return np.array([x, y, angle])
+    def intercept_range(self, robot_id):
+        first_intercept_point = self.get_ball_interception_point(robot_id)
+        # Now we find the last possible interception point.
+        # We start with code very much like get_ball_interception_point so that we can start our time
+        # variable at the time when the ball first gets within range.
+        robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
+        delta_t = .05
+        time = 0
+        out_of_range = True
+        while(out_of_range):
+            interception_pos = self._gamestate.predict_ball_pos(time)
+            separation_distance = np.linalg.norm(robot_pos - interception_pos)
+            max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
+            if separation_distance <= time * max_speed:
+                out_of_range = False
+            else:
+                time += delta_t
+        while(not out_of_range):
+            # Note that time is starting at the time when the ball first got within range.
+            interception_pos = self._gamestate.predict_ball_pos(time)
+            separation_distance = np.linalg.norm(robot_pos - interception_pos)
+            max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
+            # We have the opposite criteria to find the end of the window than the beginning.
+            if separation_distance > time * max_speed:
+                # we need to subtract delta_t because we found the last
+                last_intercept_point = self._gamestate.predict_ball_pos(time - delta_t)
+                out_of_range = True
+            else:
+                time += delta_t
+        return np.array([first_intercept_point, last_intercept_point])

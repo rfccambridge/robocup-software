@@ -1,5 +1,5 @@
-"""XBee communications class for omniwheel robocup devices. Read the following for setting up
-the XBee device we are using and common troubleshooting errors.
+"""XBee radio communications class
+Setup + Troubleshooting:
 
 802.15.4 devices
     Click Load default firmware settings in the Radio Configuration toolbar to load the default values for the device firmware.
@@ -14,20 +14,27 @@ Troubleshooting:
     Could not open port "/dev/USBXXX", permission denied
     then make sure that your user has usb port access without sudo
     you can do this by adding user into dialout group. Google this.
+
 """
 from digi.xbee.devices import XBeeDevice
 from digi.xbee.exception import XBeeException
 import time
 
-DEFAULT_PORT = "/dev/ttyUSB0"
-DEFAULT_BAUD_RATE = 9600
+RADIO_PORT_1 = "/dev/ttyUSB0"
+RADIO_PORT_2 = "TODO: doesn't exist yet"
+BAUD_RATE = 9600
 
-class OmniComms(object):
 
-    def __init__(self, port=DEFAULT_PORT, baud_rate=DEFAULT_BAUD_RATE):
+class Radio(object):
+    # current xbee only can send once every ~50ms, sending faster may block
+    MESSAGE_DELAY = .05
+
+    def __init__(self, is_second_radio=False):
         # Find our XBee device connected to this computer
-        self.device = XBeeDevice(port, baud_rate)
+        port = RADIO_PORT_2 if is_second_radio else RADIO_PORT_1
+        self.device = XBeeDevice(port, BAUD_RATE)
 
+        # TODO: sometimes it errors about operating mode, try replugging xbee
         self.device.open()
 
         # Obtain the remote XBee devices from the XBee network.
@@ -41,24 +48,33 @@ class OmniComms(object):
         if not self.net_devs:
             raise RuntimeError("Cound not find any XBEE devices on network")
 
-    def send(self, command):
+    def send(self, message):
         for remote_device in self.net_devs:
             try:
-                self.device.send_data(remote_device, command + '\n')
+                start = time.time()
+                # asynchronous send is fast for first msg, but waits if more
+                # long messages (>30?) take longer because they must be split
+                try:
+                    self.device.send_data_async(remote_device, message)
+                except Exception as e:
+                    print('xbee error - something using same port? (xtcu):')
+                    print(e)
+                    # TODO: reconnect when error?
+                delta = time.time() - start
+                if delta > .003:
+                    print('xbee send is taking a long time, too long/many?')
+                    print("time taken: " + str(delta))
+                    print("message length: " + str(len(message)))
             except XBeeException as xbee_exp:
                 print(str(xbee_exp))
 
+    def read(self):
+        for remote_device in self.net_devs:
+            try:
+                return self.device.read_data()
+            except XBeeException as xbee_exp:
+                print(str(xbee_exp))
 
     def close(self):
         if self.device.is_open():
             self.device.close()
-
-
-if __name__ == '__main__':
-    test = OmniComms()
-    for _ in range(5):
-        test.send('-1,50,50,0,500')  # go diagonally for 500 ms
-        test.send('-1,-50,50,0,500')  # go diagonally for 500 ms
-        test.send('-1,-50,-50,0,500')  # go diagonally for 500 ms
-        test.send('-1,50,-50,0,500')  # go diagonally for 500 ms
-

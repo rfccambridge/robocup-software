@@ -1,0 +1,12 @@
+digi-xbee==1.2.0
+numpy==1.17.3
+protobuf==3.10.0
+pygame==1.9.6
+pyserial==3.4
+six==1.13.0
+srp==1.0.15
+sslclient==1.1.2
+
+
+# We probably don't need these
+# pkg-resources==0.0.0

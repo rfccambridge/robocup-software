@@ -1,14 +1,14 @@
-import socket
 import sslclient
 import threading
 import time
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 '''
 A class to provide robot position data from the cameras
 '''
-from enum import Enum
+
 
 class PositionDataProvider(object):
 
@@ -44,11 +44,11 @@ class DataThread(threading.Thread):
 
     def run(self):
         while not self._stop_event.is_set():
-            #received decoded package
+            # received decoded package
             data = self._client.receive()
             if data.HasField('geometry'):
                 self.geometry_cache = data.geometry
-            
+
             if data.HasField('detection'):
                 self.detection_cache = data.detection
 
@@ -58,58 +58,76 @@ class DataThread(threading.Thread):
     def stopped(self):
         return self._stop_event.is_set()
 
+
 class SSLVisionDataProvider(PositionDataProvider):
-    def __init__(self, gamestate, HOST='224.5.23.2', PORT=10006):        
+    def __init__(self, gamestate, HOST='224.5.23.2', PORT=10006):
         self.HOST = HOST
         self.PORT = PORT
 
         self._ssl_vision_client = None
         self._ssl_vision_client_thread = None
-        
+
         self._gamestate = gamestate
         self._gamestate_update_thread = None
         self._is_running = False
+        self._vision_loop_sleep = None
         self._last_update_time = None
 
-    def gamestate_update_loop(self):
-        while self._is_running:
-            # update positions of all (blue team) robots seen by data feed
-            robot_positions = self.get_robot_positions()
-            for robot_id, pos in robot_positions.items():
-                loc = pos.x, pos.y, pos.orientation
-                self._gamestate.update_robot_position(robot_id, loc)
-            # update position of the ball
-            ball_data = self.get_ball_position()
-            if ball_data:
-                self._gamestate.update_ball_position((ball_data.x, ball_data.y))
-                
-            if self._last_update_time is not None:                
-                delta = time.time() - self._last_update_time
-                if delta > .1:
-                    print("SSL-vision data loop unexpectedly large delay: " + str(delta))
-            self._last_update_time = time.time()            
-            
-            # yield to other threads - run this loop at most 100 times per second
-            time.sleep(.01)
-        
-    def start(self):
+    def start_updating(self, loop_sleep):
         self._is_running = True
         self._ssl_vision_client = sslclient.client()
         self._ssl_vision_client.connect()
         self._ssl_vision_client_thread = DataThread(self._ssl_vision_client)
+        # set to daemon mode so it will be easily killed
+        self._ssl_vision_client_thread.daemon = True
         self._ssl_vision_client_thread.start()
         # BUG: sensible defaults when data hasn't loaded yet (@dinge)
         time.sleep(0.1)
-        self._gamestate_update_thread = threading.Thread(target=self.gamestate_update_loop)
+        self._vision_loop_sleep = loop_sleep
+        self._gamestate_update_thread = threading.Thread(
+            target=self.gamestate_update_loop
+        )
+        # set to daemon mode so it will be easily killed
+        self._gamestate_update_thread.daemon = True
         self._gamestate_update_thread.start()
 
-    def stop(self):
-        self._is_running = False
-        self._gamestate_update_hread.join()
-        self._gamestate_update_thread = None
-        self._ssl_vision_client_thread.stop()
-        self._ssl_vision_client_thread.join()
-        self._ssl_vision_client = None
+    def stop_updating(self):
+        if self._is_running:
+            self._is_running = False
+            self._gamestate_update_thread.join()
+            self._gamestate_update_thread = None
+            self._ssl_vision_client_thread.stop()
+            self._ssl_vision_client_thread.join()
+            self._ssl_vision_client = None
+        
+    def gamestate_update_loop(self):
+        # wait until game begins (while other threads are initializing)
+        self._gamestate.wait_until_game_begins()
+        while self._is_running:
+            # update positions of all (blue team) robots seen by data feed
+            robot_positions = self.get_robot_positions('blue')
+            for robot_id, pos in robot_positions.items():
+                loc = np.array([pos.x, pos.y, pos.orientation])
+                self._gamestate.update_robot_position('blue', robot_id, loc)
+            # update positions of all (yellow team) robots seen by data feed
+            robot_positions = self.get_robot_positions('yellow')
+            for robot_id, pos in robot_positions.items():
+                loc = np.array([pos.x, pos.y, pos.orientation])
+                self._gamestate.update_robot_position('yellow', robot_id, loc)
+            # update position of the ball
+            ball_data = self.get_ball_position()
+            if ball_data:
+                ball_pos = np.array([ball_data.x, ball_data.y])
+                self._gamestate.update_ball_position(ball_pos)
+
+            if self._last_update_time is not None:
+                delta = time.time() - self._last_update_time
+                if delta > self._vision_loop_sleep * 3:
+                    print("SSL-vision data loop large delay: " + str(delta))
+            self._last_update_time = time.time()
+
+            # yield to other threads
+            time.sleep(self._vision_loop_sleep)
 
     def get_raw_detection_data(self):
         return self._ssl_vision_client_thread.detection_cache
@@ -122,6 +140,7 @@ class SSLVisionDataProvider(PositionDataProvider):
         if team == 'blue':
             team_data = raw_data.robots_blue
         else:
+            assert(team == 'yellow')
             team_data = raw_data.robots_yellow
         robot_positions = {}
         for robot_data in team_data:
@@ -150,5 +169,3 @@ class SSLVisionDataProvider(PositionDataProvider):
             # print('More than one ball detected')
             # raise RuntimeError('More than one ball detected')
         return balls[0]
-
-    

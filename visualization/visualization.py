@@ -267,6 +267,9 @@ class Visualizer(object):
                 )
                 prev_waypoint = waypoint
             # highlight selected robot
+            # interception_range = self._home_strategy.intercept_range(1)
+            # self.draw_position(interception_range[0])
+            # self.draw_position(interception_range[1])
             if (team, robot_id) == self._gamestate.user_selected_robot:
                 self.draw_circle(
                     SELECTION_COLOR,
@@ -370,6 +373,9 @@ class Visualizer(object):
         arrow = WAYPOINT_RADIUS * 2 * np.array([math.cos(w), math.sin(w)])
         end = np.array([x, y]) + arrow
         self.draw_line(TRAJECTORY_COLOR, pos, end, TRAJECTORY_LINE_WIDTH)
+
+    def draw_position(self, pos):
+        self.draw_circle(TRAJECTORY_COLOR, pos, WAYPOINT_RADIUS)
 
     def draw_X(self, pos, color, size, width):
         pos = np.array(pos).astype(float)

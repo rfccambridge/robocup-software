@@ -247,7 +247,7 @@ class Visualizer(object):
             # draw charge level
             charge = robot_commands.charge_level / robot_commands.MAX_CHARGE_LEVEL
             charge_end = np.array([pos[0], pos[1] + charge * gs.ROBOT_RADIUS])
-            self.draw_line((255, 255, 255), pos, charge_end, 15)            
+            self.draw_line((255, 255, 255), pos, charge_end, 15)
             # draw dribbler zone if on
             if robot_commands.is_dribbling:
                 self.draw_circle(
@@ -278,6 +278,9 @@ class Visualizer(object):
         # Draw ball
         ball_pos = self._gamestate.get_ball_position()
         if not self._gamestate.is_ball_lost():
+            # draw where the best kick position is, if fwe're kicking towards the mouse.
+            # best_kick_pos = self._home_strategy.best_kick_pos(ball_pos, self.screen_to_field(pygame.mouse.get_pos()))
+            # self.draw_waypoint(best_kick_pos)
             # draw where we think ball will be in 1s
             predicted_pos = self._gamestate.predict_ball_pos(1)
             self.draw_circle((0, 0, 0), predicted_pos, gs.BALL_RADIUS)

@@ -308,6 +308,11 @@ class GameState(object):
         relative_pos = direction * (ROBOT_RADIUS + BALL_RADIUS)
         return np.array([x, y]) + relative_pos
 
+    def dribbler_to_robot_pos(self, dribbler_pos, robot_w):
+        direction = np.array([np.cos(robot_w), np.sin(robot_w)])
+        x, y = dribbler_pos - direction * (ROBOT_RADIUS + BALL_RADIUS)
+        return np.array([x, y, robot_w])
+
     # if ball is in position to be dribbled
     def ball_in_dribbler(self, team, robot_id):
         ball_pos = self.get_ball_position()

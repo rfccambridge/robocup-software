@@ -89,7 +89,7 @@ class Strategy(object):
                     goal_pos = np.array([x, y, w])
                     # self.move_straight(robot_ids[0], np.array(goal_pos))
                     self.append_waypoint(robot_id, np.array(goal_pos))
-                # apply other commands                
+                # apply other commands
                 commands.is_charging = gs.user_charge_command
                 commands.is_kicking = gs.user_kick_command
                 commands.is_dribbling = gs.user_dribble_command
@@ -225,8 +225,9 @@ class Strategy(object):
         x = from_pos[0]
         y = from_pos[1]
         dx, dy = to_pos - from_pos
-        angle = np.arctan2(dy, dx)
-        return np.array([x, y, angle])
+        w = np.arctan2(dy, dx)
+        return self._gamestate.dribbler_to_robot_pos(from_pos, w)
+
     def intercept_range(self, robot_id):
         first_intercept_point = self.get_ball_interception_point(robot_id)
         # Now we find the last possible interception point.

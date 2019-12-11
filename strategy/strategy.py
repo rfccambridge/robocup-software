@@ -2,6 +2,7 @@ import sys
 import threading
 import numpy as np
 import time
+from datetime import datetime
 # import gamestate file to use field dimension constants
 # (as opposed to importing the class GameState)
 sys.path.append('..')
@@ -229,6 +230,7 @@ class Strategy(object):
         return self._gamestate.dribbler_to_robot_pos(from_pos, w)
 
     def intercept_range(self, robot_id):
+        #print(f"start time: {datetime.now()}")
         #first_intercept_point = self.get_ball_interception_point(robot_id)
         # Now we find the last possible interception point.
         # We start with code very much like get_ball_interception_point so that we can start our time
@@ -243,6 +245,8 @@ class Strategy(object):
             max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
             if separation_distance <= time * max_speed:
                 first_intercept_point = interception_pos
+                if not self._gamestate.is_in_play(first_intercept_point):
+                    return None
                 out_of_range = False
             else:
                 time += delta_t
@@ -253,11 +257,12 @@ class Strategy(object):
             max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
             last_intercept_point = self._gamestate.predict_ball_pos(time - delta_t)
             # We have the opposite criteria to find the end of the window than the beginning.
-            if separation_distance > time * max_speed:
+            cant_reach = (separation_distance > time * max_speed)
+            stopped_moving = (last_intercept_point == interception_pos).all()
+            in_play = self._gamestate.is_in_play(interception_pos)
+            if cant_reach or stopped_moving or not in_play:
                 # we need to subtract delta_t because we found the last
-                out_of_range = True
-            elif (last_intercept_point == interception_pos).all():
-                out_of_range = True
+                #print(f"end time: {datetime.now()}")
+                return first_intercept_point, last_intercept_point
             else:
                 time += delta_t
-        return first_intercept_point, last_intercept_point

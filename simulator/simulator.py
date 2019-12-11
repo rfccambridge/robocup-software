@@ -66,6 +66,8 @@ class Simulator(object):
         elif self._initial_setup == "moving_ball":
             self.put_fake_robot('blue', 1, np.array([0, 0, 0]))
             self.put_fake_ball(np.array([1000, 1200]), np.array([0, -1200]))
+        elif self._initial_setup == "entry_video":
+            
         else:
             print('(initial_setup not recognized, empty field)')
 

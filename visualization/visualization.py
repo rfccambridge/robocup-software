@@ -267,9 +267,11 @@ class Visualizer(object):
                 )
                 prev_waypoint = waypoint
             # highlight selected robot
-            # interception_range = self._home_strategy.intercept_range(1)
-            # self.draw_position(interception_range[0])
-            # self.draw_position(interception_range[1])
+            interception_range = self._home_strategy.intercept_range(1)
+            if not interception_range == None:
+                self.draw_position(interception_range[0])
+                self.draw_position((interception_range[1]+interception_range[0])/2)
+                self.draw_position(interception_range[1])
             if (team, robot_id) == self._gamestate.user_selected_robot:
                 self.draw_circle(
                     SELECTION_COLOR,

@@ -48,6 +48,8 @@ class Strategy(object):
             # run the strategy corresponding to the given mode
             if self._mode == "UI":
                 self.UI()
+            elif self._mode == "entry_video":
+                self.entry_video()
             else:
                 print('(unrecognized mode, doing nothing)')
 
@@ -94,6 +96,11 @@ class Strategy(object):
                 commands.is_charging = gs.user_charge_command
                 commands.is_kicking = gs.user_kick_command
                 commands.is_dribbling = gs.user_dribble_command
+    def entry_video(self):
+        intercept_range = self.intercept_range(0)
+        intercept_point = (intercept_range[0]+intercept_range[1])/2
+        self.append_waypoint(0, intercept_point)
+
 
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):

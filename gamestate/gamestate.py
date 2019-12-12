@@ -322,8 +322,12 @@ class GameState(object):
         return np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_THRESHOLD
 
     # return whether robot can be in a location without colliding another robot
-    def is_position_open(self, pos):
+    # Optional argument robot_id, if you don't want to check if that robot is blocking
+    # that particular position (e.g. don't want to check if you are blocking it yourself)
+    def is_position_open(self, pos, robot_id=None):
         for key, robot_pos in self.get_all_robot_positions():
+            if key[1] == robot_id:
+                continue
             if self.robot_overlap(pos, robot_pos).any():
                 return False
         return True

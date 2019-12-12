@@ -89,9 +89,12 @@ class Strategy(object):
                         w = np.arctan2(dy, dx)
                     else:
                         w = None
+                    robot_pos = self._gamestate.get_robot_position(
+                        team, robot_id)
                     goal_pos = np.array([x, y, w])
                     # self.move_straight(robot_ids[0], np.array(goal_pos))
-                    self.append_waypoint(robot_id, np.array(goal_pos))
+                    if not self.is_path_blocked(robot_pos, goal_pos, robot_id):
+                        self.append_waypoint(robot_id, np.array(goal_pos))
                 # apply other commands
                 commands.is_charging = gs.user_charge_command
                 commands.is_kicking = gs.user_kick_command
@@ -154,19 +157,25 @@ class Strategy(object):
     def face_ball(self, robot_id):
         return self.face_pos(robot_id, self._gamestate.get_ball_position())
 
-    def is_path_blocked(self, s_pos, g_pos):
+    def is_path_blocked(self, s_pos, g_pos, robot_id=None):
+        s_pos = np.array(s_pos)[:2]
+        g_pos = np.array(g_pos)[:2]
+
         if (g_pos == s_pos).all():
             return False
         # Check endpoint first to avoid worrying about step size in the loop
-        if not self._gamestate.is_position_open(g_pos):
+        if not self._gamestate.is_position_open(g_pos, robot_id=robot_id):
             return True
         path = g_pos - s_pos
         norm_path = path / np.linalg.norm(path)
         STEP_SIZE = gs.ROBOT_RADIUS
+
         # step along the path and check if any points are blocked
-        for i in range(np.linalg.norm(path) / STEP_SIZE):
+        steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
+        for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
-            if not self.is_position_open(intermediate_pos):
+            np.append(intermediate_pos, 0)
+            if not self._gamestate.is_position_open(intermediate_pos, robot_id=robot_id):
                 return True
         return False
 

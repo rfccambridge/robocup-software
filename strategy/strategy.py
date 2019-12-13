@@ -8,6 +8,20 @@ from datetime import datetime
 sys.path.append('..')
 from gamestate import gamestate as gs
 
+# FIELD + ROBOT DIMENSIONS (mm) (HACK FOR NOW)
+FIELD_X_LENGTH = 9000
+FIELD_Y_LENGTH = 6000
+FIELD_MIN_X = -FIELD_X_LENGTH / 2
+FIELD_MAX_X = FIELD_X_LENGTH / 2
+FIELD_MIN_Y = -FIELD_Y_LENGTH / 2
+FIELD_MAX_Y = FIELD_Y_LENGTH / 2
+CENTER_CIRCLE_RADIUS = 495
+GOAL_WIDTH = 1000
+DEFENSE_AREA_X_LENGTH = 1000
+DEFENSE_AREA_Y_LENGTH = 2000
+BALL_RADIUS = 21
+ROBOT_RADIUS = 90
+
 
 class Strategy(object):
     """Logic for playing the game. Uses data from gamestate to calculate desired
@@ -92,9 +106,19 @@ class Strategy(object):
                     robot_pos = self._gamestate.get_robot_position(
                         team, robot_id)
                     goal_pos = np.array([x, y, w])
-                    # self.move_straight(robot_ids[0], np.array(goal_pos))
-                    if not self.is_path_blocked(robot_pos, goal_pos, robot_id):
-                        self.append_waypoint(robot_id, np.array(goal_pos))
+
+                    if not any([np.array_equal(goal_pos[:2], wp[:2]) for wp in commands.waypoints]):
+                        print(commands.waypoints)
+                        # self.move_straight(robot_ids[0], np.array(goal_pos))
+                        if self.is_path_blocked(robot_pos, goal_pos, robot_id):
+                            # TODO: still a little hacky
+                            path = self.RRT_path_find(robot_pos, goal_pos, robot_id)
+                            for p in path:
+                                p = np.append(np.array(p), 0)
+                                self.append_waypoint(robot_id, p)
+                            self.append_waypoint(robot_id, np.array(goal_pos))
+                        else:
+                            self.append_waypoint(robot_id, np.array(goal_pos))
                 # apply other commands
                 commands.is_charging = gs.user_charge_command
                 commands.is_kicking = gs.user_kick_command
@@ -180,45 +204,47 @@ class Strategy(object):
         return False
 
     # RRT
-    def RRT_path_find(self, robot_id, goal_pos, lim=1000):
-        print("TODO: UPDATE RRT FUNCTION")
-        assert(False)
-        start_pos = self._gamestate.get_robot_position(robot_id)
-        graph = {start_pos: []}
-        prev = {start_pos: None}
+    def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000):
+        goal_pos = np.array(goal_pos)
+        start_pos = np.array(start_pos)
+        graph = {tuple(start_pos): []}
+        prev = {tuple(start_pos): None}
         cnt = 0
-        while cnt < lim:
+        while True:
             # use gamestate.random_position()
-            new_pos = (np.random.randint(0, FIELD_W), np.random.randint(0, FIELD_H))
+            new_pos = np.array(
+                [np.random.randint(FIELD_MIN_X, FIELD_MAX_X),
+                 np.random.randint(FIELD_MIN_Y, FIELD_MAX_Y),
+                 0.0])
             if np.random.random() < 0.05:
                 new_pos = goal_pos
 
-            # use gamestate.is_pos_valid
-            if not self._gamestate.is_position_open(new_pos) or new_pos in graph:
+            if not self._gamestate.is_position_open(new_pos, robot_id=robot_id) or tuple(new_pos) in graph:
                 continue
 
-            nearest_pos = get_nearest_pos(graph, new_pos)
+            nearest_pos = self.get_nearest_pos(graph, tuple(new_pos))
+            extend_pos = self.extend(nearest_pos, new_pos, robot_id=robot_id)
+            if extend_pos is None:
+                continue
 
-            graph[new_pos].append(nearest_pos)
-            graph[nearest_pos].append(new_pos)
-            prev[new_pos] = nearest_pos
+            graph[tuple(extend_pos)] = [nearest_pos]
+            graph[nearest_pos].append(tuple(extend_pos))
+            prev[tuple(extend_pos)] = nearest_pos
 
-            if new_pos[:2] == goal_pos[:2]:
+            if np.linalg.norm(extend_pos[:2] - goal_pos[:2]) < gs.ROBOT_RADIUS:
                 break
 
             cnt += 1
 
-        pos = get_nearest_pos(graph, goal_pos)  # get nearest position to goal in graph
+        pos = self.get_nearest_pos(graph, goal_pos)  # get nearest position to goal in graph
         path = []
-        while pos[:2] != start_pos[:2]:
+        while not (pos[:2] == start_pos[:2]).all():
             path.append(pos)
             pos = prev[pos]
         path.reverse()
-        waypoints = [pos for pos in path]
-        robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        robot_commands.waypoints = waypoints
+        return path
 
-    def get_nearest_pos(graph, new_pos):
+    def get_nearest_pos(self, graph, new_pos):
         rtn = None
         min_dist = float('inf')
         for pos in graph:
@@ -227,6 +253,31 @@ class Strategy(object):
                 min_dist = dist
                 rtn = pos
         return rtn
+
+    def extend(self, s_pos, g_pos, robot_id=None):
+        s_pos = np.array(s_pos)[:2]
+        g_pos = np.array(g_pos)[:2]
+
+        if (g_pos == s_pos).all():
+            return False
+
+        path = g_pos - s_pos
+        norm_path = path / np.linalg.norm(path)
+        STEP_SIZE = gs.ROBOT_RADIUS
+
+        # step along the path and check if any points are blocked
+        poses = [None]
+        steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
+        for i in range(1, steps + 1):
+            intermediate_pos = s_pos + norm_path * STEP_SIZE * i
+            np.append(intermediate_pos, 0)
+            if not self._gamestate.is_position_open(intermediate_pos, robot_id=robot_id):
+                break
+            if np.linalg.norm(intermediate_pos - s_pos) > 4 * STEP_SIZE:
+                break
+            poses.append(intermediate_pos)
+
+        return poses[-1]
 
 # determine best robot position (including rotation) to shoot or pass ie kick given the position or desired future location
 # of the ball (x,y) after the kick and before the kick (self, from_pos, to_pos)

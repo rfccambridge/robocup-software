@@ -108,11 +108,15 @@ class Strategy(object):
                     goal_pos = np.array([x, y, w])
 
                     if not any([np.array_equal(goal_pos[:2], wp[:2]) for wp in commands.waypoints]):
-                        print(commands.waypoints)
                         # self.move_straight(robot_ids[0], np.array(goal_pos))
-                        if self.is_path_blocked(robot_pos, goal_pos, robot_id):
+                        if commands.waypoints:
+                            s_pos = commands.waypoints[-1]
+                        else:
+                            s_pos = robot_pos
+
+                        if self.is_path_blocked(s_pos, goal_pos, robot_id):
                             # TODO: still a little hacky
-                            path = self.RRT_path_find(robot_pos, goal_pos, robot_id)
+                            path = self.RRT_path_find(s_pos, goal_pos, robot_id)
                             for p in path:
                                 p = np.append(np.array(p), 0)
                                 self.append_waypoint(robot_id, p)

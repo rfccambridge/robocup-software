@@ -58,6 +58,7 @@ class Strategy(object):
         print("\nRunning strategy for {} team, mode: {}".format(
             self._team, self._mode)
         )
+        self.video_phase = 1
         while self._is_controlling:
             # run the strategy corresponding to the given mode
             if self._mode == "UI":
@@ -128,9 +129,50 @@ class Strategy(object):
                 commands.is_kicking = gs.user_kick_command
                 commands.is_dribbling = gs.user_dribble_command
     def entry_video(self):
-        intercept_range = self.intercept_range(0)
-        intercept_point = (intercept_range[0]+intercept_range[1])/2
-        self.append_waypoint(0, intercept_point)
+        if self.video_phase == 1:
+            # robot 0 moves to midpoint of interception range to recieve ball
+            intercept_range = self.intercept_range(0)
+            intercept_point = (intercept_range[0]+intercept_range[1])/2
+            ball_pos = self._gamestate.get_ball_position()
+            intercept_angle = self.robot_face_ball(0)
+            intercept_point = np.array([intercept_point[0], intercept_point[1], intercept_angle])
+            self.append_waypoint(0, intercept_point)
+            # robot 1 moves to pos to receive a pass
+            reception_pos = np.array([3200, 200, 0])
+            self.append_waypoint(1, reception_pos)
+            if False:
+                self.video_phase += 1
+        elif self.video_phase == 2:
+            # define ideal kicking position
+            ball_pos = self._gamestate.get_ball_position()
+            kick_pos = self.best_kick_pos(ball_pos, reception_pos)
+            # robot 0 moves to ideal kicking position
+            self.append_waypoint(0, kick_pos)
+            if False:
+                self.video_phase += 1
+        elif self.video_phase == 3:
+            #kick!!!!!! ?????????
+            self.video_phase += 1
+        elif self.video_phase == 4:
+            # robot 2 finds best pos to receive
+            intercept_range = self.intercept_range(1)
+            intercept_point = (intercept_range[0]+intercept_range[1])/2
+            self.append_waypoint(1, intercept_point)
+            if False:
+                self.video_phase += 1
+        elif self.video_phase == 5:
+            # robot 1 moves to best kick pos to shoot
+            ball_pos = self._gamestate.get_ball_position()
+            goal = self._gamestate.get_attack_goal(self._team)
+            center_of_goal = (goal[0]+goal[1])/2
+            kick_pos = self.best_kick_pos(ball_pos, center_of_goal)
+            if False:
+                self.video_phase += 1
+        elif self.video_phase == 6:
+            # KICK!!!!!!
+            self.video_phase += 1
+        else:
+            pass
 
 
     # tell specific robot to move straight towards given location
@@ -175,15 +217,19 @@ class Strategy(object):
         return best_pos
 
     # Return angle (relative to the x axis) for robot to face a position
-    def face_pos(self, robot_id, pos):
-        robot_pos = self._gamestate_get_robot_position(self._team, robot_id)
-        dx, dy = pos - robot_pos
+    def robot_face_pos(self, robot_id, pos):
+        robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
+        return self.face_pos(robot_pos, pos)
+
+    def robot_face_ball(self, robot_id):
+        return self.robot_face_pos(robot_id, self._gamestate.get_ball_position())
+
+    def face_pos(self, facing_from_pos, facing_towards_pos):
+        dx, dy = facing_from_pos[:2] - facing_towards_pos[:2]
         # use atan2 instead of atan because it takes into account x/y signs
         # to give angle from -pi to pi, instead of limiting to -pi/2 to pi/2
-        return np.arctan2(dy, dx)
-
-    def face_ball(self, robot_id):
-        return self.face_pos(robot_id, self._gamestate.get_ball_position())
+        angle = np.arctan2(dy, dy)
+        return angle
 
     def is_path_blocked(self, s_pos, g_pos, robot_id=None):
         s_pos = np.array(s_pos)[:2]

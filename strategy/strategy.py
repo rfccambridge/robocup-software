@@ -33,7 +33,7 @@ class Strategy(object):
 
         # for reducing frequency of expensive calls
         # (this also helps reduce oscillation)
-        self._last_RRT_time = None
+        self._last_RRT_times = {}  # robot_id : timestamp
 
         self._is_controlling = False
         self._control_thread = None
@@ -134,6 +134,7 @@ class Strategy(object):
                     if self.is_path_blocked(robot_pos, goal_pos, robot_id):
                         self.RRT_path_find(robot_pos, goal_pos, robot_id)
                     else:
+                        # self.append_waypoint(robot_id, goal_pos)
                         self.move_straight(robot_id, np.array(goal_pos))
 
     def entry_video(self):
@@ -281,12 +282,12 @@ class Strategy(object):
         current_goal = self.get_goal_pos(robot_id)
         is_same_goal = current_goal is not None and \
             np.array_equal(goal_pos[:2], current_goal[:2])
-        recently_called = self._last_RRT_time is not None and \
-            time.time() - self._last_RRT_time < RRT_INTERVAL
+        recently_called = robot_id in self._last_RRT_times and \
+            time.time() - self._last_RRT_times[robot_id] < RRT_INTERVAL
         if is_same_goal and recently_called:
             return
         else:
-            self._last_RRT_time = time.time()
+            self._last_RRT_times[robot_id] = time.time()
         goal_pos = np.array(goal_pos)
         start_pos = np.array(start_pos)
         graph = {tuple(start_pos): []}

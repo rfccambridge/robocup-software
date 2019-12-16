@@ -237,7 +237,8 @@ class RobotCommands:
                 trimmed_angle = min(trimmed_angle, np.pi / 2)
                 slowdown_factor = 1 - trimmed_angle / (np.pi / 2)
                 slowdown_factor = max(slowdown_factor, floor)
-                # assert(slowdown_factor <= 1)
+                print(slowdown_factor)
+                assert(slowdown_factor <= 1)
                 min_waypoint_speed = self._speed_limit * slowdown_factor
         linear_speed = linear_speed + min_waypoint_speed
         linear_speed = min(linear_speed, self._speed_limit)

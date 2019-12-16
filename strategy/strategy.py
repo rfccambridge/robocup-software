@@ -45,6 +45,25 @@ class Strategy(object):
         # set to daemon mode so it will be easily killed
         self._control_thread.daemon = True
         self._control_thread.start()
+        print("\nRunning strategy for {} team, mode: {}".format(
+            self._team, self._mode)
+        )
+        if self._mode == "UI":
+            print("""
+            Using UI Controls!
+            Robots:
+            - Click to select
+            - Click to set goal position (drag for direction)
+            - 'd' to toggle dribbler
+            - 'c' to charge kicker, 'k' to kick
+            Ball:
+            - Click or 'b' to select
+            - Click to place (drag for speed)
+            """)
+
+        if self._mode == "entry_video":
+            print("2020 Registration Video Procedure!")
+            self.video_phase = 1
 
     def stop_controlling(self):
         if self._is_controlling:
@@ -55,10 +74,6 @@ class Strategy(object):
     def control_loop(self):
         # wait until game begins (while other threads are initializing)
         self._gamestate.wait_until_game_begins()
-        print("\nRunning strategy for {} team, mode: {}".format(
-            self._team, self._mode)
-        )
-        self.video_phase = 1
         while self._is_controlling:
             # run the strategy corresponding to the given mode
             if self._mode == "UI":
@@ -95,6 +110,10 @@ class Strategy(object):
             team, robot_id = gs.user_selected_robot
             if team == self._team:
                 commands = gs.get_robot_commands(self._team, robot_id)
+                # apply simple commands
+                commands.is_charging = gs.user_charge_command
+                commands.is_kicking = gs.user_kick_command
+                commands.is_dribbling = gs.user_dribble_command                
                 # set goal pos to click location on visualization window
                 if gs.user_click_position is not None:
                     x, y = gs.user_click_position
@@ -107,27 +126,17 @@ class Strategy(object):
                     robot_pos = self._gamestate.get_robot_position(
                         team, robot_id)
                     goal_pos = np.array([x, y, w])
-
-                    if not any([np.array_equal(goal_pos[:2], wp[:2]) for wp in commands.waypoints]):
-                        # self.move_straight(robot_ids[0], np.array(goal_pos))
-                        if commands.waypoints:
-                            s_pos = commands.waypoints[-1]
-                        else:
-                            s_pos = robot_pos
-
+                    # Use pathfinding
+                    if not any([np.array_equal(goal_pos[:2], wp[:2])
+                                for wp in commands.waypoints]):
+                        s_pos = robot_pos
                         if self.is_path_blocked(s_pos, goal_pos, robot_id):
                             # TODO: still a little hacky
                             path = self.RRT_path_find(s_pos, goal_pos, robot_id)
-                            for p in path:
-                                p = np.append(np.array(p), 0)
-                                self.append_waypoint(robot_id, p)
-                            self.append_waypoint(robot_id, np.array(goal_pos))
+                            self.set_waypoints(robot_id, path)
                         else:
-                            self.append_waypoint(robot_id, np.array(goal_pos))
-                # apply other commands
-                commands.is_charging = gs.user_charge_command
-                commands.is_kicking = gs.user_kick_command
-                commands.is_dribbling = gs.user_dribble_command
+                            self.move_straight(robot_id, np.array(goal_pos))
+
     def entry_video(self):
         if self.video_phase == 1:
             # robot 0 moves to midpoint of interception range to recieve ball
@@ -174,12 +183,19 @@ class Strategy(object):
         else:
             pass
 
-
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):
+        self.set_waypoints(robot_id, [goal_pos])
+
+    def set_waypoints(self, robot_id, waypoints):
         current_pos = self._gamestate.get_robot_position(self._team, robot_id)
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        commands.set_waypoints([goal_pos], current_pos)
+        # print(waypoints)
+        for i, p in enumerate(waypoints):
+            assert(len(p) == 2 or len(p) == 3)
+            if len(p) == 2:
+                waypoints[i] = np.array([p[0], p[1], None])
+        commands.set_waypoints(waypoints, current_pos)
 
     def append_waypoint(self, robot_id, goal_pos):
         current_pos = self._gamestate.get_robot_position(self._team, robot_id)
@@ -238,7 +254,7 @@ class Strategy(object):
         if (g_pos == s_pos).all():
             return False
         # Check endpoint first to avoid worrying about step size in the loop
-        if not self._gamestate.is_position_open(g_pos, robot_id=robot_id):
+        if not self._gamestate.is_position_open(g_pos, self._team, robot_id):
             return True
         path = g_pos - s_pos
         norm_path = path / np.linalg.norm(path)
@@ -249,7 +265,7 @@ class Strategy(object):
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            if not self._gamestate.is_position_open(intermediate_pos, robot_id=robot_id):
+            if not self._gamestate.is_position_open(intermediate_pos, self._team, robot_id):
                 return True
         return False
 
@@ -269,7 +285,7 @@ class Strategy(object):
             if np.random.random() < 0.05:
                 new_pos = goal_pos
 
-            if not self._gamestate.is_position_open(new_pos, robot_id=robot_id) or tuple(new_pos) in graph:
+            if not self._gamestate.is_position_open(new_pos, self._team, robot_id) or tuple(new_pos) in graph:
                 continue
 
             nearest_pos = self.get_nearest_pos(graph, tuple(new_pos))
@@ -321,7 +337,7 @@ class Strategy(object):
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            if not self._gamestate.is_position_open(intermediate_pos, robot_id=robot_id):
+            if not self._gamestate.is_position_open(intermediate_pos, self._team, robot_id):
                 break
             if np.linalg.norm(intermediate_pos - s_pos) > 4 * STEP_SIZE:
                 break

@@ -322,11 +322,9 @@ class GameState(object):
         return np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_THRESHOLD
 
     # return whether robot can be in a location without colliding another robot
-    # Optional argument robot_id, if you don't want to check if that robot is blocking
-    # that particular position (e.g. don't want to check if you are blocking it yourself)
-    def is_position_open(self, pos, robot_id=None):
+    def is_position_open(self, pos, team, robot_id):
         for key, robot_pos in self.get_all_robot_positions():
-            if key[1] == robot_id:
+            if key == (team, robot_id):
                 continue
             if self.robot_overlap(pos, robot_pos).any():
                 return False
@@ -406,7 +404,7 @@ class GameState(object):
                 np.random.randint(0, FIELD_Y_LENGTH))
 
     def is_pos_valid(self, pos, team, robot_id):
-        return self.is_position_open(pos) and \
+        return self.is_position_open(pos, team, robot_id) and \
             self.is_pos_in_bounds(pos, team, robot_id)
 
     # returns the top and bottom goalposts for a team

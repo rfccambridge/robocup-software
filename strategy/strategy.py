@@ -31,6 +31,10 @@ class Strategy(object):
         self._team = team
         self._gamestate = gamestate
 
+        # for reducing frequency of expensive calls
+        # (this also helps reduce oscillation)
+        self._last_RRT_time = None
+
         self._is_controlling = False
         self._control_thread = None
         self._control_loop_sleep = None
@@ -127,15 +131,10 @@ class Strategy(object):
                         team, robot_id)
                     goal_pos = np.array([x, y, w])
                     # Use pathfinding
-                    if not any([np.array_equal(goal_pos[:2], wp[:2])
-                                for wp in commands.waypoints]):
-                        s_pos = robot_pos
-                        if self.is_path_blocked(s_pos, goal_pos, robot_id):
-                            # TODO: still a little hacky
-                            path = self.RRT_path_find(s_pos, goal_pos, robot_id)
-                            self.set_waypoints(robot_id, path)
-                        else:
-                            self.move_straight(robot_id, np.array(goal_pos))
+                    if self.is_path_blocked(robot_pos, goal_pos, robot_id):
+                        self.RRT_path_find(robot_pos, goal_pos, robot_id)
+                    else:
+                        self.move_straight(robot_id, np.array(goal_pos))
 
     def entry_video(self):
         if self.video_phase == 1:
@@ -182,6 +181,12 @@ class Strategy(object):
             self.video_phase += 1
         else:
             pass
+
+    def get_goal_pos(self, robot_id):
+        commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        if not commands.waypoints:
+            return None
+        return commands.waypoints[-1]
 
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):
@@ -271,6 +276,17 @@ class Strategy(object):
 
     # RRT
     def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000):
+        # only run if enough time has elapsed
+        RRT_INTERVAL = .5
+        current_goal = self.get_goal_pos(robot_id)
+        is_same_goal = current_goal is not None and \
+            np.array_equal(goal_pos[:2], current_goal[:2])
+        recently_called = self._last_RRT_time is not None and \
+            time.time() - self._last_RRT_time < RRT_INTERVAL
+        if is_same_goal and recently_called:
+            return
+        else:
+            self._last_RRT_time = time.time()
         goal_pos = np.array(goal_pos)
         start_pos = np.array(start_pos)
         graph = {tuple(start_pos): []}
@@ -308,7 +324,7 @@ class Strategy(object):
             path.append(pos)
             pos = prev[pos]
         path.reverse()
-        return path
+        self.set_waypoints(robot_id, path + [goal_pos])
 
     def get_nearest_pos(self, graph, new_pos):
         rtn = None

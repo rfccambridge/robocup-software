@@ -35,7 +35,7 @@ class RobotCommands:
     # Max speed from max power to motors => [no-load] 1090 mm/s (see firmware)
     # Reduce that by multiplying by min(sin(theta), cos(theta)) of wheels
     # Goal is to get upper bound on what firmware can obey accurately
-    ROBOT_MAX_SPEED = 600
+    ROBOT_MAX_SPEED = 200
     ROBOT_MAX_W = 6.14
     MAX_KICK_SPEED = 2000  # TODO
     MAX_CHARGE_LEVEL = 250  # volts? should be whatever the board measures in
@@ -163,8 +163,14 @@ class RobotCommands:
         x, y, w = waypoint
         if w is None:
             dx, dy = waypoint[:2] - initial_pos[:2]
-            dw = np.arctan2(dy, dx) - initial_pos[2]
-            w = initial_pos[2] + self.trim_angle_90(dw)
+            linear_distance = np.linalg.norm(np.array([dx, dy]))
+            turn_threshold = 500
+            if linear_distance < turn_threshold:                
+                w = current_position[2]
+            else:
+                dw = np.arctan2(dy, dx) - initial_pos[2]
+                w = initial_pos[2] + self.trim_angle_90(dw)
+                print(w)
         self.waypoints.append(np.array([x, y, w]))
 
     def set_waypoints(self, waypoints, current_position):

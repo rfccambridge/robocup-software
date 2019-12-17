@@ -1,4 +1,5 @@
 import time
+import traceback
 import threading
 import numpy as np
 from collections import deque
@@ -161,6 +162,7 @@ class GameState(object):
             # is_robot_lost should be used to check if robot exists
             # here we return a position to avoid crashing the program
             print("getting position of robot never seen?!?")
+            traceback.print_stack()
             return np.array([0, 0, 0])
         timestamp, pos = robot_positions[robot_id][0]
         return pos

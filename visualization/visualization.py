@@ -267,7 +267,8 @@ class Visualizer(object):
                 )
                 prev_waypoint = waypoint
             # highlight selected robot
-            interception_range = self._home_strategy.intercept_range(1)
+            # TODO: fix this
+            interception_range = None #  self._home_strategy.intercept_range(1)
             if not interception_range == None:
                 self.draw_position(interception_range[0])
                 self.draw_position((interception_range[1]+interception_range[0])/2)

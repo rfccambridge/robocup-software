@@ -270,6 +270,9 @@ class Strategy(object):
         return False
 
     def path_find(self, robot_id, goal_pos):
+        if not self._gamestate.is_position_open(goal_pos, self._team, robot_id):
+            print("cannot path find to blocked goal")
+            return
         start_pos = self._gamestate.get_robot_position(self._team, robot_id)
         # always check if we can just go straight
         if not self.is_path_blocked(start_pos, goal_pos, robot_id):

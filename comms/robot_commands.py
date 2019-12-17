@@ -233,17 +233,18 @@ class RobotCommands:
                 m2 = np.linalg.norm(next_delta)
                 # get angle between vectors (arccos -> 0 to pi)
                 trimmed_angle = np.arccos(np.dot(delta, next_delta)/(m1*m2))
-                assert(0 <= trimmed_angle <= np.pi)
+                if not (0 <= trimmed_angle <= np.pi):
+                    # not sure why this was ever triggering?
+                    print("how is trimmed angle:" + str(trimmed_angle))
+                    trimmed_angle = max(trimmed_angle, 0)
+                    trimmed_angle = min(trimmed_angle, np.pi)
                 trimmed_angle = min(trimmed_angle, np.pi / 2)
                 # slow down depending on the sharpness of the turn
                 # (to a floor for >90 degree turns, keep speed if straight)
                 MIN_SLOWDOWN = .15  # (proportion of max speed)
                 slowdown_factor = 1 - trimmed_angle / (np.pi / 2)
                 slowdown_factor = max(slowdown_factor, MIN_SLOWDOWN)
-                if (slowdown_factor > 1):
-                    # not sure why this was ever triggering?
-                    print("how is slowdown factor > 1" + str(slowdown_factor))
-                    slowdown_factor = 1
+                assert(slowdown_factor <= 1)
                 min_waypoint_speed = self._speed_limit * slowdown_factor
         linear_speed = linear_speed + min_waypoint_speed
         linear_speed = min(linear_speed, self._speed_limit)

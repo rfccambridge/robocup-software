@@ -127,15 +127,9 @@ class Strategy(object):
                         w = np.arctan2(dy, dx)
                     else:
                         w = None
-                    robot_pos = self._gamestate.get_robot_position(
-                        team, robot_id)
                     goal_pos = np.array([x, y, w])
                     # Use pathfinding
-                    if self.is_path_blocked(robot_pos, goal_pos, robot_id):
-                        self.RRT_path_find(robot_pos, goal_pos, robot_id)
-                    else:
-                        # self.append_waypoint(robot_id, goal_pos)
-                        self.move_straight(robot_id, np.array(goal_pos))
+                    self.path_find(robot_id, goal_pos)
 
     def entry_video(self):
         if self.video_phase == 1:
@@ -253,7 +247,7 @@ class Strategy(object):
         angle = np.arctan2(dy, dy)
         return angle
 
-    def is_path_blocked(self, s_pos, g_pos, robot_id=None):
+    def is_path_blocked(self, s_pos, g_pos, robot_id):
         s_pos = np.array(s_pos)[:2]
         g_pos = np.array(g_pos)[:2]
 
@@ -275,19 +269,35 @@ class Strategy(object):
                 return True
         return False
 
-    # RRT
-    def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000):
-        # only run if enough time has elapsed
-        RRT_INTERVAL = .5
+    def path_find(self, robot_id, goal_pos):
+        start_pos = self._gamestate.get_robot_position(self._team, robot_id)
+        # always check if we can just go straight
+        if not self.is_path_blocked(start_pos, goal_pos, robot_id):
+            self.move_straight(robot_id, np.array(goal_pos))
+            return
+        # now check if current waypoints are already going where we want
         current_goal = self.get_goal_pos(robot_id)
         is_same_goal = current_goal is not None and \
             np.array_equal(goal_pos[:2], current_goal[:2])
+        commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        current_waypoints = [start_pos] + commands.waypoints
+        current_path_collides = False
+        for i in range(len(current_waypoints) - 1):
+            wp, next_wp = current_waypoints[i], current_waypoints[i+1]
+            if self.is_path_blocked(wp, next_wp, robot_id):
+                current_path_collides = True
+        # only rerun for same goal if long time has elapsed or path collides
+        RRT_INTERVAL = 3  # mainly in case something very strange has happened              
         recently_called = robot_id in self._last_RRT_times and \
             time.time() - self._last_RRT_times[robot_id] < RRT_INTERVAL
-        if is_same_goal and recently_called:
+        if is_same_goal and recently_called and not current_path_collides:
             return
         else:
             self._last_RRT_times[robot_id] = time.time()
+            self.RRT_path_find(start_pos, goal_pos, robot_id)
+
+    # RRT
+    def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000):
         goal_pos = np.array(goal_pos)
         start_pos = np.array(start_pos)
         graph = {tuple(start_pos): []}

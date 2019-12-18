@@ -172,6 +172,7 @@ class Simulator(object):
                             centering_velocity = (dribbler_center - ball_pos) * 3
                             dribble_velocity = pullback_velocity + centering_velocity
                             new_pos = ball_pos + dribble_velocity * delta_time
+                            new_pos -= gs.robot_ball_overlap(new_pos, robot_pos)
                             self.put_fake_ball(new_pos)
                 # kick according to commands
                 if robot_commands.is_kicking:

@@ -158,19 +158,18 @@ class RobotCommands:
            (waypoint[2] == initial_pos[2] or waypoint[2] is None):
             return
         # print(f"{initial_pos}, {waypoint}")
-        # default to face waypoint (drives smoother)
-        # TODO: only for longer distances?
+
         x, y, w = waypoint
         if w is None:
             dx, dy = waypoint[:2] - initial_pos[:2]
             linear_distance = np.linalg.norm(np.array([dx, dy]))
-            turn_threshold = 500
-            if linear_distance < turn_threshold:                
-                w = current_position[2]
-            else:
+            DISTANCE_THRESHOLD = 1000
+            # default to face waypoint for longer distances
+            if linear_distance > DISTANCE_THRESHOLD:
                 dw = np.arctan2(dy, dx) - initial_pos[2]
                 w = initial_pos[2] + self.trim_angle_90(dw)
-                print(w)
+            else:
+                w = current_position[2]
         self.waypoints.append(np.array([x, y, w]))
 
     def set_waypoints(self, waypoints, current_position):

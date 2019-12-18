@@ -266,13 +266,14 @@ class Visualizer(object):
                     TRAJECTORY_LINE_WIDTH
                 )
                 prev_waypoint = waypoint
-            # highlight selected robot
-            # TODO: fix this
-            interception_range = None #  self._home_strategy.intercept_range(1)
-            if not interception_range == None:
+            # TEST: draw interception range
+            interception_range = self._home_strategy.intercept_range(0)
+            if interception_range is not None:
                 self.draw_position(interception_range[0])
-                self.draw_position((interception_range[1]+interception_range[0])/2)
-                self.draw_position(interception_range[1])
+                midpoint = (interception_range[1]+interception_range[0])/2
+                self.draw_position(midpoint)
+                self.draw_position(interception_range[1])                
+            # highlight selected robot
             if (team, robot_id) == self._gamestate.user_selected_robot:
                 self.draw_circle(
                     SELECTION_COLOR,
@@ -284,9 +285,11 @@ class Visualizer(object):
         # Draw ball
         ball_pos = self._gamestate.get_ball_position()
         if not self._gamestate.is_ball_lost():
-            # draw where the best kick position is, if fwe're kicking towards the mouse.
-            # best_kick_pos = self._home_strategy.best_kick_pos(ball_pos, self.screen_to_field(pygame.mouse.get_pos()))
-            # self.draw_waypoint(best_kick_pos)
+            # draw where the best position is to kick towards the mouse.
+            # mouse_pos = self.screen_to_field(pygame.mouse.get_pos())
+            # kick_pos = self._home_strategy.best_kick_pos(ball_pos, mouse_pos)
+            # self.draw_waypoint(kick_pos)
+
             # draw where we think ball will be in 1s
             predicted_pos = self._gamestate.predict_ball_pos(1)
             self.draw_circle((0, 0, 0), predicted_pos, gs.BALL_RADIUS)

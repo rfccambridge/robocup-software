@@ -211,8 +211,9 @@ class Strategy(object):
     def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000):
         goal_pos = np.array(goal_pos)
         start_pos = np.array(start_pos)
-        graph = {tuple(start_pos): []}
+        graph = [tuple(start_pos)]
         prev = {tuple(start_pos): None}
+        cost = {tuple(start_pos): 0}
         cnt = 0
         while True:
             # use gamestate.random_position()
@@ -227,13 +228,17 @@ class Strategy(object):
                 continue
 
             nearest_pos = self.get_nearest_pos(graph, tuple(new_pos))
-            extend_pos = self.extend(nearest_pos, new_pos, robot_id=robot_id)
+            extend_pos, dist = self.extend(nearest_pos, new_pos, robot_id=robot_id)
             if extend_pos is None:
                 continue
 
-            graph[tuple(extend_pos)] = [nearest_pos]
-            graph[nearest_pos].append(tuple(extend_pos))
-            prev[tuple(extend_pos)] = nearest_pos
+            # graph.append(tuple(extend_pos[:2]))
+            # cost[tuple(extend_pos[:2])] = cost[nearest_pos] + dist
+            # prev[tuple(extend_pos[:2])] = nearest_pos
+
+            # self.rewire(graph, cost, prev, extend_pos[:2])
+            graph.append(tuple(extend_pos[:2]))
+            # BUG: nearest neighbors is the problem! What if nothing is that close?
 
             if np.linalg.norm(extend_pos[:2] - goal_pos[:2]) < gs.ROBOT_RADIUS:
                 break
@@ -242,17 +247,53 @@ class Strategy(object):
 
         pos = self.get_nearest_pos(graph, goal_pos)  # get nearest position to goal in graph
         path = []
-        while not (pos[:2] == start_pos[:2]).all():
+        print('pos: {}'.format(pos))
+        print('start_pos: {}'.format(start_pos))
+        while not list(pos[:2]) == list(start_pos[:2]):
             path.append(pos)
             pos = prev[pos]
+            print('new pos: {}'.format(pos))
         path.reverse()
         return path
+
+    def rewire(self, graph, cost, prev, pos, d=gs.ROBOT_RADIUS * 4):
+        neighbors = self.get_nearest_neighbors(graph, pos)
+
+        # Find s_min
+        s_min = (None, float('inf'))
+        for node in neighbors:
+            total_cost = cost[node] + np.linalg.norm(
+                np.array(pos[:2]) - np.array(node[:2]))
+            if total_cost < s_min[1]:
+                s_min = (node, total_cost)
+
+        # Add edge s_min --> pos
+        graph.append(tuple(pos[:2]))
+        prev[tuple(pos[:2])] = s_min[0]
+        cost[tuple(pos[:2])] = s_min[1]
+
+        # Rewire other neighbors
+        for node in neighbors:
+            new_cost = cost[tuple(pos[:2])] + np.linalg.norm(
+                np.array(pos[:2]) - np.array(node[:2]))
+            if new_cost < cost[node]:
+                # rewire
+                cost[node] = new_cost
+                prev[node] = tuple(pos[:2])
+
+    def get_nearest_neighbors(self, graph, pos, d=gs.ROBOT_RADIUS * 4):
+        neighbors = []
+        for node in graph:
+            dist = np.linalg.norm(np.array(node[:2]) - np.array(pos[:2]))
+            if dist < d:
+                neighbors.append(node)
+        return neighbors
 
     def get_nearest_pos(self, graph, new_pos):
         rtn = None
         min_dist = float('inf')
         for pos in graph:
-            dist = np.sqrt((new_pos[0] - pos[0]) ** 2 + (new_pos[1] - pos[1]) ** 2)
+            dist = np.linalg.norm(np.array(new_pos[:2]) - np.array(pos[:2]))
             if dist < min_dist:
                 min_dist = dist
                 rtn = pos
@@ -281,7 +322,10 @@ class Strategy(object):
                 break
             poses.append(intermediate_pos)
 
-        return poses[-1]
+        dist = None
+        if poses[-1] is not None:
+            dist = np.linalg.norm(poses[-1] - s_pos)
+        return poses[-1], dist
 
 # determine best robot position (including rotation) to shoot or pass ie kick given the position or desired future location
 # of the ball (x,y) after the kick and before the kick (self, from_pos, to_pos)

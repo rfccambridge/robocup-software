@@ -165,15 +165,15 @@ class Simulator(object):
                     robot_pos = gs.get_robot_position(team, robot_id)
                     # simplistic model of capturing ball only if slow enough
                     ball_v = gs.get_ball_velocity()
-                    if gs.ball_in_dribbler(team, robot_id):
-                        DRIBBLE_CAPTURE_VELOCITY = 20
-                        if np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
-                            pullback_velocity = (robot_pos[:2] - ball_pos) * 3
-                            centering_velocity = (dribbler_center - ball_pos) * 3
-                            dribble_velocity = pullback_velocity + centering_velocity
-                            new_pos = ball_pos + dribble_velocity * delta_time
-                            new_pos -= gs.robot_ball_overlap(new_pos, robot_pos)
-                            self.put_fake_ball(new_pos)
+                    DRIBBLE_CAPTURE_VELOCITY = 20
+                    if gs.ball_in_dribbler(team, robot_id) and \
+                       np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
+                        pullback_velocity = (robot_pos[:2] - ball_pos) * 3
+                        centering_velocity = (dribbler_center - ball_pos) * 3
+                        total_velocity = pullback_velocity + centering_velocity
+                        new_pos = ball_pos + total_velocity * delta_time
+                        new_pos -= gs.robot_ball_overlap(new_pos, robot_pos)
+                        self.put_fake_ball(new_pos)
                 # kick according to commands
                 if robot_commands.is_kicking:
                     robot_commands.charge_level = 0

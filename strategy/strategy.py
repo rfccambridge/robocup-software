@@ -247,7 +247,7 @@ class Strategy(object):
         angle = np.arctan2(dy, dy)
         return angle
 
-    def is_path_blocked(self, s_pos, g_pos, robot_id):
+    def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=50):
         s_pos = np.array(s_pos)[:2]
         g_pos = np.array(g_pos)[:2]
 
@@ -275,7 +275,7 @@ class Strategy(object):
             return
         start_pos = self._gamestate.get_robot_position(self._team, robot_id)
         # always check if we can just go straight
-        if not self.is_path_blocked(start_pos, goal_pos, robot_id):
+        if not self.is_path_blocked(start_pos, goal_pos, robot_id, buffer_dist=150):
             self.move_straight(robot_id, np.array(goal_pos))
             return
         # now check if current waypoints are already going where we want
@@ -315,7 +315,8 @@ class Strategy(object):
             if np.random.random() < 0.05:
                 new_pos = goal_pos
 
-            if not self._gamestate.is_position_open(new_pos, self._team, robot_id) or tuple(new_pos) in graph:
+            if not self._gamestate.is_position_open(new_pos, self._team, robot_id, buffer_dist=100) \
+               or tuple(new_pos) in graph:
                 continue
 
             nearest_pos = self.get_nearest_pos(graph, tuple(new_pos))

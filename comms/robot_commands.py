@@ -35,7 +35,7 @@ class RobotCommands:
     # Max speed from max power to motors => [no-load] 1090 mm/s (see firmware)
     # Reduce that by multiplying by min(sin(theta), cos(theta)) of wheels
     # Goal is to get upper bound on what firmware can obey accurately
-    ROBOT_MAX_SPEED = 200
+    ROBOT_MAX_SPEED = 500
     ROBOT_MAX_W = 6.14
     MAX_KICK_SPEED = 2000  # TODO
     MAX_CHARGE_LEVEL = 250  # volts? should be whatever the board measures in

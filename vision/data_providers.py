@@ -16,6 +16,7 @@ class SSLVisionDataProvider():
         self.PORT = PORT
 
         self._ssl_vision_client = None
+        self._ssl_vision_thread = None
         # cache data from different cameras so we can merge them
         # camera_id : latest raw data
         self._raw_camera_data = {
@@ -35,9 +36,17 @@ class SSLVisionDataProvider():
         self._is_running = True
         self._ssl_vision_client = sslclient.client()
         self._ssl_vision_client.connect()
+        self._ssl_vision_thread = threading.Thread(
+            target=self.receive_data_loop
+        )
+        # set to daemon mode so it will be easily killed
+        self._ssl_vision_thread.daemon = True
+        self._ssl_vision_thread.start()
+        
         # BUG: sensible defaults when data hasn't loaded yet (@dinge)
         time.sleep(0.1)
         self._vision_loop_sleep = loop_sleep
+
         self._gamestate_update_thread = threading.Thread(
             target=self.gamestate_update_loop
         )
@@ -50,13 +59,22 @@ class SSLVisionDataProvider():
             self._is_running = False
             self._gamestate_update_thread.join()
             self._gamestate_update_thread = None
+            self._is_receiving = False
+            self._ssl_vision_thread.join()
+            self._ssl_vision_thread = None
+
+    # loop for reading messages from ssl vision, otherwise they pile up
+    def receive_data_loop(self):
+        while self._is_running:
+            data = self._ssl_vision_client.receive()
+            # get a detection packet from any camera, and store it
+            if data.HasField('detection'):
+                self._raw_camera_data[data.detection.camera_id] = data.detection
 
     def gamestate_update_loop(self):
         # wait until game begins (while other threads are initializing)
         self._gamestate.wait_until_game_begins()
         while self._is_running:
-            # TODO: should we get more than 1 packet?
-            self.update_raw_detection_data()
             # update positions of all robots seen by data feed
             for team in ['blue', 'yellow']:
                 robot_positions = self.get_robot_positions(team)
@@ -79,20 +97,6 @@ class SSLVisionDataProvider():
 
             # yield to other threads
             time.sleep(self._vision_loop_sleep)
-
-    def update_raw_detection_data(self):
-        data = self._ssl_vision_client.receive()
-        # poll until we get a detection packet from any camera, and store it
-        # (shouldn't take long bc only other type is geometry every 3 seconds)
-        start = time.time()
-        while not data.HasField('detection'):
-            data = self._ssl_vision_client.receive()
-        # print(data)
-        POLLING_WARNING = .001
-        if time.time() - start > POLLING_WARNING:
-            print("SSL vision packet polling took a long time")
-            print(time.time() - start)
-        self._raw_camera_data[data.detection.camera_id] = data.detection
 
     def get_robot_positions(self, team='blue'):
         robot_positions = {}

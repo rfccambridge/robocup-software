@@ -90,7 +90,7 @@ if __name__ == '__main__':
         sys.exit()
     signal.signal(signal.SIGINT, exit_gracefully)
 
-    print('Running! Ctrl-c repeatedly to quit')
+    print('Running! Ctrl-c repeatedly to quit (C-c-k on eshell?!)')
 
     # (visualizer runs on main thread to work on all platforms)
     visualizer.visualization_loop(VISUALIZATION_LOOP_SLEEP)

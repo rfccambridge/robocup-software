@@ -91,12 +91,12 @@ class Strategy(object):
             team_commands = self._gamestate.get_team_commands(self._team)
             team_commands = list(team_commands.items())
             for robot_id, robot_commands in team_commands:
-                pos = self._gamestate.get_robot_position(self._team, robot_id)
                 # stop the robot if we've lost track of it
                 if self._gamestate.is_robot_lost(self._team, robot_id):
                     robot_commands.set_speeds(0, 0, 0)
                 else:
                     # recalculate the speed the robot should be commanded at
+                    pos = self._gamestate.get_robot_position(self._team, robot_id)
                     robot_commands.derive_speeds(pos)
 
             if self._last_control_loop_time is not None:

@@ -59,14 +59,14 @@ class Comms(object):
     def sending_loop(self):
         self._gamestate.wait_until_game_begins()
         while self._is_sending:
-            delta_time = 0            
+            delta_time = 0
             if self._last_send_loop_time is not None:
-                delta = time.time() - self._last_send_loop_time
-                if delta > self._send_loop_sleep * 3:
-                    print("Comms sending loop large delay: " + str(delta))
+                delta_time = time.time() - self._last_send_loop_time
+                if delta_time > self._send_loop_sleep * 3:
+                    print("Comms sending loop large delay: " + str(delta_time))
             self._last_send_loop_time = time.time()
-            
-            team_commands = self._gamestate.get_team_commands(self._team)            
+
+            team_commands = self._gamestate.get_team_commands(self._team)
             # send serialized message for whole team
             for robot_id, commands in team_commands.items():
                 # print(commands)

@@ -118,7 +118,7 @@ class Strategy(object):
                     self.path_find(robot_id, goal_pos)
 
     def entry_video(self):
-        reception_pos = np.array([2600, 0, 0])
+        reception_pos = np.array([3200, 0, 0])
         pass_velocity = 1000
         shoot_velocity = 2000
         if self.video_phase == 1:
@@ -142,7 +142,7 @@ class Strategy(object):
             self.charge_up_to(0, pass_velocity)
             if self._gamestate.ball_in_dribbler(self._team, 0):
                 self.video_phase += 1
-                print("Moving to video phase {}".format(self.video_phase))
+                print("!!! Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 2:
             # define ideal kicking position
             ball_pos = self._gamestate.get_ball_position()
@@ -150,7 +150,7 @@ class Strategy(object):
             # robot 0 moves to ideal kicking position
             self.move_straight(0, kick_pos)
             if self.charge_up_to(0, pass_velocity) and \
-               self.is_done_moving(0) and self.is_done_moving(1):
+               self.is_done_moving(0):  # and self.is_done_moving(1):
                 self.video_phase += 1
                 self.kick_ball(0)
                 print("Moving to video phase {}".format(self.video_phase))
@@ -198,7 +198,7 @@ class Strategy(object):
             return True
         else:
             return False
-        
+
     def get_goal_pos(self, robot_id):
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
         if not commands.waypoints:
@@ -230,6 +230,7 @@ class Strategy(object):
             destination = waypoints[-1]
             delta = destination - robot_pos
             linear_delta = np.linalg.norm(delta[:2])
+            print(delta)
             LINEAR_THRESHOLD = 50
             ANGLE_THRESHOLD = .1
             return linear_delta < LINEAR_THRESHOLD and \

@@ -39,7 +39,7 @@ class RobotCommands:
     ROBOT_MAX_W = 6.14
     MAX_KICK_SPEED = 2000  # TODO
     MAX_CHARGE_LEVEL = 250  # volts? should be whatever the board measures in
-    CHARGE_RATE = 40  # volts per second?
+    CHARGE_RATE = 60  # volts per second?
 
     # constants for deriving speed from waypoints
     # default proportional scaling constant for distance differences

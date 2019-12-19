@@ -13,7 +13,7 @@ from comms import Comms
 from simulator import Simulator
 
 # whether or not we are running with real field and robots
-IS_SIMULATION = True
+IS_SIMULATION = False
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'
@@ -21,7 +21,7 @@ AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
 # which simulator initial setup to use (if simulating)
 SIMULATION_SETUP = 'entry_video'
 # which strategies each team is running (see strategy module)
-HOME_STRATEGY = 'UI'
+HOME_STRATEGY = 'entry_video'
 AWAY_STRATEGY = None
 
 # loop wait times for each thread - how much to sleep between loops

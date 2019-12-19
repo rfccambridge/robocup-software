@@ -17,7 +17,7 @@ ROBOT_LOST_TIME = .2
 ROBOT_REMOVE_TIME = 5
 
 # FIELD + ROBOT DIMENSIONS (mm)
-FIELD_SCALE = .5  # useful if using a miniature field
+FIELD_SCALE = 1  # useful if using a miniature field
 FIELD_X_LENGTH = 9000 * FIELD_SCALE
 FIELD_Y_LENGTH = 6000 * FIELD_SCALE
 FIELD_MIN_X = -FIELD_X_LENGTH / 2
@@ -28,10 +28,10 @@ CENTER_CIRCLE_RADIUS = 495 * FIELD_SCALE
 GOAL_WIDTH = 1000 * FIELD_SCALE
 DEFENSE_AREA_X_LENGTH = 1000 * FIELD_SCALE
 DEFENSE_AREA_Y_LENGTH = 2000 * FIELD_SCALE
-BALL_RADIUS = 21
-ROBOT_RADIUS = 90  # in most cases model robot as circle
+BALL_RADIUS = 21 * 1.5
+ROBOT_RADIUS = 90 * 1.5  # in most cases model robot as circle
 # front of robot is actually flatter - use this for dribbling logic
-ROBOT_DRIBBLER_RADIUS = 70
+ROBOT_DRIBBLER_RADIUS = 80
 ROBOT_FRONT_ANGLE = np.arccos(ROBOT_DRIBBLER_RADIUS / ROBOT_RADIUS)
 # PHYSICS CONSTANTS
 # ball constant slowdown due to friction
@@ -164,8 +164,9 @@ class GameState(object):
         if robot_id not in robot_positions:
             # is_robot_lost should be used to check if robot exists
             # here we return a position to avoid crashing the program
-            print("getting position of robot never seen?!?")
-            traceback.print_stack()
+            # print("getting position of robot never seen?!?")
+            # print("team: {}, id: {}".format(team, robot_id))
+            # traceback.print_stack()
             return np.array([0, 0, 0])
         timestamp, pos = robot_positions[robot_id][0]
         return pos

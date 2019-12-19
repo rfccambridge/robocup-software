@@ -67,15 +67,15 @@ class Simulator(object):
             self.put_fake_robot('blue', 1, np.array([0, 0, 0]))
             self.put_fake_ball(np.array([1000, 1200]), np.array([0, -1200]))
         elif self._initial_setup == "entry_video":
-            SCALE = .5  # mini field
+            SCALE = 1  # if mini field
             self.put_fake_ball(np.array([2000, 900]) * SCALE, np.array([0, 0]))
             self.put_fake_robot('blue', 0, np.array([1000, 900, 0]) * SCALE)
-            self.put_fake_robot('blue', 1, np.array([2700, -650, 0]) * SCALE)
-            self.put_fake_robot('yellow', 0, np.array([2500, 0, 0]) * SCALE)
-            self.put_fake_robot('yellow', 1, np.array([3000, 800, 0]) * SCALE)
-            self.put_fake_robot('yellow', 2, np.array([3000, -800, 0]) * SCALE)
-            self.put_fake_robot('yellow', 3, np.array([3500, 300, 0]) * SCALE)
-            self.put_fake_robot('yellow', 4, np.array([3500, -300, 0]) * SCALE)
+            self.put_fake_robot('blue', 1, np.array([2000, -1100, 0]) * SCALE)
+            self.put_fake_robot('yellow', 0, np.array([1800, -500, 0]) * SCALE)
+            self.put_fake_robot('yellow', 1, np.array([3000, 1200, 0]) * SCALE)
+            self.put_fake_robot('yellow', 2, np.array([3000, -1500, 0]) * SCALE)
+            self.put_fake_robot('yellow', 3, np.array([3500, 500, 0]) * SCALE)
+            self.put_fake_robot('yellow', 4, np.array([3500, -500, 0]) * SCALE)
         else:
             print('(initial_setup not recognized, empty field)')
 
@@ -181,12 +181,12 @@ class Simulator(object):
                         self.put_fake_ball(new_pos)
                 # kick according to commands
                 if robot_commands.is_kicking:
-                    robot_commands.charge_level = 0
                     if gs.ball_in_dribbler(team, robot_id):
                         ball_pos = gs.get_ball_position()
                         new_velocity = robot_commands.kick_velocity() * \
                             gs.get_robot_direction(team, robot_id)
                         self.put_fake_ball(ball_pos, new_velocity)
+                    robot_commands.charge_level = 0
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)
 

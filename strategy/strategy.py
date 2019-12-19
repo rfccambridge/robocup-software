@@ -118,56 +118,123 @@ class Strategy(object):
                     self.path_find(robot_id, goal_pos)
 
     def entry_video(self):
+        reception_pos = np.array([2600, 0, 0])
+        pass_velocity = 1000
+        shoot_velocity = 2000
         if self.video_phase == 1:
             # robot 0 moves to midpoint of interception range to recieve ball
             intercept_range = self.intercept_range(0)
+            if intercept_range is None:
+                print("intercept Range is none")
+                return
             intercept_point = (intercept_range[0]+intercept_range[1])/2
-            ball_pos = self._gamestate.get_ball_position()
             intercept_angle = self.robot_face_ball(0)
-            intercept_point = np.array([intercept_point[0], intercept_point[1], intercept_angle])
-            self.append_waypoint(0, intercept_point)
+            intercept_point = self._gamestate.dribbler_to_robot_pos(
+                intercept_point,
+                intercept_angle
+            )
+            self.set_dribbler(0, True)
+            self.path_find(0, intercept_point)
             # robot 1 moves to pos to receive a pass
-            reception_pos = np.array([3200, 200, 0])
-            self.append_waypoint(1, reception_pos)
-            if False:
+            reception_pos[2] = self.robot_face_ball(1)
+            self.path_find(1, reception_pos)
+            # start charging up
+            self.charge_up_to(0, pass_velocity)
+            if self._gamestate.ball_in_dribbler(self._team, 0):
                 self.video_phase += 1
+                print("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 2:
             # define ideal kicking position
             ball_pos = self._gamestate.get_ball_position()
             kick_pos = self.best_kick_pos(ball_pos, reception_pos)
             # robot 0 moves to ideal kicking position
-            self.append_waypoint(0, kick_pos)
-            if False:
+            self.move_straight(0, kick_pos)
+            if self.charge_up_to(0, pass_velocity) and \
+               self.is_done_moving(0) and self.is_done_moving(1):
                 self.video_phase += 1
+                self.kick_ball(0)
+                print("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 3:
-            #kick!!!!!! ?????????
-            self.video_phase += 1
-        elif self.video_phase == 4:
+            self.set_dribbler(1, True)
             # robot 2 finds best pos to receive
             intercept_range = self.intercept_range(1)
-            intercept_point = (intercept_range[0]+intercept_range[1])/2
-            self.append_waypoint(1, intercept_point)
-            if False:
+            intercept_point = intercept_range[0]
+            intercept_angle = self.robot_face_ball(1)
+            intercept_point = self._gamestate.dribbler_to_robot_pos(
+                intercept_point,
+                intercept_angle
+            )
+            self.move_straight(1, intercept_point)
+            self.charge_up_to(1, shoot_velocity)
+            if self._gamestate.ball_in_dribbler(self._team, 1):
                 self.video_phase += 1
-        elif self.video_phase == 5:
+                print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 4:
             # robot 1 moves to best kick pos to shoot
-            ball_pos = self._gamestate.get_ball_position()
             goal = self._gamestate.get_attack_goal(self._team)
-            center_of_goal = (goal[0]+goal[1])/2
-            kick_pos = self.best_kick_pos(ball_pos, center_of_goal)
-            if False:
+            center_of_goal = (goal[0]+goal[1]) / 2
+            self.pivot_with_ball(1, center_of_goal)
+            if self.charge_up_to(1, shoot_velocity) and \
+               self._gamestate.ball_in_dribbler(self._team, 1):
                 self.video_phase += 1
-        elif self.video_phase == 6:
-            # KICK!!!!!!
+                print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 5:
+            self.set_dribbler(1, False)
+            self.kick_ball(1)
             self.video_phase += 1
         else:
             pass
 
+    # returns whether we are done pivoting
+    def pivot_with_ball(self, robot_id, face_pos):
+        dribbler_pos = self._gamestate.dribbler_pos(self._team, robot_id)
+        kick_pos = self.best_kick_pos(dribbler_pos, face_pos)
+        robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
+        # pivot gradually towards kicking position
+        angle = (kick_pos[2] + robot_pos[2]*2) / 3
+        waypoint = self._gamestate.dribbler_to_robot_pos(dribbler_pos, angle)
+        self.set_waypoints(1, [waypoint])
+        if waypoint[2] < 0.001:
+            return True
+        else:
+            return False
+        
     def get_goal_pos(self, robot_id):
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
         if not commands.waypoints:
             return None
         return commands.waypoints[-1]
+
+    def charge_up_to(self, robot_id, kick_speed):
+        commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        if commands.kick_velocity() < kick_speed:
+            commands.is_charging = True
+        else:
+            commands.is_charging = False
+        return not commands.is_charging  # return whether we are done charging
+
+    def kick_ball(self, robot_id):
+        commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        commands.is_kicking = True
+
+    def set_dribbler(self, robot_id, is_dribbling):
+        commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        commands.is_dribbling = is_dribbling
+
+    # check if robot has arrived at final waypoint, angle included
+    def is_done_moving(self, robot_id):
+        robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
+        commands = self._gamestate.get_robot_commands(self._team, robot_id)
+        waypoints = commands.waypoints
+        if waypoints:
+            destination = waypoints[-1]
+            delta = destination - robot_pos
+            linear_delta = np.linalg.norm(delta[:2])
+            LINEAR_THRESHOLD = 50
+            ANGLE_THRESHOLD = .1
+            return linear_delta < LINEAR_THRESHOLD and \
+                abs(delta[2]) < ANGLE_THRESHOLD
+        return True
 
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id, goal_pos):
@@ -188,6 +255,7 @@ class Strategy(object):
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
         commands.append_waypoint(goal_pos, current_pos)
 
+    # Deprecated for intercept range?
     def get_ball_interception_point(self, robot_id):
         robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
         delta_t = .05
@@ -227,10 +295,10 @@ class Strategy(object):
         return self.robot_face_pos(robot_id, self._gamestate.get_ball_position())
 
     def face_pos(self, facing_from_pos, facing_towards_pos):
-        dx, dy = facing_from_pos[:2] - facing_towards_pos[:2]
+        dx, dy = facing_towards_pos[:2] - facing_from_pos[:2]
         # use atan2 instead of atan because it takes into account x/y signs
         # to give angle from -pi to pi, instead of limiting to -pi/2 to pi/2
-        angle = np.arctan2(dy, dy)
+        angle = np.arctan2(dy, dx)
         return angle
 
     def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=50):
@@ -375,7 +443,7 @@ class Strategy(object):
     def best_kick_pos(self, from_pos, to_pos):
         x = from_pos[0]
         y = from_pos[1]
-        dx, dy = to_pos - from_pos
+        dx, dy = to_pos[:2] - from_pos[:2]
         w = np.arctan2(dy, dx)
         return self._gamestate.dribbler_to_robot_pos(from_pos, w)
 

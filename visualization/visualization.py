@@ -15,6 +15,8 @@ LINE_COLOR = (255, 255, 255)
 GOAL_COLOR = (0, 0, 0)
 
 ROBOT_LOST_COLOR = (200, 200, 200)
+ROBOT_FRONT_COLOR = (255, 0, 0)
+ROBOT_FRONT_LINE_WIDTH = 15
 SELECTION_COLOR = (255, 0, 255)
 SELECTION_WIDTH = 10
 BLUE_TEAM_COLOR = (0, 0, 255)
@@ -27,7 +29,7 @@ TRAJECTORY_LINE_WIDTH = 10
 WAYPOINT_RADIUS = 25
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
-SCALE = 0.15  # below .1 messes stuff up
+SCALE = 0.2  # below .1 messes stuff up
 # how much space above the field for UI
 UI_BUFFER_PX = 50
 BUTTON_OFFSET_X = 5
@@ -239,10 +241,17 @@ class Visualizer(object):
                 robot_color = ROBOT_LOST_COLOR
             (x, y, w) = pos
             self.draw_circle(robot_color, pos, gs.ROBOT_RADIUS)
-            # indicate direction of robot
-            arrow = gs.ROBOT_RADIUS * np.array([math.cos(w), math.sin(w)])
-            arrow_end = np.array([x, y]) + arrow
-            self.draw_line(TRAJECTORY_COLOR, pos, arrow_end, 15)
+            # indicate front of robot            
+            draw_radius = gs.ROBOT_RADIUS - ROBOT_FRONT_LINE_WIDTH / 2
+            corner1 = np.array([
+                draw_radius * np.cos(w + gs.ROBOT_FRONT_ANGLE),
+                draw_radius * np.sin(w + gs.ROBOT_FRONT_ANGLE),
+            ]) + pos[:2]
+            corner2 = np.array([
+                draw_radius * np.cos(w - gs.ROBOT_FRONT_ANGLE),
+                draw_radius * np.sin(w - gs.ROBOT_FRONT_ANGLE),
+            ]) + pos[:2]
+            self.draw_line(ROBOT_FRONT_COLOR, corner1, corner2, ROBOT_FRONT_LINE_WIDTH)
             robot_commands = self._gamestate.get_robot_commands(team, robot_id)
             # draw charge level
             charge = robot_commands.charge_level / robot_commands.MAX_CHARGE_LEVEL

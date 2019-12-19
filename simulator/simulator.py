@@ -67,14 +67,15 @@ class Simulator(object):
             self.put_fake_robot('blue', 1, np.array([0, 0, 0]))
             self.put_fake_ball(np.array([1000, 1200]), np.array([0, -1200]))
         elif self._initial_setup == "entry_video":
-            self.put_fake_ball(np.array([2000, 900]), np.array([0, 0]))
-            self.put_fake_robot('blue', 0, np.array([1000, 900, 0]))
-            self.put_fake_robot('blue', 1, np.array([2700, -650, 0]))
-            self.put_fake_robot('yellow', 0, np.array([2500, 0, 0]))
-            self.put_fake_robot('yellow', 1, np.array([3000, 800, 0]))
-            self.put_fake_robot('yellow', 2, np.array([3000, -800, 0]))
-            self.put_fake_robot('yellow', 3, np.array([3500, 300, 0]))
-            self.put_fake_robot('yellow', 4, np.array([3500, -300, 0]))
+            SCALE = .5  # mini field
+            self.put_fake_ball(np.array([2000, 900]) * SCALE, np.array([0, 0]))
+            self.put_fake_robot('blue', 0, np.array([1000, 900, 0]) * SCALE)
+            self.put_fake_robot('blue', 1, np.array([2700, -650, 0]) * SCALE)
+            self.put_fake_robot('yellow', 0, np.array([2500, 0, 0]) * SCALE)
+            self.put_fake_robot('yellow', 1, np.array([3000, 800, 0]) * SCALE)
+            self.put_fake_robot('yellow', 2, np.array([3000, -800, 0]) * SCALE)
+            self.put_fake_robot('yellow', 3, np.array([3500, 300, 0]) * SCALE)
+            self.put_fake_robot('yellow', 4, np.array([3500, -300, 0]) * SCALE)
         else:
             print('(initial_setup not recognized, empty field)')
 
@@ -129,6 +130,7 @@ class Simulator(object):
                 ball_pos = gs.get_ball_position()
                 ball_overlap = gs.robot_ball_overlap(pos)
                 if ball_overlap.any():
+                    # print(ball_overlap)
                     # find where ball collided with robot
                     collision_pos = ball_pos + ball_overlap
                     ball_v = gs.get_ball_velocity()
@@ -141,6 +143,9 @@ class Simulator(object):
                             collision_pos -= ball_direction * step
                     # keep velocity in direction tangent to bot at collision
                     radius_vector = collision_pos - pos[:2]
+                    if gs.is_robot_front_sector(pos, collision_pos):
+                        # we are in the front sector, use flat angle
+                        radius_vector = gs.dribbler_pos(team, robot_id) - pos[:2]
                     tangent_vector = np.array([radius_vector[1], -radius_vector[0]])
                     assert(tangent_vector.any())
                     tangent_vector /= np.linalg.norm(tangent_vector)
@@ -168,11 +173,11 @@ class Simulator(object):
                     DRIBBLE_CAPTURE_VELOCITY = 20
                     if gs.ball_in_dribbler(team, robot_id) and \
                        np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
-                        pullback_velocity = (robot_pos[:2] - ball_pos) * 3
-                        centering_velocity = (dribbler_center - ball_pos) * 3
+                        pullback_velocity = (robot_pos[:2] - ball_pos) * 2
+                        centering_velocity = (dribbler_center - ball_pos) * 1
                         total_velocity = pullback_velocity + centering_velocity
                         new_pos = ball_pos + total_velocity * delta_time
-                        new_pos -= gs.robot_ball_overlap(new_pos, robot_pos)
+                        new_pos -= gs.robot_ball_overlap(robot_pos, new_pos)
                         self.put_fake_ball(new_pos)
                 # kick according to commands
                 if robot_commands.is_kicking:

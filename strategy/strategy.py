@@ -46,7 +46,7 @@ class Strategy(object):
             - Click to set goal position (drag for direction)
             - 'd' to toggle dribbler
             - 'c' to charge kicker, 'k' to kick
-            Ball:
+            Ball (IF SIMULATING):
             - Click or 'b' to select
             - Click to place (drag for speed)
             """)

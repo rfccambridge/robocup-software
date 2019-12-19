@@ -17,19 +17,22 @@ ROBOT_LOST_TIME = .2
 ROBOT_REMOVE_TIME = 5
 
 # FIELD + ROBOT DIMENSIONS (mm)
-FIELD_X_LENGTH = 9000
-FIELD_Y_LENGTH = 6000
+FIELD_SCALE = .5  # useful if using a miniature field
+FIELD_X_LENGTH = 9000 * FIELD_SCALE
+FIELD_Y_LENGTH = 6000 * FIELD_SCALE
 FIELD_MIN_X = -FIELD_X_LENGTH / 2
 FIELD_MAX_X = FIELD_X_LENGTH / 2
 FIELD_MIN_Y = -FIELD_Y_LENGTH / 2
 FIELD_MAX_Y = FIELD_Y_LENGTH / 2
-CENTER_CIRCLE_RADIUS = 495
-GOAL_WIDTH = 1000
-DEFENSE_AREA_X_LENGTH = 1000
-DEFENSE_AREA_Y_LENGTH = 2000
+CENTER_CIRCLE_RADIUS = 495 * FIELD_SCALE
+GOAL_WIDTH = 1000 * FIELD_SCALE
+DEFENSE_AREA_X_LENGTH = 1000 * FIELD_SCALE
+DEFENSE_AREA_Y_LENGTH = 2000 * FIELD_SCALE
 BALL_RADIUS = 21
-ROBOT_RADIUS = 180
-
+ROBOT_RADIUS = 90  # in most cases model robot as circle
+# front of robot is actually flatter - use this for dribbling logic
+ROBOT_DRIBBLER_RADIUS = 70
+ROBOT_FRONT_ANGLE = np.arccos(ROBOT_DRIBBLER_RADIUS / ROBOT_RADIUS)
 # PHYSICS CONSTANTS
 # ball constant slowdown due to friction
 BALL_DECCELERATION = 350  # mm/s^2
@@ -292,10 +295,28 @@ class GameState(object):
     def robot_overlap(self, pos1, pos2, buffer_dist=0):
         return self.overlap(pos1, pos2, ROBOT_RADIUS * 2 + buffer_dist)
 
+    # if position is in front face of robot
+    def is_robot_front_sector(self, robot_pos, pos):
+        dx, dy = pos[:2] - robot_pos[:2]
+        angle = np.arctan2(dy, dx)
+        dw = angle - robot_pos[2]
+        return np.cos(dw) * ROBOT_RADIUS > ROBOT_DRIBBLER_RADIUS
+
     # overlap between robot and ball
-    def robot_ball_overlap(self, robot_pos, ball_pos = None):
+    def robot_ball_overlap(self, robot_pos, ball_pos=None):
         if ball_pos is None:
             ball_pos = self.get_ball_position()
+        # account for flat front of robot in this case
+        delta = ball_pos - robot_pos[:2]
+        dx, dy = delta
+        dw = np.arctan2(dy, dx) - robot_pos[2]
+        if self.is_robot_front_sector(robot_pos, ball_pos):
+            # we are in the front sector, so use linear displacement
+            robot_dx = np.linalg.norm(delta) * np.cos(dw)
+            overlap = ROBOT_DRIBBLER_RADIUS + BALL_RADIUS - robot_dx
+            overlap = max(0, overlap)
+            w = robot_pos[2]
+            return np.array([overlap * np.cos(w), overlap * np.sin(w)])
         return self.overlap(robot_pos, ball_pos, ROBOT_RADIUS + BALL_RADIUS)
 
     # overlap of position and ball
@@ -307,12 +328,12 @@ class GameState(object):
     def dribbler_pos(self, team, robot_id):
         x, y, w = self.get_robot_position(team, robot_id)
         direction = np.array([np.cos(w), np.sin(w)])
-        relative_pos = direction * (ROBOT_RADIUS + BALL_RADIUS)
+        relative_pos = direction * (ROBOT_DRIBBLER_RADIUS + BALL_RADIUS)
         return np.array([x, y]) + relative_pos
 
     def dribbler_to_robot_pos(self, dribbler_pos, robot_w):
         direction = np.array([np.cos(robot_w), np.sin(robot_w)])
-        x, y = dribbler_pos - direction * (ROBOT_RADIUS + BALL_RADIUS)
+        x, y = dribbler_pos - direction * (ROBOT_DRIBBLER_RADIUS + BALL_RADIUS)
         return np.array([x, y, robot_w])
 
     # if ball is in position to be dribbled

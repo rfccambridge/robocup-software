@@ -8,20 +8,6 @@ from datetime import datetime
 sys.path.append('..')
 from gamestate import gamestate as gs
 
-# FIELD + ROBOT DIMENSIONS (mm) (HACK FOR NOW)
-FIELD_X_LENGTH = 9000
-FIELD_Y_LENGTH = 6000
-FIELD_MIN_X = -FIELD_X_LENGTH / 2
-FIELD_MAX_X = FIELD_X_LENGTH / 2
-FIELD_MIN_Y = -FIELD_Y_LENGTH / 2
-FIELD_MAX_Y = FIELD_Y_LENGTH / 2
-CENTER_CIRCLE_RADIUS = 495
-GOAL_WIDTH = 1000
-DEFENSE_AREA_X_LENGTH = 1000
-DEFENSE_AREA_Y_LENGTH = 2000
-BALL_RADIUS = 21
-ROBOT_RADIUS = 90
-
 
 class Strategy(object):
     """Logic for playing the game. Uses data from gamestate to calculate desired
@@ -309,8 +295,8 @@ class Strategy(object):
         while True:
             # use gamestate.random_position()
             new_pos = np.array(
-                [np.random.randint(FIELD_MIN_X, FIELD_MAX_X),
-                 np.random.randint(FIELD_MIN_Y, FIELD_MAX_Y),
+                [np.random.randint(gs.FIELD_MIN_X, gs.FIELD_MAX_X),
+                 np.random.randint(gs.FIELD_MIN_Y, gs.FIELD_MAX_Y),
                  0.0])
             if np.random.random() < 0.05:
                 new_pos = goal_pos

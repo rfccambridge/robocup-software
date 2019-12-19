@@ -28,7 +28,7 @@ GOAL_WIDTH = 1000
 DEFENSE_AREA_X_LENGTH = 1000
 DEFENSE_AREA_Y_LENGTH = 2000
 BALL_RADIUS = 21
-ROBOT_RADIUS = 90
+ROBOT_RADIUS = 180
 
 # PHYSICS CONSTANTS
 # ball constant slowdown due to friction
@@ -289,8 +289,8 @@ class GameState(object):
         return np.array([0, 0])
 
     # overlap between two robots
-    def robot_overlap(self, pos1, pos2):
-        return self.overlap(pos1, pos2, ROBOT_RADIUS * 2)
+    def robot_overlap(self, pos1, pos2, buffer_dist=0):
+        return self.overlap(pos1, pos2, ROBOT_RADIUS * 2 + buffer_dist)
 
     # overlap between robot and ball
     def robot_ball_overlap(self, robot_pos, ball_pos = None):
@@ -324,11 +324,11 @@ class GameState(object):
         return np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_THRESHOLD
 
     # return whether robot can be in a location without colliding another robot
-    def is_position_open(self, pos, team, robot_id):
+    def is_position_open(self, pos, team, robot_id, buffer_dist=0):
         for key, robot_pos in self.get_all_robot_positions():
             if key == (team, robot_id):
                 continue
-            if self.robot_overlap(pos, robot_pos).any():
+            if self.robot_overlap(pos, robot_pos, buffer_dist).any():
                 return False
         return True
 

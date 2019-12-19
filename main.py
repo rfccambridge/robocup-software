@@ -13,7 +13,8 @@ from comms import Comms
 from simulator import Simulator
 
 # whether or not we are running with real field and robots
-IS_SIMULATION = False
+IS_SIMULATION = True
+VISION_ONLY = False
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'
@@ -53,12 +54,13 @@ if __name__ == '__main__':
     else:
         # spin up ssl-vision data polling to update gamestate
         vision.start_updating(VISION_LOOP_SLEEP)
-        # spin up comms to send commands to robots
-        home_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
-        # home_comms.start_receiving(COMMS_RECEIVE_LOOP_SLEEP)
-        if CONTROL_BOTH_TEAMS:
-            away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
-            # away_comms.start_sending(COMMS_RECEIVE_LOOP_SLEEP)
+        if not VISION_ONLY:
+            # spin up comms to send commands to robots
+            home_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
+            # home_comms.start_receiving(COMMS_RECEIVE_LOOP_SLEEP)
+            if CONTROL_BOTH_TEAMS:
+                away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
+                # away_comms.start_sending(COMMS_RECEIVE_LOOP_SLEEP)
     # spin up strategy threads to control the robots
     home_strategy.start_controlling(HOME_STRATEGY, CONTROL_LOOP_SLEEP)
     if CONTROL_BOTH_TEAMS:

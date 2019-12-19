@@ -144,13 +144,10 @@ class Strategy(object):
                 self.video_phase += 1
                 print("!!! Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 2:
-            # define ideal kicking position
-            ball_pos = self._gamestate.get_ball_position()
-            kick_pos = self.best_kick_pos(ball_pos, reception_pos)
             # robot 0 moves to ideal kicking position
-            self.move_straight(0, kick_pos)
-            if self.charge_up_to(0, pass_velocity) and \
-               self.is_done_moving(0):  # and self.is_done_moving(1):
+            done_pivoting = self.pivot_with_ball(0, reception_pos)
+            done_charging = self.charge_up_to(0, pass_velocity)
+            if done_pivoting and done_charging and self.is_done_moving(1):
                 self.video_phase += 1
                 self.kick_ball(0)
                 print("Moving to video phase {}".format(self.video_phase))
@@ -185,17 +182,23 @@ class Strategy(object):
         else:
             pass
 
+    # convert to between -pi and pi
+    def wrap_pi(self, angle):
+        return (angle + np.pi) % (np.pi * 2) - np.pi
+
     # returns whether we are done pivoting
     def pivot_with_ball(self, robot_id, face_pos):
-        dribbler_pos = self._gamestate.dribbler_pos(self._team, robot_id)
-        kick_pos = self.best_kick_pos(dribbler_pos, face_pos)
+        ball_pos = self._gamestate.get_ball_position()
+        kick_pos = self.best_kick_pos(ball_pos, face_pos)
         robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
         # pivot gradually towards kicking position
-        angle = (kick_pos[2] + robot_pos[2]*2) / 3
-        waypoint = self._gamestate.dribbler_to_robot_pos(dribbler_pos, angle)
-        self.set_waypoints(1, [waypoint])
-        if waypoint[2] < 0.001:
-            return True
+        dw = self.wrap_pi(kick_pos[2] - robot_pos[2])
+        angle = robot_pos[2] + dw / 3
+        waypoint = self._gamestate.dribbler_to_robot_pos(ball_pos, angle)
+        self.set_waypoints(robot_id, [waypoint])
+        if abs(self.wrap_pi(robot_pos[2] - kick_pos[2])) < 0.1:
+            print("here")
+            return self.is_done_moving(robot_id)
         else:
             return False
 
@@ -230,8 +233,7 @@ class Strategy(object):
             destination = waypoints[-1]
             delta = destination - robot_pos
             linear_delta = np.linalg.norm(delta[:2])
-            print(delta)
-            LINEAR_THRESHOLD = 50
+            LINEAR_THRESHOLD = 30
             ANGLE_THRESHOLD = .1
             return linear_delta < LINEAR_THRESHOLD and \
                 abs(delta[2]) < ANGLE_THRESHOLD
@@ -442,8 +444,6 @@ class Strategy(object):
 # determine best robot position (including rotation) to shoot or pass ie kick given the position or desired future location
 # of the ball (x,y) after the kick and before the kick (self, from_pos, to_pos)
     def best_kick_pos(self, from_pos, to_pos):
-        x = from_pos[0]
-        y = from_pos[1]
         dx, dy = to_pos[:2] - from_pos[:2]
         w = np.arctan2(dy, dx)
         return self._gamestate.dribbler_to_robot_pos(from_pos, w)

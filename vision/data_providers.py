@@ -42,11 +42,8 @@ class SSLVisionDataProvider():
         # set to daemon mode so it will be easily killed
         self._ssl_vision_thread.daemon = True
         self._ssl_vision_thread.start()
-        
-        # BUG: sensible defaults when data hasn't loaded yet (@dinge)
-        time.sleep(0.1)
-        self._vision_loop_sleep = loop_sleep
 
+        self._vision_loop_sleep = loop_sleep
         self._gamestate_update_thread = threading.Thread(
             target=self.gamestate_update_loop
         )
@@ -108,7 +105,11 @@ class SSLVisionDataProvider():
                 team_data = raw_data.robots_yellow
             for robot_data in team_data:
                 robot_id = robot_data.robot_id
-                if robot_id not in robot_positions:
+                confidence = 0
+                if robot_id in robot_positions:
+                    confidence = robot_positions[robot_id].confidence
+                # only update data if it has higher confidence
+                if robot_data.confidence > confidence:
                     robot_positions[robot_id] = robot_data
                 else:
                     # TODO: average?

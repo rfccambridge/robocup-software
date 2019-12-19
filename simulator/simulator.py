@@ -185,7 +185,8 @@ class Simulator(object):
                         ball_pos = gs.get_ball_position()
                         new_velocity = robot_commands.kick_velocity() * \
                             gs.get_robot_direction(team, robot_id)
-                        self.put_fake_ball(ball_pos, new_velocity)
+                        new_pos = ball_pos + new_velocity * delta_time
+                        self.put_fake_ball(new_pos, new_velocity)
                     robot_commands.charge_level = 0
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)

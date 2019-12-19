@@ -35,7 +35,7 @@ class RobotCommands:
     # Max speed from max power to motors => [no-load] 1090 mm/s (see firmware)
     # Reduce that by multiplying by min(sin(theta), cos(theta)) of wheels
     # Goal is to get upper bound on what firmware can obey accurately
-    ROBOT_MAX_SPEED = 200
+    ROBOT_MAX_SPEED = 500
     ROBOT_MAX_W = 6.14
     MAX_KICK_SPEED = 2000  # TODO
     MAX_CHARGE_LEVEL = 250  # volts? should be whatever the board measures in
@@ -190,7 +190,6 @@ class RobotCommands:
             self.charge_level = self.MAX_CHARGE_LEVEL
 
     def kick_velocity(self):
-        
         # TODO: more accurate using voltage
         speed_factor = self.charge_level / self.MAX_CHARGE_LEVEL
         return self.MAX_KICK_SPEED * speed_factor
@@ -202,7 +201,7 @@ class RobotCommands:
         robot_x, robot_y = self.field_to_robot_perspective(w, np.array([x, y]))
         robot_x = robot_x + delta_time * self._x
         robot_y = robot_y + delta_time * self._y
-        new_w = w + delta_time * self._w
+        new_w = (w + delta_time * self._w) % (np.pi * 2)
         # transform the x and y back to field perspective
         new_x, new_y = self.robot_to_field_perspective(
             w, np.array([robot_x, robot_y])

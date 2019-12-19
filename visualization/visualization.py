@@ -29,7 +29,7 @@ TRAJECTORY_LINE_WIDTH = 10
 WAYPOINT_RADIUS = 25
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
-SCALE = 0.2  # below .1 messes stuff up
+SCALE = 0.15  # below .1 messes stuff up
 # how much space above the field for UI
 UI_BUFFER_PX = 50
 BUTTON_OFFSET_X = 5

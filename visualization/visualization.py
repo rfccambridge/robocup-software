@@ -31,19 +31,19 @@ WAYPOINT_RADIUS = 25
 # Scale for the display window, or else it gets too large... (pixels/mm)
 SCALE = 0.15  # below .1 messes stuff up
 # how much space above the field for UI
-UI_BUFFER_PX = 50
-BUTTON_OFFSET_X = 5
-BUTTON_OFFSET_Y = 10
-BUTTON_WIDTH = 100
-BUTTON_HEIGHT = 40
+UI_BUFFER = 300
+BUTTON_OFFSET_X = 30
+BUTTON_OFFSET_Y = 60
+BUTTON_WIDTH = 600
+BUTTON_HEIGHT = 240
 BUTTON_COLOR = (0, 0, 100)
 BUTTON_TEXT_COLOR = (255, 255, 255)
 
 # how much space to include outside the field
-WINDOW_BUFFER_PX = 15
-TOTAL_SCREEN_WIDTH = int(gs.FIELD_X_LENGTH * SCALE) + WINDOW_BUFFER_PX * 2
+WINDOW_BUFFER = 70
+TOTAL_SCREEN_WIDTH = int((gs.FIELD_X_LENGTH + 2 * WINDOW_BUFFER) * SCALE)
 TOTAL_SCREEN_HEIGHT = \
-    int(gs.FIELD_Y_LENGTH * SCALE) + WINDOW_BUFFER_PX * 2 + UI_BUFFER_PX
+    int((gs.FIELD_Y_LENGTH + 2 * WINDOW_BUFFER + UI_BUFFER) * SCALE)
 
 
 class Visualizer(object):
@@ -64,17 +64,15 @@ class Visualizer(object):
         self._updating = True
 
         # Buttons for different commands (label : pygame.Rect)
-        def generate_button_rect(n):
-            return pygame.Rect(
-                WINDOW_BUFFER_PX + (BUTTON_OFFSET_X + BUTTON_WIDTH) * n,
-                BUTTON_OFFSET_Y,
-                BUTTON_WIDTH,
-                BUTTON_HEIGHT
+        def button_pos(n):
+            return (
+                gs.FIELD_MIN_X + (BUTTON_OFFSET_X + BUTTON_WIDTH) * n,
+                gs.FIELD_MAX_Y + UI_BUFFER + BUTTON_OFFSET_Y,
             )
         self.buttons = {
-            "timeout": generate_button_rect(0),
-            "ref": generate_button_rect(1),
-            "normal": generate_button_rect(2),
+            "timeout": button_pos(0),
+            "ref": button_pos(1),
+            "normal": button_pos(2),
         }
 
         # Designed to be run in main thread so it works on more platforms
@@ -93,11 +91,11 @@ class Visualizer(object):
         pos = np.array(pos).astype(float)
         # shift position so (0, 0) is the center of the field, as in ssl-vision
         pos += np.array([gs.FIELD_MAX_X, gs.FIELD_MAX_Y])
+        # account for buffer space outside of field
+        pos += WINDOW_BUFFER
         # scale for display
         pos *= SCALE
         pos = pos.astype(int)
-        # account for buffer space outside of field
-        pos += WINDOW_BUFFER_PX
         # y becomes axis inverted in pygame (top left screen is 0,0)
         pos[1] = TOTAL_SCREEN_HEIGHT - pos[1]
         return pos
@@ -107,10 +105,10 @@ class Visualizer(object):
         pos = np.array(pos).astype(float)
         # revert y axis
         pos[1] = TOTAL_SCREEN_HEIGHT - pos[1]
-        # account for buffer space outside of field
-        pos -= WINDOW_BUFFER_PX
         # unscale display
         pos /= SCALE
+        # account for buffer space outside of field
+        pos -= WINDOW_BUFFER
         # shift position so that center becomes (0, 0)
         pos -= np.array([gs.FIELD_MAX_X, gs.FIELD_MAX_Y])
         return pos
@@ -152,8 +150,9 @@ class Visualizer(object):
                     )
 
                     # trigger button clicks
-                    for label, rect in self.buttons.items():
-                        if rect.collidepoint(pygame.mouse.get_pos()):
+                    for label, pos in self.buttons.items():
+                        dims = (BUTTON_WIDTH, BUTTON_HEIGHT)
+                        if self.is_collision(pos, dims, pygame.mouse.get_pos()):
                             # prints current location of mouse
                             print('button pressed: ' + label)
 
@@ -241,7 +240,9 @@ class Visualizer(object):
                 robot_color = ROBOT_LOST_COLOR
             (x, y, w) = pos
             self.draw_circle(robot_color, pos, gs.ROBOT_RADIUS)
-            # indicate front of robot            
+            # draw id of robot
+            # self.draw_text(str(robot_id), pos, 50, (0, 0, 0), 'Arial')
+            # indicate front of robot
             draw_radius = gs.ROBOT_RADIUS - ROBOT_FRONT_LINE_WIDTH / 2
             corner1 = np.array([
                 draw_radius * np.cos(w + gs.ROBOT_FRONT_ANGLE),
@@ -337,10 +338,11 @@ class Visualizer(object):
             )
 
         # Draw buttons :)
-        for label, rect in self.buttons.items():
+        for label, pos in self.buttons.items():
             # produces false/misleading font errors when other things break
-            pygame.draw.rect(self._viewer, BUTTON_COLOR, rect)
-            self.draw_text(label, rect, 30, BUTTON_TEXT_COLOR, 'Arial')
+            dims = (BUTTON_WIDTH, BUTTON_HEIGHT)
+            self.draw_rect(BUTTON_COLOR, pos, dims)
+            self.draw_text(label, pos, 180, BUTTON_TEXT_COLOR, 'Arial')
 
     def close(self):
         if self._viewer is not None:
@@ -368,7 +370,7 @@ class Visualizer(object):
             int(width * SCALE)
         )
 
-    def draw_rect(self, color, top_left, dims, width):
+    def draw_rect(self, color, top_left, dims, width=0):
         dims = np.array(dims).astype(float) * SCALE
         pygame.draw.rect(
             self._viewer,
@@ -377,13 +379,18 @@ class Visualizer(object):
             int(width * SCALE)
         )
 
+    def is_collision(self, top_left, dims, pos):
+        dims = np.array(dims).astype(float) * SCALE
+        rect = pygame.Rect([*self.field_to_screen(top_left), *dims])
+        return rect.collidepoint(pos)
+
     def draw_text(self, text, top_left, size, color, font):
-        myfont = pygame.font.SysFont(font, size)
+        myfont = pygame.font.SysFont(font, int(size * SCALE))
         textsurface = myfont.render(text, False, color)
-        self._viewer.blit(textsurface, top_left)
+        self._viewer.blit(textsurface, self.field_to_screen(top_left))
 
     def draw_waypoint(self, pos):
-        self.draw_circle(TRAJECTORY_COLOR, pos, WAYPOINT_RADIUS)
+        self.draw_circle(TRAJECTORY_COLOR, pos[:2], WAYPOINT_RADIUS)
         x, y, w = pos
         arrow = WAYPOINT_RADIUS * 2 * np.array([math.cos(w), math.sin(w)])
         end = np.array([x, y]) + arrow

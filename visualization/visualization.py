@@ -28,10 +28,12 @@ TRAJECTORY_COLOR = (255, 0, 0)
 TRAJECTORY_LINE_WIDTH = 10
 WAYPOINT_RADIUS = 25
 
+
 # Scale for the display window, or else it gets too large... (pixels/mm)
 SCALE = 0.15  # below .1 messes stuff up
-# how much space above the field for UI
-UI_BUFFER = 300
+
+# EVERYTHING IS IN FIELD DIMENSIONS!!! (real world mm, 0,0 is center)
+UI_BUFFER = 300  # how much space above the field for UI
 BUTTON_OFFSET_X = 30
 BUTTON_OFFSET_Y = 60
 BUTTON_WIDTH = 600

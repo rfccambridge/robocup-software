@@ -241,7 +241,7 @@ class Visualizer(object):
             (x, y, w) = pos
             self.draw_circle(robot_color, pos, gs.ROBOT_RADIUS)
             # draw id of robot
-            # self.draw_text(str(robot_id), pos, 50, (0, 0, 0), 'Arial')
+            self.draw_text(str(robot_id), pos, 100, (0, 0, 0), 'Arial')
             # indicate front of robot
             draw_radius = gs.ROBOT_RADIUS - ROBOT_FRONT_LINE_WIDTH / 2
             corner1 = np.array([

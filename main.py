@@ -96,6 +96,8 @@ if __name__ == '__main__':
 
     # (visualizer runs on main thread to work on all platforms)
     visualizer.visualization_loop(VISUALIZATION_LOOP_SLEEP)
+    import traceback
+    traceback.print_stack()
 
 # import logging
 # logging.basicConfig(level=logging.WARNING)

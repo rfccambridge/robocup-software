@@ -26,8 +26,8 @@ BAUD_RATE = 9600
 
 
 class Radio(object):
-    # current xbee only can send once every ~50ms, sending faster may block
-    MESSAGE_DELAY = .05
+    # current xbee only can send once every ~60ms, sending faster may block
+    MESSAGE_DELAY = .06
 
     def __init__(self, is_second_radio=False):
         # Find our XBee device connected to this computer

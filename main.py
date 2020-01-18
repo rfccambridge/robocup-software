@@ -13,8 +13,8 @@ from comms import Comms
 from simulator import Simulator
 
 # whether or not we are running with real field and robots
-IS_SIMULATION = True
-VISION_ONLY = False
+IS_SIMULATION = False
+VISION_ONLY = False  # turns off command sending if real
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'
@@ -27,8 +27,8 @@ AWAY_STRATEGY = None
 
 # loop wait times for each thread - how much to sleep between loops
 VISION_LOOP_SLEEP = .02
-COMMS_SEND_LOOP_SLEEP = .05
-COMMS_RECEIVE_LOOP_SLEEP = .05
+COMMS_SEND_LOOP_SLEEP = .06
+COMMS_RECEIVE_LOOP_SLEEP = .06
 CONTROL_LOOP_SLEEP = .1
 SIMULATION_LOOP_SLEEP = .05
 VISUALIZATION_LOOP_SLEEP = .05

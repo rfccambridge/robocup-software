@@ -129,17 +129,16 @@ class Strategy(Actions, Routines, Roles):
                     self.path_find(robot_id, goal_pos)
 
     def entry_video(self):
-        # where the initiall pass will be received
-        reception_pos = np.array([3200., 0., 0.0])
+        robot_id_0 = 0
+        robot_id_1 = 8
+        # where the initial pass will be received
+        reception_pos = np.array([3200., 0., self.robot_face_ball(robot_id_1)])
         pass_velocity = 1000
         shoot_velocity = 2000
-        robot_id_0 = 0
-        robot_id_1 = 1
         if self.video_phase == 1:
             # robot 0 gets the ball
             got_ball = self.get_ball(robot_id_0, charge_during=pass_velocity)
             # robot 1 moves to pos to receive a pass
-            reception_pos[2] = self.robot_face_ball(robot_id_1)
             self.path_find(robot_id_1, reception_pos)
             # transition once robot 0 has ball (robot 1 can keep moving)
             if got_ball:

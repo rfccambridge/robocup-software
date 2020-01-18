@@ -339,11 +339,17 @@ class GameState(object):
 
     # if ball is in position to be dribbled
     def ball_in_dribbler(self, team, robot_id):
+        robot_pos = self.get_robot_position(team, robot_id)
         ball_pos = self.get_ball_position()
         ideal_pos = self.dribbler_pos(team, robot_id)
+        # print("id {}, ball {} want {}".format(robot_id, ball_pos, ideal_pos))
         # TODO: kicking version of this function incorporates breakbeam sensor?
-        DRIBBLE_ZONE_THRESHOLD = 40
-        return np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_THRESHOLD
+        # TODO: want different buffer zone values depending on scenario?
+        MAX_DIST = ROBOT_RADIUS + 20
+        DRIBBLE_ZONE_RADIUS = 60
+        in_zone = np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_RADIUS
+        close_enough = np.linalg.norm(ball_pos - robot_pos[:2]) < MAX_DIST
+        return in_zone and close_enough
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos, team, robot_id, buffer_dist=0):

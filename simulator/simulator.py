@@ -70,7 +70,7 @@ class Simulator(object):
             SCALE = 1  # if mini field
             self.put_fake_ball(np.array([2000, 900]) * SCALE, np.array([0, 0]))
             self.put_fake_robot('blue', 0, np.array([1000, 900, 0]) * SCALE)
-            self.put_fake_robot('blue', 1, np.array([2000, -1100, 0]) * SCALE)
+            self.put_fake_robot('blue', 8, np.array([2000, -1100, 0]) * SCALE)
             self.put_fake_robot('yellow', 0, np.array([1800, -500, 0]) * SCALE)
             self.put_fake_robot('yellow', 1, np.array([3000, 1200, 0]) * SCALE)
             self.put_fake_robot('yellow', 2, np.array([3000, -1500, 0]) * SCALE)

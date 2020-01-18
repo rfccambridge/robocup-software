@@ -28,7 +28,8 @@ class Actions:
         waypoint = self._gamestate.dribbler_to_robot_pos(ball_pos, angle)
         self.set_waypoints(robot_id, [waypoint])
         remaining_error = abs(self.wrap_pi(robot_pos[2] - kick_pos[2]))
-        if remaining_error < min_turn_increment:
+        if remaining_error < min_turn_increment and \
+           self._gamestate.ball_in_dribbler(self._team, robot_id):
             return self.is_done_moving(robot_id)
         else:
             return False
@@ -86,7 +87,7 @@ class Actions:
             assert(len(p) == 2 or len(p) == 3)
             if len(p) == 2:
                 waypoints[i] = np.array([p[0], p[1], None])
-            commands.set_waypoints(waypoints, current_pos)
+        commands.set_waypoints(waypoints, current_pos)
 
     # helper - format + single waypoint into robot commands
     def append_waypoint(self, robot_id, goal_pos):

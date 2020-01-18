@@ -37,13 +37,13 @@ class RobotCommands:
     # Goal is to get upper bound on what firmware can obey accurately
     ROBOT_MAX_SPEED = 500
     ROBOT_MAX_W = 6.14
-    MAX_KICK_SPEED = 2000  # TODO
+    MAX_KICK_SPEED = 2500  # TODO
     MAX_CHARGE_LEVEL = 250  # volts? should be whatever the board measures in
     CHARGE_RATE = 60  # volts per second?
 
     # constants for deriving speed from waypoints
     # default proportional scaling constant for distance differences
-    SPEED_SCALE = 1.5
+    SPEED_SCALE = .9
     ROTATION_SPEED_SCALE = 3
 
     def __init__(self):

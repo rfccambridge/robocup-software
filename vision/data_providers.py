@@ -114,6 +114,8 @@ class SSLVisionDataProvider():
                 else:
                     # TODO: average?
                     pass
+        #if (team == 'blue'):
+        #    print(robot_positions[0])
         return robot_positions
 
     def get_ball_position(self):

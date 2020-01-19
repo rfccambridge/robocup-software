@@ -257,11 +257,11 @@ class RobotCommands:
         self._x = linear_speed * norm_x
         # print("x: {}, goal_x: {}, vx: {}".format(og_x, goal_x, self._x))
         self._y = linear_speed * norm_y
-        # print("w: {}, goal_w: {}, d_w: {}".format(og_w, goal_w, norm_w))
         self._w = norm_w * self.ROTATION_SPEED_SCALE
         self._w = min(self._w, self.ROBOT_MAX_W)
         self._w = max(self._w, -self.ROBOT_MAX_W)
-
+        # print("w: {}, goal_w: {}, d_w: {}, self_w: {}".format(og_w, goal_w, norm_w, self._w))
+        
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
         # distance condition helpful for simulator b.c. won't overrun waypoint

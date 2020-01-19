@@ -336,11 +336,12 @@ class GameState(object):
         direction = np.array([np.cos(robot_w), np.sin(robot_w)])
         x, y = dribbler_pos - direction * (ROBOT_DRIBBLER_RADIUS + BALL_RADIUS)
         return np.array([x, y, robot_w])
-
+    
     # if ball is in position to be dribbled
-    def ball_in_dribbler(self, team, robot_id):
+    def ball_in_dribbler_single_frame(self, team, robot_id, ball_pos=None):
+        if ball_pos is None:
+            ball_pos = self.get_ball_position()
         robot_pos = self.get_robot_position(team, robot_id)
-        ball_pos = self.get_ball_position()
         ideal_pos = self.dribbler_pos(team, robot_id)
         # print("id {}, ball {} want {}".format(robot_id, ball_pos, ideal_pos))
         # TODO: kicking version of this function incorporates breakbeam sensor?
@@ -350,6 +351,23 @@ class GameState(object):
         in_zone = np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_RADIUS
         close_enough = np.linalg.norm(ball_pos - robot_pos[:2]) < MAX_DIST
         return in_zone and close_enough
+
+    def ball_in_dribbler(self, team, robot_id):
+        positions = self._ball_position
+        MIN_TIME_INTERVAL = .5
+        i = 0
+        if len(positions) <= 1:
+            return False
+        if not self.ball_in_dribbler_single_frame(team, robot_id, positions[0][1]):
+            return False
+        # look back from 0 (most recent) until big enough interval
+        while i < len(positions) - 1 and \
+              positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
+            ball_pos = positions[i][1]
+            i += 1
+            if not self.ball_in_dribbler_single_frame(team, robot_id, ball_pos):
+                return False
+        return True
 
     # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos, team, robot_id, buffer_dist=0):

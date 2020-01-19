@@ -30,7 +30,7 @@ class Actions:
         remaining_error = abs(self.wrap_pi(robot_pos[2] - kick_pos[2]))
         if remaining_error < min_turn_increment and \
            self._gamestate.ball_in_dribbler(self._team, robot_id):
-            return self.is_done_moving(robot_id)
+            return True
         else:
             return False
 
@@ -67,8 +67,8 @@ class Actions:
             destination = waypoints[-1]
             delta = destination - robot_pos
             linear_delta = np.linalg.norm(delta[:2])
-            LINEAR_THRESHOLD = 30
-            ANGLE_THRESHOLD = .1
+            LINEAR_THRESHOLD = 60
+            ANGLE_THRESHOLD = .05
             return linear_delta < LINEAR_THRESHOLD and \
                 abs(delta[2]) < ANGLE_THRESHOLD
         return True

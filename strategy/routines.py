@@ -15,7 +15,7 @@ class Routines:
 
     # make robot directly go get possession of the ball (asap)
     def get_ball(self, robot_id, charge_during=0):
-        # robot 0 goes to ball using to nearest interception point
+        # robot goes to ball using to nearest interception point
         intercept_range = self.intercept_range(robot_id)
         if intercept_range is None:
             return False

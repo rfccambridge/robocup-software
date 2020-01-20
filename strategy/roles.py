@@ -14,7 +14,9 @@ class Roles:
     # TODO: generalize for building walls and stuff
     def best_goalie_pos(self):
         ball_pos = self._gamestate.get_ball_position()
-        goal_top, goal_bottom = self._gamestate.get_defense_goal(self._team)
+        if not self._gamestate.is_in_play(ball_pos):
+            return np.array([])
+        goal_top, goal_bottom = self._gamestate.get_attack_goal(self._team)
         goal_center = (goal_top + goal_bottom) / 2
         # for now, look at vector from goal center to ball
         goal_to_ball = ball_pos - goal_center
@@ -31,4 +33,5 @@ class Roles:
 
     def goalie(self, robot_id):
         goalie_pos = self.best_goalie_pos()
-        self.move_straight(robot_id, goalie_pos)
+        if goalie_pos.any():
+            self.move_straight(robot_id, goalie_pos)

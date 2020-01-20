@@ -68,13 +68,15 @@ class Comms(object):
 
             team_commands = self._gamestate.get_team_commands(self._team)
             # send serialized message for whole team
+            message = RobotCommands.get_serialized_team_command(team_commands)
+            self._radio.send(message)
             for robot_id, commands in team_commands.items():
                 # print(commands)
                 # simulate charge of capacitors according to commands
                 if commands.is_charging:
                     commands.simulate_charge(delta_time)
-            message = RobotCommands.get_serialized_team_command(team_commands)
-            self._radio.send(message)
+                # TODO: UNTESTED
+                commands.is_kicking = False
             # yield to other threads
             time.sleep(self._send_loop_sleep)
 

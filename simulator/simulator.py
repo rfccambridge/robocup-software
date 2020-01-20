@@ -188,6 +188,8 @@ class Simulator(object):
                         new_pos = ball_pos + new_velocity * delta_time
                         self.put_fake_ball(new_pos, new_velocity)
                     robot_commands.charge_level = 0
+                    robot_commands.is_kicking = False
+
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)
 

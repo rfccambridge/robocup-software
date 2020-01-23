@@ -33,7 +33,7 @@ class Roles:
         GOALIE_OFFSET = 600  # goalie stays this far from goal center
         x, y = goal_center + norm_to_ball * GOALIE_OFFSET
         best_pos = np.array([x, y, angle_to_ball])
-        # TODO: BETTER
+        # TODO: THIS IS A HACK TO MAKE IT STAY WITHIN CAMERA RANGE
         if best_pos[0] > gs.FIELD_MAX_X - gs.ROBOT_RADIUS * 3 or best_pos[0] < gs.FIELD_MIN_X + gs.ROBOT_RADIUS * 3:
             return np.array([]) 
         return best_pos
@@ -41,4 +41,4 @@ class Roles:
     def goalie(self, robot_id):
         goalie_pos = self.best_goalie_pos()
         if goalie_pos.any():
-            self.move_straight(robot_id, goalie_pos)
+            self.move_straight(robot_id, goalie_pos, is_urgent=True)

@@ -74,12 +74,12 @@ class Actions:
         return True
 
     # tell specific robot to move straight towards given location
-    def move_straight(self, robot_id, goal_pos):
-        self.set_waypoints(robot_id, [goal_pos])
+    def move_straight(self, robot_id, goal_pos, is_urgent=False):
+        self.set_waypoints(robot_id, [goal_pos], is_urgent)
         return self.is_done_moving(robot_id)
 
     # helper - format + insert list of waypoints into robot commands
-    def set_waypoints(self, robot_id, waypoints):
+    def set_waypoints(self, robot_id, waypoints, is_urgent=False):
         current_pos = self._gamestate.get_robot_position(self._team, robot_id)
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
         # print(waypoints)
@@ -87,13 +87,13 @@ class Actions:
             assert(len(p) == 2 or len(p) == 3)
             if len(p) == 2:
                 waypoints[i] = np.array([p[0], p[1], None])
-        commands.set_waypoints(waypoints, current_pos)
+        commands.set_waypoints(waypoints, current_pos, is_urgent)
 
     # helper - format + single waypoint into robot commands
-    def append_waypoint(self, robot_id, goal_pos):
+    def append_waypoint(self, robot_id, goal_pos, is_urgent=False):
         current_pos = self._gamestate.get_robot_position(self._team, robot_id)
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        commands.append_waypoint(goal_pos, current_pos)
+        commands.append_waypoint(goal_pos, current_pos, is_urgent=False)
 
     # helper - get angle (relative to the x axis) betweeen two positions
     def face_pos(self, facing_from_pos, facing_towards_pos):

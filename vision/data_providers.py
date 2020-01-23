@@ -122,12 +122,24 @@ class SSLVisionDataProvider():
                             (current_pos[0] * (times_seen - 1) + pos[0]) / times_seen, 
                             (current_pos[1] * (times_seen - 1) + pos[1]) / times_seen, 
                             # TODO: safely average orientation?
-                            robot_data.orientation
+                            self.circular_mean((times_seen - 1, 1), (robot_data.orientation, pos[2]))
                         ])
                         robot_positions[robot_id] = average_pos
         #if (team == 'blue'):
         #    print(robot_positions[0])
         return robot_positions
+    
+    # helper function for averaging angles by converting to points
+    def circular_mean(self, weights, angles):
+        x = y = 0.
+        for angle, weight in zip(angles, weights):
+            x += np.cos(angle) * weight
+            y += np.sin(angle) * weight
+        if x == 0 and y == 0:
+            print('freak coincidence?')
+            return 0
+        mean = np.arctan2(y, x)
+        return mean
 
     def get_ball_position(self):
         # average ball readings of the cameras

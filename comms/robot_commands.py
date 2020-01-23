@@ -148,6 +148,19 @@ class RobotCommands:
     def clear_waypoints(self):
         self.waypoints = []
 
+    # hacky way to make robot not slow down toward a destination:
+    # (append 2 waypoints in the same direction)
+    # DEPENDS ON SLOWDOWN LOGIC IN DERIVE_SPEEDS FUNCTION
+    def append_urgent_destination(self, pos, current_position):
+        direction = pos[:2] - current_position[:2]
+        if not direction.any():
+            return
+        epsilon = 1
+        waypoint = pos[:2] - direction / np.linalg.norm(direction) * epsilon
+        waypoint = np.array([waypoint[0], waypoint[1], pos[2]])
+        self.append_waypoint(waypoint, current_position)
+        self.append_waypoint(pos, current_position)
+
     def append_waypoint(self, waypoint, current_position):
         if self.waypoints:
             initial_pos = self.waypoints[-1]
@@ -172,10 +185,13 @@ class RobotCommands:
                 w = current_position[2]
         self.waypoints.append(np.array([x, y, w]))
 
-    def set_waypoints(self, waypoints, current_position):
+    def set_waypoints(self, waypoints, current_position, is_urgent=False):
         self.clear_waypoints()
-        for waypoint in waypoints:
-            self.append_waypoint(waypoint, current_position)
+        for i, waypoint in enumerate(waypoints):
+            if i == (len(waypoints) - 1) and is_urgent:
+                self.append_urgent_destination(waypoint, current_position)
+            else:
+                self.append_waypoint(waypoint, current_position)
 
     # directly set the robot speed
     def set_speeds(self, x, y, w):
@@ -231,6 +247,7 @@ class RobotCommands:
         # move with speed proportional to delta
         linear_speed = self.magnitude(delta) * self.SPEED_SCALE
         # slow down less for intermediate waypoints based on angle
+        # (always slows down fully for the final waypoint)
         min_waypoint_speed = 0
         if len(self.waypoints) > 1:
             next_delta = (self.waypoints[1] - goal_pos)[:2]
@@ -238,7 +255,12 @@ class RobotCommands:
                 m1 = np.linalg.norm(delta)
                 m2 = np.linalg.norm(next_delta)
                 # get angle between vectors (arccos -> 0 to pi)
-                trimmed_angle = np.arccos(np.dot(delta, next_delta)/(m1*m2))
+                inner_formula = np.dot(delta, next_delta)/(m1*m2)
+                if inner_formula > 1:
+                    # catch rounding errors
+                    assert(inner_formula - 1 < .001)
+                    inner_formula = 1
+                trimmed_angle = np.arccos(inner_formula)
                 if not (0 <= trimmed_angle <= np.pi):
                     # not sure why this was ever triggering?
                     print("how is trimmed angle:" + str(trimmed_angle))

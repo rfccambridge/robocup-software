@@ -8,7 +8,7 @@ from collections import deque
 from comms import RobotCommands
 
 # RAW DATA PROCESSING CONSTANTS
-BALL_POS_HISTORY_LENGTH = 20
+BALL_POS_HISTORY_LENGTH = 100
 BALL_LOST_TIME = .1
 ROBOT_POS_HISTORY_LENGTH = 20
 # time after which robot is considered lost by gamestate
@@ -192,7 +192,7 @@ class GameState(object):
         pos = pos.copy().astype(float)
         robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
-            assert(len(robot_positions) < 6)
+            # assert(len(robot_positions) <= 6)
             robot_positions[robot_id] = deque([], ROBOT_POS_HISTORY_LENGTH)
         robot_positions[robot_id].appendleft((time.time(), pos))
 
@@ -334,7 +334,8 @@ class GameState(object):
 
     def dribbler_to_robot_pos(self, dribbler_pos, robot_w):
         direction = np.array([np.cos(robot_w), np.sin(robot_w)])
-        x, y = dribbler_pos - direction * (ROBOT_DRIBBLER_RADIUS + BALL_RADIUS)
+        # divide radius by 2 to go a bit closer to the ball to help make contact
+        x, y = dribbler_pos - direction * (ROBOT_DRIBBLER_RADIUS + BALL_RADIUS / 2)
         return np.array([x, y, robot_w])
     
     # if ball is in position to be dribbled
@@ -345,16 +346,16 @@ class GameState(object):
         ideal_pos = self.dribbler_pos(team, robot_id)
         # print("id {}, ball {} want {}".format(robot_id, ball_pos, ideal_pos))
         # TODO: kicking version of this function incorporates breakbeam sensor?
-        # TODO: want different buffer zone values depending on scenario?
-        MAX_DIST = ROBOT_RADIUS + 20
+        MAX_DIST = ROBOT_RADIUS + 32  # fairly lenient constants,
         DRIBBLE_ZONE_RADIUS = 60
         in_zone = np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_RADIUS
         close_enough = np.linalg.norm(ball_pos - robot_pos[:2]) < MAX_DIST
+        #print(close_enough)
         return in_zone and close_enough
 
     def ball_in_dribbler(self, team, robot_id):
         positions = self._ball_position
-        MIN_TIME_INTERVAL = .5
+        MIN_TIME_INTERVAL = 1
         i = 0
         if len(positions) <= 1:
             return False

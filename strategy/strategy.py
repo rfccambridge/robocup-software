@@ -133,9 +133,10 @@ class Strategy(Actions, Routines, Roles):
         robot_id_1 = 8
         # where the initial pass will be received
         reception_pos = np.array([3200., 0., self.robot_face_ball(robot_id_1)])
-        pass_velocity = 1000 # 500
-        shoot_velocity = 2000 # 500
-
+        pass_velocity = 400
+        shoot_velocity = 500
+        shoot_velocity_BIG = 800 # BIGBOI KICK
+        
         if self.video_phase >= 6:
             self.goalie(robot_id_1)
 
@@ -175,10 +176,12 @@ class Strategy(Actions, Routines, Roles):
             self.video_phase += 1
             print("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 6:
-            # Set robot 1 to be goalie, have them go to the goal
+            # Set robot 1 to be goalie, have them go to the goal (see top of loop)
             self.video_phase += 1
             print("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 7:
+            if self._gamestate.get_ball_position()[0] > 3000:
+                return
             # Wait for person to place a ball, then have robot 1 go to it
             got_ball = self.get_ball(robot_id_0, charge_during=shoot_velocity)
             if got_ball:
@@ -188,7 +191,7 @@ class Strategy(Actions, Routines, Roles):
             # Robot 1 moves to best kick pos to shoot
             goal = self._gamestate.get_attack_goal(self._team)
             center_of_goal = (goal[0] + goal[1]) / 2
-            shot = self.prepare_and_kick(robot_id_0, center_of_goal, shoot_velocity)
+            shot = self.prepare_and_kick(robot_id_0, center_of_goal, shoot_velocity_BIG)
             if shot:
                 self.video_phase += 1
                 print("Moving to video phase {}".format(self.video_phase))
@@ -196,7 +199,11 @@ class Strategy(Actions, Routines, Roles):
             self.set_dribbler(robot_id_0, False)
             self.kick_ball(robot_id_0)
             # Loop back to placing the ball
-            if self._gamestate.get_ball_position()[0] < 3000:
+            self.video_phase += 1
+            print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 10:
+            if self._gamestate.get_ball_position()[0] > 3000:
                 self.video_phase = 7
+                print("Moving back to video phase {}".format(self.video_phase))
         else:
             pass

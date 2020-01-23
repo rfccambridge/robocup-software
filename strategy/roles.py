@@ -1,5 +1,9 @@
 import numpy as np
-
+import sys
+# import gamestate file to use field dimension constants
+# (as opposed to importing the class GameState)
+sys.path.append('..')
+from gamestate import gamestate as gs
 # import lower-level strategy logic
 try:
     from actions import Actions
@@ -29,6 +33,9 @@ class Roles:
         GOALIE_OFFSET = 600  # goalie stays this far from goal center
         x, y = goal_center + norm_to_ball * GOALIE_OFFSET
         best_pos = np.array([x, y, angle_to_ball])
+        # TODO: BETTER
+        if best_pos[0] > gs.FIELD_MAX_X - gs.ROBOT_RADIUS * 3 or best_pos[0] < gs.FIELD_MIN_X + gs.ROBOT_RADIUS * 3:
+            return np.array([]) 
         return best_pos
 
     def goalie(self, robot_id):

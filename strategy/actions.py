@@ -147,8 +147,10 @@ class Actions:
             return self.is_done_moving(robot_id)
         # now check if current waypoints are already going where we want
         current_goal = self.get_goal_pos(robot_id)
+        SAME_GOAL_THRESHOLD = 100  # TODO
         is_same_goal = current_goal is not None and \
-            np.array_equal(goal_pos[:2], current_goal[:2])
+            np.linalg.norm(goal_pos[:2] - current_goal[:2]) < SAME_GOAL_THRESHOLD
+            # np.array_equal(goal_pos[:2], current_goal[:2])
         commands = self._gamestate.get_robot_commands(self._team, robot_id)
         current_waypoints = [start_pos] + commands.waypoints
         current_path_collides = False

@@ -3,6 +3,7 @@ import threading
 import time
 import logging
 import numpy as np
+from collections import Counter
 
 logger = logging.getLogger(__name__)
 '''
@@ -64,6 +65,7 @@ class SSLVisionDataProvider():
     def receive_data_loop(self):
         while self._is_running:
             data = self._ssl_vision_client.receive()
+            # print(data)
             # get a detection packet from any camera, and store it
             if data.HasField('detection'):
                 self._raw_camera_data[data.detection.camera_id] = data.detection
@@ -77,13 +79,11 @@ class SSLVisionDataProvider():
                 robot_positions = self.get_robot_positions(team)
                 # print(robot_positions)
                 for robot_id, pos in robot_positions.items():
-                    loc = np.array([pos.x, pos.y, pos.orientation])
-                    self._gamestate.update_robot_position(team, robot_id, loc)
+                    self._gamestate.update_robot_position(team, robot_id, pos)
             # update position of the ball
             ball_data = self.get_ball_position()
-            if ball_data:
-                ball_pos = np.array([ball_data.x, ball_data.y])
-                self._gamestate.update_ball_position(ball_pos)
+            if ball_data is not None:
+                self._gamestate.update_ball_position(ball_data)
 
             if self._last_update_time is not None:
                 delta = time.time() - self._last_update_time
@@ -97,6 +97,8 @@ class SSLVisionDataProvider():
 
     def get_robot_positions(self, team='blue'):
         robot_positions = {}
+        # track how many cameras see each robot, for averaging
+        num_cameras_seen = Counter()
         for camera_id, raw_data in self._raw_camera_data.items():
             if team == 'blue':
                 team_data = raw_data.robots_blue
@@ -105,27 +107,41 @@ class SSLVisionDataProvider():
                 team_data = raw_data.robots_yellow
             for robot_data in team_data:
                 robot_id = robot_data.robot_id
-                confidence = 0
-                if robot_id in robot_positions:
-                    confidence = robot_positions[robot_id].confidence
+                num_cameras_seen[robot_id] += 1
                 # only update data if it has higher confidence
-                if robot_data.confidence > confidence:
-                    robot_positions[robot_id] = robot_data
-                else:
-                    # TODO: average?
-                    pass
+                CONFIDENCE_THRESHOLD = .5
+                if robot_data.confidence >= CONFIDENCE_THRESHOLD:
+                    # average in the new data
+                    pos = np.array([robot_data.x, robot_data.y, robot_data.orientation])
+                    if robot_id not in robot_positions:
+                        robot_positions[robot_id] = pos
+                    else:
+                        times_seen = num_cameras_seen[robot_id]
+                        current_pos = robot_positions[robot_id]
+                        average_pos = np.array([
+                            (current_pos[0] * (times_seen - 1) + pos[0]) / times_seen, 
+                            (current_pos[1] * (times_seen - 1) + pos[1]) / times_seen, 
+                            # TODO: safely average orientation?
+                            robot_data.orientation
+                        ])
+                        robot_positions[robot_id] = average_pos
         #if (team == 'blue'):
         #    print(robot_positions[0])
         return robot_positions
 
     def get_ball_position(self):
-        # TODO: merge
-        raw_data = self._raw_camera_data[0]
-        balls = raw_data.balls
-        if len(balls) == 0:
-            return None
-        elif len(balls) > 1:
-            pass
-            # print('More than one ball detected')
-            # raise RuntimeError('More than one ball detected')
-        return balls[0]
+        # average ball readings of the cameras
+        average_ball = None
+        times_seen = 0
+        for camera_id, raw_data in self._raw_camera_data.items():
+            balls = raw_data.balls
+            CONFIDENCE_THRESHOLD = .5
+            if len(balls) > 0 and balls[0].confidence >= CONFIDENCE_THRESHOLD:
+                ball = balls[0]
+                times_seen += 1
+                if average_ball is None:
+                    average_ball = np.array([ball.x, ball.y])
+                else:
+                    pos = np.array([ball.x, ball.y])
+                    average_ball = (average_ball * (times_seen - 1) + pos) / times_seen
+        return average_ball

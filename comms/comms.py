@@ -76,7 +76,9 @@ class Comms(object):
                 if commands.is_charging:
                     commands.simulate_charge(delta_time)
                 # TODO: UNTESTED
-                commands.is_kicking = False
+                if commands.is_kicking:
+                    commands.is_kicking = False
+                    commands.charge_level = 0
             # yield to other threads
             time.sleep(self._send_loop_sleep)
 

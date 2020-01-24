@@ -480,10 +480,11 @@ class GameState(object):
         final_ball_pos = self.predict_ball_pos(2)
         final_x = final_ball_pos[0]
         final_y = final_ball_pos[1]
-        slope = (start_y - final_y)/(start_x - final_x)
         defense_goal = self.get_defense_goal(team)
         x_pos_of_goal = defense_goal[0][0]
-        y_intercept = slope * (x_pos_of_goal - start_x) + start_y
-        if -GOAL_WIDTH/2 <= y_intercept <= GOAL_WIDTH/2:
-            return np.array([x_pos_of_goal, y_intercept])
+        if min(final_x, start_x) <= x_pos_of_goal <= max(final_x, start_x):
+            slope = (start_y - final_y)/(start_x - final_x)
+            y_intercept = slope * (x_pos_of_goal - start_x) + start_y
+            if -GOAL_WIDTH/2 <= y_intercept <= GOAL_WIDTH/2:
+                return np.array([x_pos_of_goal, y_intercept])
         return False

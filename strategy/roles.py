@@ -40,7 +40,17 @@ class Roles:
         return block_pos
 
     def goalie(self, robot_id):
-        GOALIE_OFFSET = 600  # goalie stays this far from goal center
-        goalie_pos = self.block_goal_center_pos(GOALIE_OFFSET)
-        if goalie_pos.any():
-            self.move_straight(robot_id, goalie_pos, is_urgent=True)
+        shot_location = self._gamestate.is_shot_coming(self._team)
+        if shot_location is not None:
+            # robot goes to ball using to nearest interception point
+            intercept_range = self.intercept_range(robot_id)
+            if intercept_range is None:
+                # TODO
+                return
+            intercept_pos = (intercept_range[0] + intercept_range[1]) / 2
+            self.move_straight(robot_id, intercept_pos, is_urgent=True)
+        else:
+            GOALIE_OFFSET = 600  # goalie stays this far from goal center
+            goalie_pos = self.block_goal_center_pos(GOALIE_OFFSET)
+            if goalie_pos.any():
+                self.move_straight(robot_id, goalie_pos)

@@ -140,7 +140,6 @@ class Strategy(Actions, Routines, Roles):
                 self._goalie_id = robot_id
         if self._goalie_id is not None:
             self.goalie(self._goalie_id)
-        print(self._gamestate.is_shot_coming(self._team))
 
     def entry_video(self):
         robot_id_0 = 0

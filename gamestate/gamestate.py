@@ -473,6 +473,7 @@ class GameState(object):
             assert(team == 'blue')
             return self.get_defense_goal('yellow')
 
+    # return where in goal ball is going to if it is going in
     def is_shot_coming(self, team):
         start_ball_pos = self.get_ball_position()
         start_x = start_ball_pos[0]
@@ -487,4 +488,4 @@ class GameState(object):
             y_intercept = slope * (x_pos_of_goal - start_x) + start_y
             if -GOAL_WIDTH/2 <= y_intercept <= GOAL_WIDTH/2:
                 return np.array([x_pos_of_goal, y_intercept])
-        return False
+        return None

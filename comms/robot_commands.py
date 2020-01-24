@@ -132,7 +132,10 @@ class RobotCommands:
     def get_serialized_team_command(team_commands):
         team_command_message = b""
         num_robots = len(team_commands)
-        assert num_robots <= 6, 'too many robots'
+        if len(team_commands) > 6:
+            # TODO: handle better?
+            print('too many robot ids seen, not sending any commands?')
+            num_robots = 0
         # pad message so it always contains 6 robots worth of data
         # (this is so firmware can deal with constant message length)
         for i in range(6 - num_robots):

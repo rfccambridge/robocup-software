@@ -13,11 +13,11 @@ from comms import Comms
 from simulator import Simulator
 
 # whether or not we are running with real field and robots
-IS_SIMULATION = True
-VISION_ONLY = True  # turns off command sending if real
+IS_SIMULATION = False
+VISION_ONLY = False  # turns off command sending if real
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
-HOME_TEAM = 'blue'
+HOME_TEAM = 'yellow'
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
 # which simulator initial setup to use (if simulating)
 SIMULATION_SETUP = 'moving_ball'

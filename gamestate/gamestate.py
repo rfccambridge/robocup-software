@@ -478,14 +478,19 @@ class GameState(object):
         start_ball_pos = self.get_ball_position()
         start_x = start_ball_pos[0]
         start_y = start_ball_pos[1]
-        final_ball_pos = self.predict_ball_pos(2)
+        final_ball_pos = self.predict_ball_pos(10)
         final_x = final_ball_pos[0]
         final_y = final_ball_pos[1]
         defense_goal = self.get_defense_goal(team)
         x_pos_of_goal = defense_goal[0][0]
-        if min(final_x, start_x) <= x_pos_of_goal <= max(final_x, start_x):
+        GOAL_WIDTH_BUFFER = 250 # assumes shots slightly wide are going in
+        GOAL_X_BUFFER = 500 # assumes shots stopping slightly short are going in
+        x1 = x_pos_of_goal + GOAL_X_BUFFER
+        x2 = x_pos_of_goal - GOAL_X_BUFFER
+        if (min(final_x, start_x) <= x1 <= max(final_x, start_x)) or \
+           (min(final_x, start_x) <= x2 <= max(final_x, start_x)):
             slope = (start_y - final_y)/(start_x - final_x)
             y_intercept = slope * (x_pos_of_goal - start_x) + start_y
-            if -GOAL_WIDTH/2 <= y_intercept <= GOAL_WIDTH/2:
+            if -GOAL_WIDTH/2 - GOAL_WIDTH_BUFFER <= y_intercept <= GOAL_WIDTH/2 + GOAL_WIDTH_BUFFER:
                 return np.array([x_pos_of_goal, y_intercept])
         return None

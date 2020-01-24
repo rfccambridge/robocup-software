@@ -64,8 +64,8 @@ class Simulator(object):
                 self.put_fake_robot('yellow', i, yellow_pos)
             self.put_fake_ball(np.array([0, 0]))
         elif self._initial_setup == "moving_ball":
-            self.put_fake_robot('blue', 1, np.array([0, 0, 0]))
-            self.put_fake_ball(np.array([1000, 1200]), np.array([0, -1200]))
+            self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
+            self.put_fake_ball(np.array([-2000, 1200]), np.array([0, -1200]))
         elif self._initial_setup == "entry_video":
             SCALE = 1  # if mini field
             self.put_fake_ball(np.array([2000, 900]) * SCALE, np.array([0, 0]))

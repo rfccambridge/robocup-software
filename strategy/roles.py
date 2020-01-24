@@ -22,7 +22,7 @@ class Roles:
             ball_pos = self._gamestate.get_ball_position()
         if not self._gamestate.is_in_play(ball_pos):
             return np.array([])
-        goal_top, goal_bottom = self._gamestate.get_attack_goal(self._team)
+        goal_top, goal_bottom = self._gamestate.get_defense_goal(self._team)
         goal_center = (goal_top + goal_bottom) / 2
         # for now, look at vector from goal center to ball
         goal_to_ball = ball_pos - goal_center
@@ -33,11 +33,11 @@ class Roles:
         angle_to_ball = np.arctan2(goal_to_ball[1], goal_to_ball[0])
         norm_to_ball = goal_to_ball / np.linalg.norm(goal_to_ball)
         x, y = goal_center + norm_to_ball * distance_from_goal
-        best_pos = np.array([x, y, angle_to_ball])
+        block_pos = np.array([x, y, angle_to_ball])
         # TODO: THIS IS A HACK TO MAKE IT STAY WITHIN CAMERA RANGE
-        if best_pos[0] > gs.FIELD_MAX_X - gs.ROBOT_RADIUS * 3 or best_pos[0] < gs.FIELD_MIN_X + gs.ROBOT_RADIUS * 3:
+        if block_pos[0] > gs.FIELD_MAX_X - gs.ROBOT_RADIUS * 3 or block_pos[0] < gs.FIELD_MIN_X + gs.ROBOT_RADIUS * 3:
             return np.array([]) 
-        return best_pos
+        return block_pos
 
     def goalie(self, robot_id):
         GOALIE_OFFSET = 600  # goalie stays this far from goal center

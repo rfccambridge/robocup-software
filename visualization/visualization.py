@@ -325,10 +325,10 @@ class Visualizer(object):
                 TRAJECTORY_LINE_WIDTH
             )
 
-        # debug best goalie pos
-        best_goalie_pos = self._home_strategy.best_goalie_pos()
-        if best_goalie_pos.any():
-            self.draw_waypoint(best_goalie_pos)
+        # debug strategy stuff
+        # best_goalie_pos = self._home_strategy.best_goalie_pos()
+        # if best_goalie_pos.any():
+        #    self.draw_waypoint(best_goalie_pos)
 
         # draw user click location with a red 'X'
         if self.user_click_down is not None and self.user_click_up is None:

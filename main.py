@@ -20,9 +20,9 @@ CONTROL_BOTH_TEAMS = False
 HOME_TEAM = 'blue'
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
 # which simulator initial setup to use (if simulating)
-SIMULATION_SETUP = 'entry_video'
+SIMULATION_SETUP = 'moving_ball'
 # which strategies each team is running (see strategy module)
-HOME_STRATEGY = 'entry_video'
+HOME_STRATEGY = 'goalie_test'
 AWAY_STRATEGY = None
 
 # loop wait times for each thread - how much to sleep between loops

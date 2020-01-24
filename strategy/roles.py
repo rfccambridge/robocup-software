@@ -16,8 +16,10 @@ except (SystemError, ImportError):
 class Roles:
     """High level strategic roles and analysis"""
     # TODO: generalize for building walls and stuff
-    def best_goalie_pos(self):
-        ball_pos = self._gamestate.get_ball_position()
+    # TODO: account for attacker orientation?
+    def block_goal_center_pos(self, distance_from_goal, ball_pos=None):
+        if ball_pos is None:
+            ball_pos = self._gamestate.get_ball_position()
         if not self._gamestate.is_in_play(ball_pos):
             return np.array([])
         goal_top, goal_bottom = self._gamestate.get_attack_goal(self._team)
@@ -30,8 +32,7 @@ class Roles:
             return np.array([*goal_center, 0])
         angle_to_ball = np.arctan2(goal_to_ball[1], goal_to_ball[0])
         norm_to_ball = goal_to_ball / np.linalg.norm(goal_to_ball)
-        GOALIE_OFFSET = 600  # goalie stays this far from goal center
-        x, y = goal_center + norm_to_ball * GOALIE_OFFSET
+        x, y = goal_center + norm_to_ball * distance_from_goal
         best_pos = np.array([x, y, angle_to_ball])
         # TODO: THIS IS A HACK TO MAKE IT STAY WITHIN CAMERA RANGE
         if best_pos[0] > gs.FIELD_MAX_X - gs.ROBOT_RADIUS * 3 or best_pos[0] < gs.FIELD_MIN_X + gs.ROBOT_RADIUS * 3:
@@ -39,6 +40,7 @@ class Roles:
         return best_pos
 
     def goalie(self, robot_id):
-        goalie_pos = self.best_goalie_pos()
+        GOALIE_OFFSET = 600  # goalie stays this far from goal center
+        goalie_pos = self.block_goal_center_pos(GOALIE_OFFSET)
         if goalie_pos.any():
             self.move_straight(robot_id, goalie_pos, is_urgent=True)

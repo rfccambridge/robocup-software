@@ -17,7 +17,7 @@ except (SystemError, ImportError):
 class Strategy(Actions, Routines, Roles):
     """Control loop for playing the game. Calculate desired robot actions, 
        and enters commands into gamestate to be sent by comms"""
-    def __init__(self, gamestate, team):
+    def __init__(self, gamestate, team, goalie_id=None):
         assert(team in ['blue', 'yellow'])
         self._team = team
         self._gamestate = gamestate
@@ -27,6 +27,7 @@ class Strategy(Actions, Routines, Roles):
         self._control_loop_sleep = None
         self._last_control_loop_time = None
         self._mode = None
+        self._goalie_id = goalie_id
 
         # state for reducing frequency of expensive calls
         # (this also helps reduce oscillation)
@@ -76,6 +77,8 @@ class Strategy(Actions, Routines, Roles):
                 # run the strategy corresponding to the given mode
                 if self._mode == "UI":
                     self.UI()
+                elif self._mode == "goalie_test":
+                    self.goalie_test()
                 elif self._mode == "entry_video":
                     self.entry_video()
                 else:
@@ -128,6 +131,16 @@ class Strategy(Actions, Routines, Roles):
                     # Use pathfinding
                     #self.move_straight(robot_id, goal_pos, is_urgent=True)
                     self.path_find(robot_id, goal_pos)
+
+    def goalie_test(self):
+        gs = self._gamestate
+        if gs.user_selected_robot is not None:
+            team, robot_id = gs.user_selected_robot
+            if team == self._team:
+                self._goalie_id = robot_id
+        if self._goalie_id is not None:
+            self.goalie(self._goalie_id)
+        # print(self._gamestate.is_shot_coming(self._team))
 
     def entry_video(self):
         robot_id_0 = 0

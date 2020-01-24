@@ -337,7 +337,7 @@ class GameState(object):
         # divide radius by 2 to go a bit closer to the ball to help make contact
         x, y = dribbler_pos - direction * (ROBOT_DRIBBLER_RADIUS + BALL_RADIUS / 2)
         return np.array([x, y, robot_w])
-    
+
     # if ball is in position to be dribbled
     def ball_in_dribbler_single_frame(self, team, robot_id, ball_pos=None):
         if ball_pos is None:
@@ -472,3 +472,18 @@ class GameState(object):
         else:
             assert(team == 'blue')
             return self.get_defense_goal('yellow')
+
+    def is_shot_coming(self, team):
+        start_ball_pos = get_ball_position()
+        start_x = start_ball_pos[0]
+        start_y = start_ball_pos[1]
+        final_ball_pos = preicted_ball_pos(2)
+        final_x = final_ball_pos[0]
+        final_y = final_ball_pos[1]
+        slope = (start_y - final_y)/(start_x - final_x)
+        defense_goal = get_defense_goal(team)
+        x_pos_of_goal = defense_goal[0][0]
+        y_intercept = slope * (x_pos_of_goal - start_x) + start_y
+        if -GOAL_WIDTH/2 <= y_intercept <= GOAL_WIDTH/2:
+            return np.array([x_pos_of_goal, y_intercept])
+        return False

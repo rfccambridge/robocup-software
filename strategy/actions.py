@@ -113,7 +113,7 @@ class Actions:
         return self.robot_face_pos(robot_id, self._gamestate.get_ball_position())
 
     # helper - incrementally check a linear path
-    def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=50):
+    def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0):
         s_pos = np.array(s_pos)[:2]
         g_pos = np.array(g_pos)[:2]
 
@@ -131,7 +131,7 @@ class Actions:
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            if not self._gamestate.is_position_open(intermediate_pos, self._team, robot_id):
+            if not self._gamestate.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist):
                 return True
         return False
 
@@ -158,13 +158,19 @@ class Actions:
             wp, next_wp = current_waypoints[i], current_waypoints[i+1]
             if self.is_path_blocked(wp, next_wp, robot_id):
                 current_path_collides = True
+        # avoid rerunning too often so we don't crash the system
+        # RRT_MIN_INTERVAL = .1
+        # recently_called = robot_id in self._last_RRT_times and \
+        #     time.time() - self._last_RRT_times[robot_id] < RRT_MIN_INTERVAL
         # only rerun for same goal if long time has elapsed or path collides
-        RRT_INTERVAL = 3  # mainly in case something very strange has happened
-        recently_called = robot_id in self._last_RRT_times and \
-            time.time() - self._last_RRT_times[robot_id] < RRT_INTERVAL
-        if current_path_collides or not is_same_goal or not recently_called:
+        MIN_REFRESH_INTERVAL = 3  # mainly in case something very strange has happened
+        need_refresh = robot_id not in self._last_RRT_times or \
+            time.time() - self._last_RRT_times[robot_id] > MIN_REFRESH_INTERVAL
+        if (current_path_collides or not is_same_goal or need_refresh):
             self._last_RRT_times[robot_id] = time.time()
-            self.RRT_path_find(start_pos, goal_pos, robot_id)
+            is_success = self.RRT_path_find(start_pos, goal_pos, robot_id)
+            if not is_success:
+                return False
         return self.is_done_moving(robot_id)
 
     # heper - generate RRT waypoints
@@ -174,7 +180,8 @@ class Actions:
         graph = {tuple(start_pos): []}
         prev = {tuple(start_pos): None}
         cnt = 0
-        while True:
+        success = False
+        for _ in range(lim):
             # use gamestate.random_position()
             new_pos = np.array(
                 [np.random.randint(gs.FIELD_MIN_X, gs.FIELD_MAX_X),
@@ -197,9 +204,13 @@ class Actions:
             prev[tuple(extend_pos)] = nearest_pos
 
             if np.linalg.norm(extend_pos[:2] - goal_pos[:2]) < gs.ROBOT_RADIUS:
+                success = True
                 break
 
             cnt += 1
+        
+        if not success:
+            return success
 
         pos = self.get_nearest_pos(graph, goal_pos)  # get nearest position to goal in graph
         path = []
@@ -207,7 +218,23 @@ class Actions:
             path.append(pos)
             pos = prev[pos]
         path.reverse()
+
+        # Smooth path to reduce zig zagging
+        i = 0
+        while i < len(path) - 2:
+            if not self.is_path_blocked(path[i], path[i+2], robot_id):
+                del path[i+1]
+                continue
+            i += 1
+
+        # Cut out the "dead-weight" waypoints
+        for i, pos in enumerate(path):
+            if not self.is_path_blocked(pos, goal_pos, robot_id):
+                path = path[:i+1]
+                break
+
         self.set_waypoints(robot_id, path + [goal_pos])
+        return success
 
     def get_nearest_pos(self, graph, new_pos):
         rtn = None
@@ -236,7 +263,7 @@ class Actions:
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            if not self._gamestate.is_position_open(intermediate_pos, self._team, robot_id):
+            if not self._gamestate.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist=100):
                 break
             if np.linalg.norm(intermediate_pos - s_pos) > 4 * STEP_SIZE:
                 break

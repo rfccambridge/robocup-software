@@ -4,6 +4,7 @@
 """
 import sys
 import signal
+import traceback
 
 from gamestate import GameState
 from vision import SSLVisionDataProvider
@@ -13,16 +14,16 @@ from comms import Comms
 from simulator import Simulator
 
 # whether or not we are running with real field and robots
-IS_SIMULATION = False
+IS_SIMULATION = True
 VISION_ONLY = False  # turns off command sending if real
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
-HOME_TEAM = 'yellow'
+HOME_TEAM = 'blue'
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
 # which simulator initial setup to use (if simulating)
-SIMULATION_SETUP = 'moving_ball'
+SIMULATION_SETUP = 'entry_video'
 # which strategies each team is running (see strategy module)
-HOME_STRATEGY = 'UI'
+HOME_STRATEGY = 'entry_video'
 AWAY_STRATEGY = None
 
 # loop wait times for each thread - how much to sleep between loops
@@ -96,14 +97,4 @@ if __name__ == '__main__':
 
     # (visualizer runs on main thread to work on all platforms)
     visualizer.visualization_loop(VISUALIZATION_LOOP_SLEEP)
-    import traceback
     traceback.print_stack()
-
-# import logging
-# logging.basicConfig(level=logging.WARNING)
-
-# import traceback
-#    try:
-#    except Exception:
-#        print('Unexpected Error!')
-#        print(traceback.format_exc())

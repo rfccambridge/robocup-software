@@ -20,7 +20,7 @@ class Strategy(Actions, Routines, Roles):
     def __init__(self, gamestate, team, goalie_id=None):
         assert(team in ['blue', 'yellow'])
         self._team = team
-        self._gamestate = gamestate
+        self._gs = gamestate
 
         self._is_controlling = False
         self._control_thread = None
@@ -71,7 +71,7 @@ class Strategy(Actions, Routines, Roles):
 
     def control_loop(self):
         # wait until game begins (while other threads are initializing)
-        self._gamestate.wait_until_game_begins()
+        self._gs.wait_until_game_begins()
         try:
             while self._is_controlling:
                 # run the strategy corresponding to the given mode
@@ -85,15 +85,15 @@ class Strategy(Actions, Routines, Roles):
                     print('(unrecognized mode, doing nothing)')
 
                 # tell all robots to refresh their speeds based on waypoints
-                team_commands = self._gamestate.get_team_commands(self._team)
+                team_commands = self._gs.get_team_commands(self._team)
                 team_commands = list(team_commands.items())
                 for robot_id, robot_commands in team_commands:
                     # stop the robot if we've lost track of it
-                    if self._gamestate.is_robot_lost(self._team, robot_id):
+                    if self._gs.is_robot_lost(self._team, robot_id):
                         robot_commands.set_speeds(0, 0, 0)
                     else:
                         # recalculate the speed the robot should be commanded at
-                        pos = self._gamestate.get_robot_position(self._team, robot_id)
+                        pos = self._gs.get_robot_position(self._team, robot_id)
                         robot_commands.derive_speeds(pos)
 
                 if self._last_control_loop_time is not None:
@@ -109,7 +109,7 @@ class Strategy(Actions, Routines, Roles):
 
     # follow the user-input commands through visualizer
     def UI(self):
-        gs = self._gamestate
+        gs = self._gs
         if gs.user_selected_robot is not None:
             team, robot_id = gs.user_selected_robot
             if team == self._team:
@@ -133,7 +133,7 @@ class Strategy(Actions, Routines, Roles):
                     self.path_find(robot_id, goal_pos)
 
     def goalie_test(self):
-        gs = self._gamestate
+        gs = self._gs
         if gs.user_selected_robot is not None:
             team, robot_id = gs.user_selected_robot
             if team == self._team:
@@ -146,12 +146,14 @@ class Strategy(Actions, Routines, Roles):
         robot_id_1 = 8
         # where the initial pass will be received
         reception_pos = np.array([3200., 0., self.robot_face_ball(robot_id_1)])
-        pass_velocity = 400
-        shoot_velocity = 500
-        shoot_velocity_BIG = 800 # BIGBOI KICK
-        
+        pass_velocity = 800
+        shoot_velocity = 1200
+        # reduce for real life b.c. miniature field
+        # pass_velocity = 400
+        # shoot_velocity = 500
+
         if self.video_phase >= 6:
-            self.goalie(robot_id_1)
+            self.goalie(robot_id_1, is_opposite_goal=True)
 
         if self.video_phase == 1:
             # robot 0 gets the ball
@@ -177,7 +179,7 @@ class Strategy(Actions, Routines, Roles):
                 print("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 4:
             # robot 1 moves to best kick pos to shoot
-            goal = self._gamestate.get_attack_goal(self._team)
+            goal = self._gs.get_attack_goal(self._team)
             center_of_goal = (goal[0] + goal[1]) / 2
             shot = self.prepare_and_kick(robot_id_1, center_of_goal, shoot_velocity)
             if shot:
@@ -193,7 +195,7 @@ class Strategy(Actions, Routines, Roles):
             self.video_phase += 1
             print("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 7:
-            if self._gamestate.get_ball_position()[0] > 3000:
+            if self._gs.get_ball_position()[0] > 3000:
                 return
             # Wait for person to place a ball, then have robot 1 go to it
             got_ball = self.get_ball(robot_id_0, charge_during=shoot_velocity)
@@ -202,9 +204,9 @@ class Strategy(Actions, Routines, Roles):
                 print("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 8:
             # Robot 1 moves to best kick pos to shoot
-            goal = self._gamestate.get_attack_goal(self._team)
+            goal = self._gs.get_attack_goal(self._team)
             center_of_goal = (goal[0] + goal[1]) / 2
-            shot = self.prepare_and_kick(robot_id_0, center_of_goal, shoot_velocity_BIG)
+            shot = self.prepare_and_kick(robot_id_0, center_of_goal, shoot_velocity)
             if shot:
                 self.video_phase += 1
                 print("Moving to video phase {}".format(self.video_phase))
@@ -215,7 +217,7 @@ class Strategy(Actions, Routines, Roles):
             self.video_phase += 1
             print("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 10:
-            if self._gamestate.get_ball_position()[0] > 3000:
+            if self._gs.get_ball_position()[0] > 3000:
                 self.video_phase = 7
                 print("Moving back to video phase {}".format(self.video_phase))
         else:

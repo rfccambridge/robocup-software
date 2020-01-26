@@ -90,7 +90,7 @@ class Routines:
             return future_ball_array
 
         def best_failed_intercept_point(self, robot_id):
-            if self.intercept_range(robot_id) not None:
+            if self.intercept_range(robot_id) is not None:
                 return self.intercept_range(robot_id)
             future_ball_array = self.get_future_ball_array()
             robot_pos = self._gamestate.get_robot_position(robot_id)

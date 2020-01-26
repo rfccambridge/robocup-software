@@ -1,5 +1,5 @@
 import numpy as np
-
+import time
 
 # Definitions + supporting logic for multi-step sequences of actions
 # Use simple state management, return whether finished
@@ -73,3 +73,18 @@ class Routines:
                 return first_intercept_point, last_intercept_point
             else:
                 time += delta_t
+
+        def get_future_ball_array(self):
+            ball_pos = self._gamestate.get_ball_position()
+            # this definition of new_ball_pos guarentees that they are not the same intitally
+            new_ball_pos = ball_pos - np.array([1, 1])
+            time = time.time()
+            delta_t = .1
+            future_ball_array = []
+            while (ball_pos not new_ball_pos) and is_pos_in_bounds(new_ball_pos):
+                # here we make the previously generated point the reference
+                ball_pos = new_ball_pos
+                new_ball_pos = self._gamestate.predict_ball_pos()
+                future_ball_array.append((new_ball_pos, time))
+                time += delta_t
+            return future_ball_array

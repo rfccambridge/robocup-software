@@ -81,10 +81,26 @@ class Routines:
             time = time.time()
             delta_t = .1
             future_ball_array = []
-            while (ball_pos not new_ball_pos) and is_pos_in_bounds(new_ball_pos):
+            while (ball_pos != new_ball_pos) and is_pos_in_bounds(new_ball_pos):
                 # here we make the previously generated point the reference
                 ball_pos = new_ball_pos
                 new_ball_pos = self._gamestate.predict_ball_pos()
                 future_ball_array.append((new_ball_pos, time))
                 time += delta_t
             return future_ball_array
+
+        def best_failed_intercept_point(self, robot_id):
+            if self.intercept_range(robot_id) not None:
+                return self.intercept_range(robot_id)
+            future_ball_array = self.get_future_ball_array()
+            robot_pos = self._gamestate.get_robot_position(robot_id)
+            max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
+            time_delta = []
+            for pos in future_ball_array:
+                ball_time = pos[1]
+                ball_pos = pos[0]
+                distance_robot_needs_to_travel = np.linalg.norm(ball_pos - robot_pos)
+                robot_time = distance_robot_needs_to_travel/max_speed
+                time_delta.append(robot_time - ball_time)
+            best_index = time_delta.index(min(time_delta))
+            return future_ball_array[best_index][0]

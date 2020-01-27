@@ -105,29 +105,6 @@ class Analysis:
         #    return np.array([]) 
         return block_pos
 
-    # get a robot's final waypoint
-    # TODO: move to gamestate?
-    def get_goal_pos(self, robot_id):
-        commands = self._gs.get_robot_commands(self._team, robot_id)
-        if not commands.waypoints:
-            return None
-        return commands.waypoints[-1]
-
-    # Check if robot has arrived at final waypoint, angle included
-    def is_done_moving(self, robot_id):
-        robot_pos = self._gs.get_robot_position(self._team, robot_id)
-        commands = self._gs.get_robot_commands(self._team, robot_id)
-        waypoints = commands.waypoints
-        if waypoints:
-            destination = waypoints[-1]
-            delta = destination - robot_pos
-            linear_delta = np.linalg.norm(delta[:2])
-            LINEAR_THRESHOLD = 60
-            ANGLE_THRESHOLD = .05
-            return linear_delta < LINEAR_THRESHOLD and \
-                abs(delta[2]) < ANGLE_THRESHOLD
-        return True
-
     # incrementally check a linear path
     def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0):
         s_pos = np.array(s_pos)[:2]

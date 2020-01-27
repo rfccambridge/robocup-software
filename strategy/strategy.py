@@ -3,18 +3,24 @@ import traceback
 import numpy as np
 import time
 
-# import lower-level strategy logic
+# import lower-level strategy logic that we've separated for readability
 try:
+    from utils import Utils
+    from analysis import Analysis
     from actions import Actions
     from routines import Routines
     from roles import Roles
+    from coaches import *
 except (SystemError, ImportError):
+    from .utils import Utils
     from .actions import Actions
     from .routines import Routines
     from .roles import Roles
+    from .analysis import Analysis
+    from .coaches import *
 
 
-class Strategy(Actions, Routines, Roles):
+class Strategy(Utils, Analysis, Actions, Routines, Roles):
     """Control loop for playing the game. Calculate desired robot actions, 
        and enters commands into gamestate to be sent by comms"""
     def __init__(self, gamestate, team, goalie_id=None):

@@ -10,6 +10,7 @@ try:
     from actions import Actions
     from routines import Routines
     from roles import Roles
+    from plays import Plays
     from coaches import *
 except (SystemError, ImportError):
     from .utils import Utils
@@ -18,10 +19,11 @@ except (SystemError, ImportError):
     from .roles import Roles
     from .analysis import Analysis
     from .coaches import *
+    from .plays import Plays
 
 
-class Strategy(Utils, Analysis, Actions, Routines, Roles):
-    """Control loop for playing the game. Calculate desired robot actions, 
+class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
+    """Control loop for playing the game. Calculate desired robot actions,
        and enters commands into gamestate to be sent by comms"""
     def __init__(self, gamestate, team, goalie_id=None):
         assert(team in ['blue', 'yellow'])
@@ -69,6 +71,9 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles):
             print("2020 Registration Video Procedure!")
             self.video_phase = 1
 
+        if self._mode == "full_game":
+            print("default strategy for playing a full game")
+
     def stop_controlling(self):
         if self._is_controlling:
             self._is_controlling = False
@@ -87,6 +92,8 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles):
                     self.goalie_test()
                 elif self._mode == "entry_video":
                     self.entry_video()
+                elif self._mode == "full_game":
+                    self.full_game()
                 else:
                     print('(unrecognized mode, doing nothing)')
 
@@ -228,3 +235,7 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles):
                 print("Moving back to video phase {}".format(self.video_phase))
         else:
             pass
+
+    def full_game(self):
+        coach = Coach(self)
+        coach.play()

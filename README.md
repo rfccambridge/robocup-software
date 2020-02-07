@@ -17,4 +17,4 @@ python3 main.py
 If running with vision, ssl-vision must be running
 https://docs.google.com/document/d/1i-Pybv2wBhN23FT94PiGMyX6yAJglqeaCds62TX8-7o/edit
 
-
+NOTE: For dealing with issues installing Python 3 on Windows: https://stackoverflow.com/questions/47539201/python-is-not-recognized-windows-10. Your path will most likely be "C:\Users\AppData\Local\Programs\Python\Python38" if you installed Python 3.8.

@@ -38,5 +38,4 @@ class RefboxClient:
 
         data, _ = self.sock.recvfrom(1024)
         decoded_data = SSL_Referee.FromString(data)
-        print(decoded_data)
         return decoded_data

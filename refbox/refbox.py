@@ -2,9 +2,10 @@ import socket
 from struct import pack
 import binascii
 from ipaddress import ip_address
+import threading
 
 # from referee_pb2 import SSL_Referee_Game_Event
-from referee_pb2 import SSL_Referee
+from .referee_pb2 import SSL_Referee
 
 class RefboxClient:
     
@@ -27,7 +28,67 @@ class RefboxClient:
 
     def receive(self):
         """Receive package and decode."""
-
         data, _ = self.sock.recvfrom(1024)
         decoded_data = SSL_Referee.FromString(data)
         return decoded_data
+
+    def disconnect(self):
+        if self.sock:
+            self.sock.close()
+
+class RefboxDataProvider:
+    def __init__(self, gamestate, ip = '224.5.23.1', port=10003):
+        self._is_running = False
+        self._client = None
+        self._receive_data_thread = None
+        self._update_gamestate_thread = None
+        self._gamestate = gamestate
+        self._ip = ip
+        self._port = port
+        self._latest_packet = None
+
+    def start_updating(self):
+        if self._is_running:
+            raise Exception('RefboxDataProvider is always running')
+        self._is_running = True
+        # Connect to client
+        self._client = RefboxClient(self._ip, self._port)
+        self._client.connect()
+        # Receive data thread
+        self._receive_data_thread = threading.Thread(
+            target=self.receive_data_loop
+        )
+        self._receive_data_thread.daemon = True
+        self._receive_data_thread.start()
+        # Update gamestate thread
+        self._update_gamestate_thread = threading.Thread(
+            target=self.gamestate_update_loop
+        )
+        self._update_gamestate_thread.daemon = True
+        self._update_gamestate_thread.start()
+
+    def stop_updating(self):
+        if self._client:
+            self._client.disconnect()
+
+        if self._is_running:
+            self._is_running = False
+            self._update_gamestate_thread.join()
+            self._update_gamestate_thread = None
+            self._receive_data_thread.join()
+            self._receive_data_thread = None
+
+        self._latest_packet = None
+        
+
+    def receive_data_loop(self):
+        while self._is_running:
+            self._latest_packet = self._client.receive()
+
+    def gamestate_update_loop(self):
+        # wait until game begins (while other threads are initializing)
+        self._gamestate.wait_until_game_begins()
+        while self._is_running:
+            self._gamestate.latest_refbox_message = self._latest_packet
+
+

@@ -68,6 +68,9 @@ class GameState(Field, Analysis):
         self.user_kick_command = False
         self.user_dribble_command = False
 
+        # Refbox - the latest message delivered from the refbox
+        self.latest_refbox_message = None
+
     def start_game(self, loop_sleep):
         self._game_loop_sleep = loop_sleep
         self._is_playing = True

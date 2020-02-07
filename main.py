@@ -8,6 +8,7 @@ import traceback
 
 from gamestate import GameState
 from vision import SSLVisionDataProvider
+from refbox import RefboxDataProvider
 from strategy import Strategy
 from visualization import Visualizer
 from comms import Comms
@@ -41,6 +42,7 @@ if __name__ == '__main__':
     # initialize gamestate + all other modules
     gamestate = GameState()
     vision = SSLVisionDataProvider(gamestate)
+    refbox = RefboxDataProvider(gamestate)
     home_comms = Comms(gamestate, HOME_TEAM)
     away_comms = Comms(gamestate, AWAY_TEAM, True)
     simulator = Simulator(gamestate)
@@ -62,6 +64,7 @@ if __name__ == '__main__':
             if CONTROL_BOTH_TEAMS:
                 away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
                 # away_comms.start_sending(COMMS_RECEIVE_LOOP_SLEEP)
+        refbox.start_updating()
     # spin up strategy threads to control the robots
     home_strategy.start_controlling(HOME_STRATEGY, CONTROL_LOOP_SLEEP)
     if CONTROL_BOTH_TEAMS:
@@ -83,6 +86,7 @@ if __name__ == '__main__':
         print('Exiting Everything')
         # clean up all threads
         vision.stop_updating()
+        refbox.stop_updating()
         home_comms.stop_sending_and_receiving()
         away_comms.stop_sending_and_receiving()
         simulator.stop_simulating()

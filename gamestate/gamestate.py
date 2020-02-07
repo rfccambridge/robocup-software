@@ -56,6 +56,7 @@ class GameState(Field, Analysis):
         # Game status/events
         self.game_clock = None
         self.is_blue_defense_side_left = True
+        self.refbox_msg = None
         # TODO: enum all ref box restart commands
 
         # UI Inputs - set from visualizer

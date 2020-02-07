@@ -9,6 +9,7 @@ class Roles:
         # TODO, and move to routines!
 
     def goalie(self, robot_id, is_opposite_goal=False):
+        """Commands a given robot id to play as goalie"""
         team = self._team
         # for demo purposes, allow playing as opposite goalie
         if is_opposite_goal:

@@ -1,17 +1,17 @@
+
+'''A class to provide robot position data from the cameras'''
 import sslclient
 import threading
 import time
 import logging
 import numpy as np
 from collections import Counter
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
-'''
-A class to provide robot position data from the cameras
-'''
 
 
-class SSLVisionDataProvider():
+class SSLVisionDataProvider(object):
     def __init__(self, gamestate, HOST='224.5.23.2', PORT=10006):
         self.HOST = HOST
         self.PORT = PORT
@@ -34,6 +34,7 @@ class SSLVisionDataProvider():
         self._last_update_time = None
 
     def start_updating(self, loop_sleep):
+        """Starts listening to SSL-vision and updating the gamestate with new data"""
         self._is_running = True
         self._ssl_vision_client = sslclient.client()
         self._ssl_vision_client.connect()
@@ -81,7 +82,7 @@ class SSLVisionDataProvider():
                 for robot_id, pos in robot_positions.items():
                     self._gamestate.update_robot_position(team, robot_id, pos)
             # update position of the ball
-            ball_data = self.get_ball_position()
+            ball_data = self._get_ball_position()
             if ball_data is not None:
                 self._gamestate.update_ball_position(ball_data)
 
@@ -122,15 +123,15 @@ class SSLVisionDataProvider():
                             (current_pos[0] * (times_seen - 1) + pos[0]) / times_seen, 
                             (current_pos[1] * (times_seen - 1) + pos[1]) / times_seen, 
                             # TODO: safely average orientation?
-                            self.circular_mean((times_seen - 1, 1), (robot_data.orientation, pos[2]))
+                            self._circular_mean((times_seen - 1, 1), (robot_data.orientation, pos[2]))
                         ])
                         robot_positions[robot_id] = average_pos
         #if (team == 'blue'):
         #    print(robot_positions[0])
         return robot_positions
     
-    # helper function for averaging angles by converting to points
-    def circular_mean(self, weights, angles):
+    def _circular_mean(self, weights, angles):
+        "helper function for averaging angles by converting to points"
         x = y = 0.
         for angle, weight in zip(angles, weights):
             x += np.cos(angle) * weight
@@ -141,10 +142,11 @@ class SSLVisionDataProvider():
         mean = np.arctan2(y, x)
         return mean
 
-    def get_ball_position(self):
-        # average ball readings of the cameras
+    def _get_ball_position(self) -> Tuple[float, float]:
+        "Returns average ball readings of the cameras."
         average_ball = None
         times_seen = 0
+        # TODO: Do some advanced processing based on which camera has seen the ball
         for camera_id, raw_data in self._raw_camera_data.items():
             balls = raw_data.balls
             CONFIDENCE_THRESHOLD = .5

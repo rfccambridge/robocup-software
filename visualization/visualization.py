@@ -3,6 +3,7 @@ import math
 import time
 import numpy as np
 import pygame
+from typing import Iterable, Tuple, Optional
 
 # rendering constants (dimensions are in field - mm)
 FIELD_LINE_WIDTH = 20
@@ -81,8 +82,10 @@ class Visualizer(object):
         pygame.display.set_caption("Robocup Visualizer")
         self._clock = pygame.time.Clock()
 
-    # map ssl-vision field position to pixel x,y on viewer
-    def field_to_screen(self, pos):
+     
+    def field_to_screen(self, pos: Tuple[float, float]) -> Tuple[float, float]:
+        """Takes in either a tuple (x, y, w) or (x, y) and transforms the first
+        two coordinates into the reference frame in our viewer only."""
         if len(pos) == 3:
             # only consider x, y of robot positions
             pos = pos[:2]
@@ -99,7 +102,9 @@ class Visualizer(object):
         return pos
 
     # map screen pixels to field position
-    def screen_to_field(self, pos):
+    def screen_to_field(self, pos: Tuple[float, float]) -> Tuple[float, float]:
+        """Takes in either a tuple representing pixel (x, y) in our GUI/visualizer
+        and returns the corresponding (x', y') of the location in real life."""
         pos = np.array(pos).astype(float)
         # revert y axis
         pos[1] = self._TOTAL_SCREEN_HEIGHT - pos[1]
@@ -111,8 +116,8 @@ class Visualizer(object):
         pos -= np.array([self._gs.FIELD_MAX_X, self._gs.FIELD_MAX_Y])
         return pos
 
-    # designed to run in main thread, for pygame to work on all platforms
-    def visualization_loop(self, loop_sleep):
+    def visualization_loop(self, loop_sleep: float):
+        """Loop that powers the pygame visualization. Must be called from the main thread."""
         # wait until game begins (while other threads are initializing)
         self._gs.wait_until_game_begins()
         while self._updating:

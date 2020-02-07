@@ -1,10 +1,11 @@
 import numpy as np
 import time
-
+from typing import Optional, Tuple, Iterable
 
 # Analysis functions for strategy
 class Analysis:
     def get_future_ball_array(self):
+        """Samples incrementally to return array of future predicted ball positions"""
         ball_pos = self._gs.get_ball_position()
         # this definition of new_ball_pos guarentees that they are not the same intitally
         new_ball_pos = ball_pos - np.array([1, 1])
@@ -19,8 +20,8 @@ class Analysis:
             time += delta_t
         return future_ball_array
 
-    # find the range for which a robot can reach the ball in its trajectory
-    def intercept_range(self, robot_id):
+    def intercept_range(self, robot_id: int):
+        """find the range for which a robot can reach the ball in its trajectory"""
         # print(f"start time: {datetime.now()}")
         # variable at the time when the ball first gets within range.
         robot_pos = self._gs.get_robot_position(self._team, robot_id)
@@ -55,7 +56,9 @@ class Analysis:
             else:
                 time += delta_t
 
-    def best_failed_intercept_point(self, robot_id):
+    def best_failed_intercept_point(self, robot_id: int):
+        """determine the point in the ball's trajectory that the robot can reach 
+        soonest relative to the ball (even if it's too late)"""
         if self.intercept_range(robot_id) is not None:
             return self.intercept_range(robot_id)
         future_ball_array = self.get_future_ball_array()
@@ -71,15 +74,16 @@ class Analysis:
         best_index = time_delta.index(min(time_delta))
         return future_ball_array[best_index][0]
 
-    # determine best robot position to kick in desired directions
-    def best_kick_pos(self, from_pos, to_pos):
+    def best_kick_pos(self, from_pos: Tuple[float, float], to_pos: Tuple[float, float]) -> Tuple[float, float, float]:
+        """determine the best robot position to kick in desired direction"""
         dx, dy = to_pos[:2] - from_pos[:2]
         w = np.arctan2(dy, dx)
         return self._gs.dribbler_to_robot_pos(from_pos, w)
 
     # TODO: generalize for building walls and stuff
     # TODO: account for attacker orientation?
-    def block_goal_center_pos(self, max_distance_from_goal, ball_pos=None, team=None):
+    def block_goal_center_pos(self, max_distance_from_goal: float, ball_pos=None, team=None):
+        """Return position between the ball and the goal, at a particular distance from the goal"""
         if team is None:
             team = self._team
         if ball_pos is None:
@@ -105,8 +109,8 @@ class Analysis:
         #    return np.array([]) 
         return block_pos
 
-    # incrementally check a linear path
     def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0):
+        "incrementally check a linear path for obstacles"
         s_pos = np.array(s_pos)[:2]
         g_pos = np.array(g_pos)[:2]
 
@@ -191,6 +195,7 @@ class Analysis:
         self.set_waypoints(robot_id, path + [goal_pos])
         return success
 
+    # RRT helper
     def get_nearest_pos(self, graph, new_pos):
         rtn = None
         min_dist = float('inf')
@@ -201,6 +206,7 @@ class Analysis:
                 rtn = pos
         return rtn
 
+    # RRT helper
     def extend(self, s_pos, g_pos, robot_id=None):
         s_pos = np.array(s_pos)[:2]
         g_pos = np.array(g_pos)[:2]

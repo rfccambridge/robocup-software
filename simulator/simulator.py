@@ -2,6 +2,7 @@ import threading
 import time
 import numpy as np
 from collections import deque
+from typing import Tuple
 
 
 class Simulator(object):
@@ -18,12 +19,14 @@ class Simulator(object):
 
         self._initial_setup = None
 
-    # TODO: flush out system for initializing test scenarios
-    def put_fake_robot(self, team, robot_id, position):
+    def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
+        "initialize a robot with given id + team at (x, y, w) position"
         self._gamestate.update_robot_position(team, robot_id, position)
 
-    # initialize ball position data to reflect desired position + velocity
-    def put_fake_ball(self, position, velocity=np.array([0, 0])):
+    def put_fake_ball(self, position, velocity=None):
+        "initialize ball position data to reflect desired position + velocity"
+        if velocity is None:
+            velocity = np.array([0, 0])  
         self._gamestate.clear_ball_position()
         # use small dt to minimize deceleration correction
         dt = .05
@@ -34,6 +37,8 @@ class Simulator(object):
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
     def start_simulating(self, inital_setup, loop_sleep):
+        """Spin up simulator thread to update gamestate as though robots 
+        are following commands + physics"""
         self._initial_setup = inital_setup
         self._simulation_loop_sleep = loop_sleep
         self._is_simulating = True

@@ -15,7 +15,7 @@ from simulator import Simulator
 
 # whether or not we are running with real field and robots
 IS_SIMULATION = True
-VISION_ONLY = False  # turns off command sending if real
+VISION_ONLY = True  # turns off command sending if real
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'

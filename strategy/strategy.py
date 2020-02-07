@@ -41,8 +41,8 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
         # (this also helps reduce oscillation)
         self._last_RRT_times = {}  # robot_id : timestamp
 
-    # function to be called from main.py
     def start_controlling(self, mode, loop_sleep):
+        """Spins up control thread specified by mode, to command the robots"""
         self._mode = mode
         self._control_loop_sleep = loop_sleep
         self._is_controlling = True

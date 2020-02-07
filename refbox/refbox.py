@@ -25,14 +25,6 @@ class RefboxClient:
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, pack("=4sl", socket.inet_aton(self.ip), socket.INADDR_ANY))
         self.sock.bind((self.ip, self.port))
 
-       
-    """
-        host = socket.gethostbyname(socket.gethostname())
-        self.sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(host))
-        self.sock.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, 
-                socket.inet_aton(self.ip) + socket.inet_aton(host))
- """
-
     def receive(self):
         """Receive package and decode."""
 

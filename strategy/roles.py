@@ -17,14 +17,10 @@ class Roles:
         shot_location = self._gs.is_shot_coming(team)
         if shot_location is not None:
             # robot goes to ball using to nearest interception point
-            intercept_range = self.intercept_range(robot_id)
-            if intercept_range is None:
-                # TODO: go to closest point in trajectory?
-                # don't give up!
-                intercept_pos = shot_location
-            else:
-                intercept_pos = intercept_range[0]
-            self.move_straight(robot_id, intercept_pos, is_urgent=True)
+            # Note that that if the robot CAN intercept the ball, this function
+            # returns the same thing as intercept_range
+            safest_intercept_point = self.safest_intercept_point(robot_id)
+            self.move_straight(robot_id, safest_intercept_point, is_urgent=True)
         else:
             GOALIE_OFFSET = 600  # goalie stays this far from goal center
             goalie_pos = self.block_goal_center_pos(GOALIE_OFFSET, ball_pos=None, team=team)

@@ -21,50 +21,6 @@ class Analysis:
             t += delta_t
         return future_ball_array
 
-    # This is a relic of intercept_range of the past. New and improved function with the same output is
-    # below. I left this here in case the new intercept_range turns out to be flawed.
-    def old_intercept_range(self, robot_id: int
-        ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
-        """find the range for which a robot can reach the ball in its trajectory
-
-        @return position1, position2:
-            returns the positions between which robots can intercept the ball.
-            returns None if interception is not possible
-        """
-        # print(f"start time: {datetime.now()}")
-        # variable at the time when the ball first gets within range.
-        robot_pos = self._gs.get_robot_position(self._team, robot_id)
-        delta_t = .1
-        time = 0
-        out_of_range = True
-        while(out_of_range):
-            interception_pos = self._gs.predict_ball_pos(time)
-            separation_distance = np.linalg.norm(robot_pos[:2] - interception_pos)
-            max_speed = self._gs.robot_max_speed(self._team, robot_id)
-            if separation_distance <= time * max_speed:
-                first_intercept_point = interception_pos
-                if not self._gs.is_in_play(first_intercept_point):
-                    return None
-                out_of_range = False
-            else:
-                time += delta_t
-        while(not out_of_range):
-            # Starting at the time when the ball first got within range.
-            interception_pos = self._gs.predict_ball_pos(time)
-            separation_distance = np.linalg.norm(robot_pos[:2] - interception_pos)
-            max_speed = self._gs.robot_max_speed(self._team, robot_id)
-            last_intercept_point = self._gs.predict_ball_pos(time - delta_t)
-            # Use opposite criteria to find the end of the window
-            cant_reach = (separation_distance > time * max_speed)
-            stopped_moving = (last_intercept_point == interception_pos).all()
-            in_play = self._gs.is_in_play(interception_pos)
-            if cant_reach or stopped_moving or not in_play:
-                # we need to subtract delta_t because we found the last
-                #print(f"end time: {datetime.now()}")
-                return first_intercept_point, last_intercept_point
-            else:
-                time += delta_t
-
     def intercept_range(self, robot_id: int
         ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """find the range for which a robot can reach the ball in its trajectory

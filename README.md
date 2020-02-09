@@ -15,7 +15,7 @@ python3 main.py
 If running with vision, ssl-vision must be running
 https://docs.google.com/document/d/1i-Pybv2wBhN23FT94PiGMyX6yAJglqeaCds62TX8-7o/edit
 
-# NOTES FOR MAC
+## NOTES FOR MAC
 
 TODO: For mac users, installing pygame for python3 may require more steps
 
@@ -28,7 +28,7 @@ Inside the venv, run
 python3 -m pip install -r requirements.txt
 ```
 
-# NOTES FOR WINDOWS
+## NOTES FOR WINDOWS
 
 NOTE: For dealing with issues installing Python 3 on Windows: https://stackoverflow.com/questions/47539201/python-is-not-recognized-windows-10. Your path will most likely be "C:\Users\AppData\Local\Programs\Python\Python38" if you installed Python 3.8.
 

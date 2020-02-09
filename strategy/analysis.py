@@ -21,7 +21,9 @@ class Analysis:
             t += delta_t
         return future_ball_array
 
-    def intercept_range(self, robot_id: int
+    # This is a relic of intercept_range of the past. New and improved function with the same output is
+    # below. I left this here in case the new intercept_range turns out to be flawed.
+    def old_intercept_range(self, robot_id: int
         ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """find the range for which a robot can reach the ball in its trajectory
 
@@ -62,6 +64,43 @@ class Analysis:
                 return first_intercept_point, last_intercept_point
             else:
                 time += delta_t
+
+    def intercept_range(self, robot_id: int
+        ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+        """find the range for which a robot can reach the ball in its trajectory
+
+        @return position1, position2:
+            returns the positions between which robots can intercept the ball.
+            returns None if interception is not possible
+        """
+        future_ball_array = self.get_future_ball_array()
+        if len(future_ball_array) == 0:
+            return None
+        max_index = len(future_ball_array) - 1
+        robot_pos = self._gs.get_robot_position(self._team, robot_id)
+        max_speed = self._gs.robot_max_speed(self._team, robot_id)
+        def buffer_time(data):
+            timestamp, ball_pos = data
+            ball_travel_time = timestamp - time.time()
+            distance_robot_needs_to_travel = np.linalg.norm(ball_pos - robot_pos[:2])
+            robot_travel_time = distance_robot_needs_to_travel / max_speed
+            return ball_travel_time - robot_travel_time
+        index = 0
+        while(index < max_index and buffer_time(future_ball_array[index]) < 0):
+            index += 1
+        # This "if/elif" covers the cases when we've exhausted the future_ball_array and haven't found an last_intercept_point
+        # if the last two pos entries are equal, the ball is stopped and we can get there in a time longer than the
+        # scope of the array, otherwise there is no intercept pos.
+        if index >= max_index:
+            if (future_ball_array[max_index][1] == future_ball_array[max_index - 1][1]).all:
+                return future_ball_array[max_index][1], future_ball_array[max_index][1]
+            else:
+                return None
+        first_intercept_point = future_ball_array[index][1]
+        while(index < max_index and buffer_time(future_ball_array[index]) >= 0):
+            index += 1
+        last_intercept_point = future_ball_array[index-1][1]
+        return first_intercept_point, last_intercept_point
 
     def safest_intercept_point(self, robot_id: int) -> Tuple[float, float]:
         """determine the point in the ball's trajectory that the robot can reach

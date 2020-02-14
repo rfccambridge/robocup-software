@@ -24,14 +24,18 @@ parser = argparse.ArgumentParser(description='Runs our main codebase')
 parser.add_argument('-s', '--simulate',
                     action="store_true",
                     help='run the codebase using the simulator rather than real vision data or robots')
-parser.add_argument('-nr', '--no_radio',
+parser.add_argument('-nra', '--no_radio',
                     action="store_true",
                     help='turns off command sending. no commands go over the radio')
+parser.add_argument('-nre', '--no_refbox',
+                    action="store_true",
+                    help='ignores commands from the refbox.')
 command_line_args = parser.parse_args()
 
 # whether or not we are running with real field and robots
 IS_SIMULATION = command_line_args.simulate
 NO_RADIO = command_line_args.no_radio  # turns off command sending if real
+NO_REFBOX = command_line_args.no_refbox # turns off refbox data provider
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'
@@ -54,10 +58,14 @@ GAME_LOOP_SLEEP = .1
 if __name__ == '__main__':
     VERBOSE = False
 
+    # Welcome message
     print('RFC Cambridge Robocup Software')
     print('------------------------------')
     print(f'Running in simulator mode: {IS_SIMULATION}')
-    print(f'Running in no radio mode: {NO_RADIO}')
+    if not IS_SIMULATION:
+        print(f'Running in no radio mode: {NO_RADIO}')
+    print(f'Running in no refbox mode: {NO_REFBOX}')
+    
     # initialize gamestate + all other modules
     gamestate = GameState()
     vision = SSLVisionDataProvider(gamestate)
@@ -73,6 +81,8 @@ if __name__ == '__main__':
     if IS_SIMULATION:
         # spin up simulator to replace actual vision data + comms
         simulator.start_simulating(SIMULATION_SETUP, SIMULATION_LOOP_SLEEP)
+        if not NO_REFBOX:
+            refbox.start_updating()
     else:
         # spin up ssl-vision data polling to update gamestate
         vision.start_updating(VISION_LOOP_SLEEP)
@@ -83,7 +93,8 @@ if __name__ == '__main__':
             if CONTROL_BOTH_TEAMS:
                 away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
                 # away_comms.start_sending(COMMS_RECEIVE_LOOP_SLEEP)
-        refbox.start_updating()
+        if not NO_REFBOX:
+            refbox.start_updating()
     # spin up strategy threads to control the robots
     home_strategy.start_controlling(HOME_STRATEGY, CONTROL_LOOP_SLEEP)
     if CONTROL_BOTH_TEAMS:

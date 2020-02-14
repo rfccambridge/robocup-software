@@ -5,6 +5,11 @@
 import sys
 import signal
 import traceback
+import argparse
+
+# Remove pygame's annoying welcome message
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
 from gamestate import GameState
 from vision import SSLVisionDataProvider
@@ -14,9 +19,19 @@ from visualization import Visualizer
 from comms import Comms
 from simulator import Simulator
 
+# Setup command line arg parsing
+parser = argparse.ArgumentParser(description='Runs our main codebase')
+parser.add_argument('-s', '--simulate',
+                    action="store_true",
+                    help='run the codebase using the simulator rather than real vision data or robots')
+parser.add_argument('-nr', '--no_radio',
+                    action="store_true",
+                    help='turns off command sending. no commands go over the radio')
+command_line_args = parser.parse_args()
+
 # whether or not we are running with real field and robots
-IS_SIMULATION = True
-VISION_ONLY = True  # turns off command sending if real
+IS_SIMULATION = command_line_args.simulate
+NO_RADIO = command_line_args.no_radio  # turns off command sending if real
 CONTROL_BOTH_TEAMS = False
 # we will control home team in a real match
 HOME_TEAM = 'blue'
@@ -39,6 +54,10 @@ GAME_LOOP_SLEEP = .1
 if __name__ == '__main__':
     VERBOSE = False
 
+    print('RFC Cambridge Robocup Software')
+    print('------------------------------')
+    print(f'Running in simulator mode: {IS_SIMULATION}')
+    print(f'Running in no radio mode: {NO_RADIO}')
     # initialize gamestate + all other modules
     gamestate = GameState()
     vision = SSLVisionDataProvider(gamestate)
@@ -57,7 +76,7 @@ if __name__ == '__main__':
     else:
         # spin up ssl-vision data polling to update gamestate
         vision.start_updating(VISION_LOOP_SLEEP)
-        if not VISION_ONLY:
+        if not NO_RADIO:
             # spin up comms to send commands to robots
             home_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
             # home_comms.start_receiving(COMMS_RECEIVE_LOOP_SLEEP)

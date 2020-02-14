@@ -8,11 +8,23 @@ To install dependencies, run:
 ```bash
 pip3 install -r requirements.txt
 ```
-Main control loop is main.py - comment out vision + comms threads if not running with hardware
-```bash
-python3 main.py
+To start the software package run the file `main.py`.
+
+If you do not have a radio plugged in or you do have a radio but do not want to send real life commands, then add the `--no_radio` flag. 
+
+If you want to use the simulator rather than a real field (with camera) then add the `--simulate` flag.
+
+For more information on the flags available run 
 ```
-If running with vision, ssl-vision must be running
+python3 main.py --help
+```
+
+If you are just getting started with developing our software, likely you will want to run:
+
+```bash
+python3 main.py --simulate
+```
+If running with vision (i.e not using the simulator), ssl-vision must be running
 https://docs.google.com/document/d/1i-Pybv2wBhN23FT94PiGMyX6yAJglqeaCds62TX8-7o/edit
 
 ### NOTES FOR MAC

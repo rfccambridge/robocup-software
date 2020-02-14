@@ -38,7 +38,7 @@ class Field(object):
         return ((self.FIELD_MIN_X <= pos[0] <= self.FIELD_MAX_X) and
                 (self.FIELD_MIN_Y <= pos[1] <= self.FIELD_MAX_Y))
 
-    def is_pos_in_bounds(self, pos, team, robot_id):
+    def is_pos_legal(self, pos, team, robot_id):
         # TODO: during free kicks must be away from opponent area
         # + ALL OTHER RULES
         is_defender_too_close = self.is_in_defense_area(pos, team) and \

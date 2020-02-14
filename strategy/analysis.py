@@ -9,70 +9,73 @@ class Analysis:
         ball_pos = self._gs.get_ball_position()
         # this definition of new_ball_pos guarentees that they are not the same intitally
         new_ball_pos = ball_pos - np.array([1, 1])
-        time = time.time()
+        now = time.time()
+        t = 0
         delta_t = .1
         future_ball_array = []
-        while (ball_pos != new_ball_pos) and is_pos_in_bounds(new_ball_pos):
+        while ((ball_pos != new_ball_pos).any() or t == 0) and self._gs.is_in_play(new_ball_pos):
             # here we make the previously generated point the reference
             ball_pos = new_ball_pos
-            new_ball_pos = self._gs.predict_ball_pos()
-            future_ball_array.append((new_ball_pos, time))
-            time += delta_t
+            new_ball_pos = self._gs.predict_ball_pos(t)
+            future_ball_array.append((t + now, new_ball_pos))
+            t += delta_t
         return future_ball_array
 
-    def intercept_range(self, robot_id: int):
-        """find the range for which a robot can reach the ball in its trajectory"""
-        # print(f"start time: {datetime.now()}")
-        # variable at the time when the ball first gets within range.
-        robot_pos = self._gs.get_robot_position(self._team, robot_id)
-        delta_t = .1
-        time = 0
-        out_of_range = True
-        while(out_of_range):
-            interception_pos = self._gs.predict_ball_pos(time)
-            separation_distance = np.linalg.norm(robot_pos[:2] - interception_pos)
-            max_speed = self._gs.robot_max_speed(self._team, robot_id)
-            if separation_distance <= time * max_speed:
-                first_intercept_point = interception_pos
-                if not self._gs.is_in_play(first_intercept_point):
-                    return None
-                out_of_range = False
-            else:
-                time += delta_t
-        while(not out_of_range):
-            # Starting at the time when the ball first got within range.
-            interception_pos = self._gs.predict_ball_pos(time)
-            separation_distance = np.linalg.norm(robot_pos[:2] - interception_pos)
-            max_speed = self._gs.robot_max_speed(self._team, robot_id)
-            last_intercept_point = self._gs.predict_ball_pos(time - delta_t)
-            # Use opposite criteria to find the end of the window
-            cant_reach = (separation_distance > time * max_speed)
-            stopped_moving = (last_intercept_point == interception_pos).all()
-            in_play = self._gs.is_in_play(interception_pos)
-            if cant_reach or stopped_moving or not in_play:
-                # we need to subtract delta_t because we found the last
-                #print(f"end time: {datetime.now()}")
-                return first_intercept_point, last_intercept_point
-            else:
-                time += delta_t
+    def intercept_range(self, robot_id: int
+        ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+        """find the range for which a robot can reach the ball in its trajectory
 
-    def best_failed_intercept_point(self, robot_id: int):
-        """determine the point in the ball's trajectory that the robot can reach 
-        soonest relative to the ball (even if it's too late)"""
-        if self.intercept_range(robot_id) is not None:
-            return self.intercept_range(robot_id)
+        @return position1, position2:
+            returns the positions between which robots can intercept the ball.
+            returns None if interception is not possible
+        """
         future_ball_array = self.get_future_ball_array()
-        robot_pos = self._gs.get_robot_position(robot_id)
+        if len(future_ball_array) == 0:
+            return None
+        max_index = len(future_ball_array) - 1
+        robot_pos = self._gs.get_robot_position(self._team, robot_id)
         max_speed = self._gs.robot_max_speed(self._team, robot_id)
-        time_delta = []
-        for pos in future_ball_array:
-            ball_time = pos[1]
-            ball_pos = pos[0]
-            distance_robot_needs_to_travel = np.linalg.norm(ball_pos - robot_pos)
-            robot_time = distance_robot_needs_to_travel/max_speed
-            time_delta.append(robot_time - ball_time)
-        best_index = time_delta.index(min(time_delta))
-        return future_ball_array[best_index][0]
+        def buffer_time(data):
+            timestamp, ball_pos = data
+            ball_travel_time = timestamp - time.time()
+            distance_robot_needs_to_travel = np.linalg.norm(ball_pos - robot_pos[:2])
+            robot_travel_time = distance_robot_needs_to_travel / max_speed
+            return ball_travel_time - robot_travel_time
+        index = 0
+        while(index < max_index and buffer_time(future_ball_array[index]) < 0):
+            index += 1
+        # This "if/elif" covers the cases when we've exhausted the future_ball_array and haven't found an last_intercept_point
+        # if the last two pos entries are equal, the ball is stopped and we can get there in a time longer than the
+        # scope of the array, otherwise there is no intercept pos.
+        if index >= max_index:
+            if (future_ball_array[max_index][1] == future_ball_array[max_index - 1][1]).all:
+                return future_ball_array[max_index][1], future_ball_array[max_index][1]
+            else:
+                return None
+        first_intercept_point = future_ball_array[index][1]
+        while(index < max_index and buffer_time(future_ball_array[index]) >= 0):
+            index += 1
+        last_intercept_point = future_ball_array[index-1][1]
+        return first_intercept_point, last_intercept_point
+
+    def safest_intercept_point(self, robot_id: int) -> Tuple[float, float]:
+        """determine the point in the ball's trajectory that the robot can reach
+        soonest relative to the ball (even if it's too late)"""
+        future_ball_array = self.get_future_ball_array()
+        robot_pos = self._gs.get_robot_position(self._team, robot_id)
+        max_speed = self._gs.robot_max_speed(self._team, robot_id)
+        def buffer_time(data):
+            timestamp, ball_pos = data
+            ball_travel_time = timestamp - time.time()
+            distance_robot_needs_to_travel = np.linalg.norm(ball_pos - robot_pos[:2])
+            robot_travel_time = distance_robot_needs_to_travel / max_speed
+            return ball_travel_time - robot_travel_time
+        if len(future_ball_array) > 0:
+            buffer_time, safest_pos = max(future_ball_array, key=buffer_time)
+        else:
+            # if the ball is not visible, return current position
+            safest_pos = robot_pos
+        return safest_pos
 
     def best_kick_pos(self, from_pos: Tuple[float, float], to_pos: Tuple[float, float]) -> Tuple[float, float, float]:
         """determine the best robot position to kick in desired direction"""
@@ -106,7 +109,7 @@ class Analysis:
         block_pos = np.array([x, y, angle_to_ball])
         # TODO: THIS IS A HACK TO MAKE IT STAY WITHIN CAMERA RANGE
         # if block_pos[0] > self._gs.FIELD_MAX_X - self._gs.ROBOT_RADIUS * 3 or block_pos[0] < self._gs.FIELD_MIN_X + self._gs.ROBOT_RADIUS * 3:
-        #    return np.array([]) 
+        #    return np.array([])
         return block_pos
 
     def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0):
@@ -131,7 +134,7 @@ class Analysis:
             if not self._gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist):
                 return True
         return False
-    
+
     # generate RRT waypoints
     def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000):
         goal_pos = np.array(goal_pos)
@@ -148,7 +151,7 @@ class Analysis:
                  0.0])
             if np.random.random() < 0.05:
                 new_pos = goal_pos
-                
+
             if not self._gs.is_position_open(new_pos, self._team, robot_id, buffer_dist=100) \
                or tuple(new_pos) in graph:
                 continue
@@ -167,7 +170,7 @@ class Analysis:
                 break
 
             cnt += 1
-        
+
         if not success:
             return success
 
@@ -210,14 +213,14 @@ class Analysis:
     def extend(self, s_pos, g_pos, robot_id=None):
         s_pos = np.array(s_pos)[:2]
         g_pos = np.array(g_pos)[:2]
-        
+
         if (g_pos == s_pos).all():
             return False
-        
+
         path = g_pos - s_pos
         norm_path = path / np.linalg.norm(path)
         STEP_SIZE = self._gs.ROBOT_RADIUS
-        
+
         # step along the path and check if any points are blocked
         poses = [None]
         steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
@@ -229,7 +232,5 @@ class Analysis:
             if np.linalg.norm(intermediate_pos - s_pos) > 4 * STEP_SIZE:
                 break
             poses.append(intermediate_pos)
-            
+
         return poses[-1]
-
-

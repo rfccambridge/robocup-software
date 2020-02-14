@@ -154,6 +154,15 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
         if self._goalie_id is not None:
             self.goalie(self._goalie_id)
 
+    def attacker_test(self):
+        gs = self._gs
+        if gs.user_selected_robot is not None:
+            team, robot_id = gs.user_selected_robot
+            if team == self._team:
+                self._attacker_id = robot_id
+        if self._attacker_id is not None:
+            self.attacker(self._attacker_id)
+
     def entry_video(self):
         robot_id_0 = 0
         robot_id_1 = 8

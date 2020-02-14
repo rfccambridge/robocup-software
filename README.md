@@ -27,6 +27,12 @@ python3 main.py --simulate
 If running with vision (i.e not using the simulator), ssl-vision must be running
 https://docs.google.com/document/d/1i-Pybv2wBhN23FT94PiGMyX6yAJglqeaCds62TX8-7o/edit
 
+### Referee box
+In order to control a full game (with scoring, fouls, corners, penalties etc.) you should have a refbox running. This isn't necessary for testing and general development.
+
+Follow [these](https://robocup-ssl.github.io/ssl-refbox/install.html) instructions to install and run the refbox.
+
+Messages from the refbox are stored in the `gamestate.latest_refbox_message` variable. If you do not have a refbox running, then this variable will be `None`.
 ### NOTES FOR MAC
 
 TODO: For mac users, installing pygame for python3 may require more steps

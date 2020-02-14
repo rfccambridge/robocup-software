@@ -24,7 +24,7 @@ AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
 # which simulator initial setup to use (if simulating)
 SIMULATION_SETUP = 'full_teams'
 # which strategies each team is running (see strategy module)
-HOME_STRATEGY = 'goalie_test'
+HOME_STRATEGY = 'attacker_test'
 AWAY_STRATEGY = None
 
 # loop wait times for each thread - how much to sleep between loops
@@ -45,9 +45,9 @@ if __name__ == '__main__':
     refbox = RefboxDataProvider(gamestate)
     home_comms = Comms(gamestate, HOME_TEAM)
     away_comms = Comms(gamestate, AWAY_TEAM, True)
-    simulator = Simulator(gamestate)
-    home_strategy = Strategy(gamestate, HOME_TEAM)
-    away_strategy = Strategy(gamestate, AWAY_TEAM)
+    simulator = Simulator(gamestate) if IS_SIMULATION else None
+    home_strategy = Strategy(gamestate, HOME_TEAM, simulator)
+    away_strategy = Strategy(gamestate, AWAY_TEAM, simulator)
 
     # choose which modules to run based on run conditions
     print('Spinning up Threads...')

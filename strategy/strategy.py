@@ -25,7 +25,7 @@ except (SystemError, ImportError):
 class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
     """Control loop for playing the game. Calculate desired robot actions,
        and enters commands into gamestate to be sent by comms"""
-    def __init__(self, gamestate, team, goalie_id=None):
+    def __init__(self, gamestate, team, simulator=None):
         assert(team in ['blue', 'yellow'])
         self._team = team
         self._gs = gamestate
@@ -35,8 +35,8 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
         self._control_loop_sleep = None
         self._last_control_loop_time = None
         self._mode = None
-        self._goalie_id = goalie_id
-
+        self._simulator = simulator
+        
         # state for reducing frequency of expensive calls
         # (this also helps reduce oscillation)
         self._last_RRT_times = {}  # robot_id : timestamp
@@ -70,7 +70,10 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
         if self._mode == "entry_video":
             print("2020 Registration Video Procedure!")
             self.video_phase = 1
-
+        if self._mode == "goalie_test":
+            self._goalie_id = None
+        if self._mode == "attacker_test":
+            self._attacker_id = None
         if self._mode == "full_game":
             print("default strategy for playing a full game")
 
@@ -90,6 +93,8 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
                     self.UI()
                 elif self._mode == "goalie_test":
                     self.goalie_test()
+                elif self._mode == "attacker_test":
+                    self.attacker_test()
                 elif self._mode == "entry_video":
                     self.entry_video()
                 elif self._mode == "full_game":
@@ -143,7 +148,23 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
                     goal_pos = np.array([x, y, w])
                     # Use pathfinding
                     #self.move_straight(robot_id, goal_pos, is_urgent=True)
-                    self.path_find(robot_id, goal_pos)
+                    if is_teleport:
+                        self._simulator.put_fake_robot(team, robot_id, goal_pos)
+                    else:
+                        self.path_find(robot_id, goal_pos)
+
+    def click_teleport(self, team, robot_id):
+        gs = self._gs
+        if gs.user_click_position is not None and robot_id is not None:
+            x, y = gs.user_click_position
+            if gs.user_drag_vector.any():
+                # face the dragged direction
+                dx, dy = gs.user_drag_vector
+                w = np.arctan2(dy, dx)
+            else:
+                w = None
+            goal_pos = np.array([x, y, w])
+            self._simulator.put_fake_robot(team, robot_id, goal_pos)
 
     def goalie_test(self):
         gs = self._gs
@@ -162,6 +183,7 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
                 self._attacker_id = robot_id
         if self._attacker_id is not None:
             self.attacker(self._attacker_id)
+        self.click_teleport(self._team, self._attacker_id)
 
     def entry_video(self):
         robot_id_0 = 0

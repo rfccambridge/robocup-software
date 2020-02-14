@@ -20,8 +20,12 @@ class Simulator(object):
         self._initial_setup = None
 
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
-        "initialize a robot with given id + team at (x, y, w) position"
+        """initialize a robot with given id + team at (x, y, w) position"""
+        if position[2] is None:
+            position[2] = 0
         self._gamestate.update_robot_position(team, robot_id, position)
+        commands = self._gamestate.get_robot_commands(team, robot_id)
+        commands.clear_waypoints()
 
     def put_fake_ball(self, position, velocity=None):
         "initialize ball position data to reflect desired position + velocity"

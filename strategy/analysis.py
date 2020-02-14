@@ -112,7 +112,7 @@ class Analysis:
         #    return np.array([])
         return block_pos
 
-    def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0):
+    def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=False):
         "incrementally check a linear path for obstacles"
         s_pos = np.array(s_pos)[:2]
         g_pos = np.array(g_pos)[:2]
@@ -120,20 +120,35 @@ class Analysis:
         if (g_pos == s_pos).all():
             return False
         # Check endpoint first to avoid worrying about step size in the loop
-        if not self._gs.is_position_open(g_pos, self._team, robot_id):
+        def legal(pos):
+            return self._gs.is_pos_legal(g_pos, self._team, robot_id) or allow_illegal
+        if not self._gs.is_position_open(g_pos, self._team, robot_id) or not legal(g_pos):
             return True
         path = g_pos - s_pos
         norm_path = path / np.linalg.norm(path)
         STEP_SIZE = self._gs.ROBOT_RADIUS
 
         # step along the path and check if any points are blocked
+        #print(s_pos)
+        #print(g_pos)
+        #print(path)
         steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            if not self._gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist):
+            if not self._gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
                 return True
         return False
+
+    def within_shooting_range(self, team, robot_id):
+        # shooting range
+        shoot_range = 2000
+        # get center goal and robot positions
+        goal = self._gs.get_attack_goal(team)
+        center_of_goal = (goal[0] + goal[1]) / 2
+        robot_pos = self._gs.get_robot_position(team, robot_id)[:2]
+        return np.linalg.norm(robot_pos - center_of_goal) < shoot_range
+
 
     # generate RRT waypoints
     def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000):
@@ -227,7 +242,8 @@ class Analysis:
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            if not self._gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist=100):
+            if not self._gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist=100) or \
+               not self._gs.is_pos_legal(g_pos, self._team, robot_id):
                 break
             if np.linalg.norm(intermediate_pos - s_pos) > 4 * STEP_SIZE:
                 break

@@ -26,3 +26,22 @@ class Roles:
             goalie_pos = self.block_goal_center_pos(GOALIE_OFFSET, ball_pos=None, team=team)
             if goalie_pos.any():
                 self.move_straight(robot_id, goalie_pos)
+    
+    def attacker(self, robot_id):
+        """Commands a given robot id to play as attacker"""
+        team = self._team
+        # Shooting velocity
+        shoot_velocity = 1200
+        # TODO: Movement and receive ball
+        # Shoots if has the ball
+        if self._gs.ball_in_dribbler(team, robot_id):
+            if self.within_shooting_range(team, robot_id):
+                goal = self._gs.get_attack_goal(team)
+                center_of_goal = (goal[0] + goal[1]) / 2
+                self.prepare_and_kick(robot_id, center_of_goal, shoot_velocity)
+            else:
+                pass
+        else:
+            if self._gs.is_pos_legal(self._gs.get_ball_position(), team, robot_id):
+                self.get_ball(robot_id, charge_during=shoot_velocity)
+

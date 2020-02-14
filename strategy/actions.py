@@ -50,6 +50,7 @@ class Actions:
         return self.is_done_moving(robot_id)
 
     # find a legal path for robot to go to position, returns whether arrived
+    # TODO: still goes through defense area - need to fix see is_path_blocked
     def path_find(self, robot_id: int, goal_pos: Tuple[float, float, float]) -> bool:
         if not self._gs.is_position_open(goal_pos, self._team, robot_id):
             print("cannot path find to blocked goal")

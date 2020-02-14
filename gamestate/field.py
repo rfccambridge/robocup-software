@@ -41,9 +41,10 @@ class Field(object):
     def is_pos_legal(self, pos, team, robot_id):
         # TODO: during free kicks must be away from opponent area
         # + ALL OTHER RULES
-        is_defender_too_close = self.is_in_defense_area(pos, team) and \
+        in_own_defense_area = self.is_in_defense_area(pos, team) and \
                 not self.is_goalie(team, robot_id)
-        return self.is_in_play(pos) and not is_defender_too_close
+        in_other_defense_area = self.is_in_defense_area(pos, self.other_team(team))
+        return self.is_in_play(pos) and not in_own_defense_area and not in_other_defense_area
 
     # return a random position inside the field
     def random_position(self):
@@ -58,11 +59,13 @@ class Field(object):
     def get_defense_goal(self, team):
         if (self.is_blue_defense_side_left and team == 'blue') or \
            (not self.is_blue_defense_side_left and team == 'yellow'):
-            return (np.array([self.FIELD_MIN_X, self.GOAL_WIDTH/2]),
-                    np.array([self.FIELD_MIN_X, -self.GOAL_WIDTH/2]))
+            top_post = np.array([self.FIELD_MIN_X, self.GOAL_WIDTH/2])
+            bottom_post = np.array([self.FIELD_MIN_X, -self.GOAL_WIDTH/2])
+            return (top_post, bottom_post)
         else:
-            return (np.array([self.FIELD_MAX_X, self.GOAL_WIDTH/2]),
-                    np.array([self.FIELD_MAX_X, -self.GOAL_WIDTH/2]))
+            top_post = np.array([self.FIELD_MAX_X, self.GOAL_WIDTH/2])
+            bottom_post = np.array([self.FIELD_MAX_X, -self.GOAL_WIDTH/2])
+            return (top_post, bottom_post)
 
     def get_attack_goal(self, team):
         if team == 'yellow':

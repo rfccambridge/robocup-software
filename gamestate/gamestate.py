@@ -101,6 +101,12 @@ class GameState(Field, Analysis):
             # yield to other threads
             time.sleep(self._game_loop_sleep)
 
+    def other_team(self, team):
+        if team == 'blue':
+            return 'yellow'
+        else:
+            return 'blue'
+    
     # GAME STATUS/EVENT FUNCTIONS
     def wait_until_game_begins(self):
         while self.game_clock is None:

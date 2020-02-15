@@ -203,3 +203,6 @@ class Analysis(object):
             if -self.GOAL_WIDTH/2 - GOAL_WIDTH_BUFFER <= y_intercept <= self.GOAL_WIDTH/2 + GOAL_WIDTH_BUFFER:
                 return np.array([x_pos_of_goal, y_intercept])
         return None
+
+    def is_ball_behind_goalie(self):
+            return True

@@ -74,6 +74,8 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
             self._goalie_id = None
         if self._mode == "attacker_test":
             self._attacker_id = None
+        if self._mode == "defender_test":
+            self._defender_id = None
         if self._mode == "full_game":
             print("default strategy for playing a full game")
 
@@ -95,6 +97,8 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
                     self.goalie_test()
                 elif self._mode == "attacker_test":
                     self.attacker_test()
+                elif self._mode == "defender_test":
+                    self.defender_test()
                 elif self._mode == "entry_video":
                     self.entry_video()
                 elif self._mode == "full_game":
@@ -184,6 +188,16 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
         if self._attacker_id is not None:
             self.attacker(self._attacker_id)
         self.click_teleport(self._team, self._attacker_id)
+
+    def defender_test(self):
+        gs = self._gs
+        if gs.user_selected_robot is not None:
+            team, robot_id = gs.user_selected_robot
+            if team == self._team:
+                self._defender_id = robot_id
+        if self._defender_id is not None:
+            self.defender(self._defender_id)
+        self.click_teleport(self._team, self._defender_id)
 
     def entry_video(self):
         robot_id_0 = 0

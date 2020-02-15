@@ -43,7 +43,11 @@ AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
 # which simulator initial setup to use (if simulating)
 SIMULATION_SETUP = 'full_teams'
 # which strategies each team is running (see strategy module)
+<<<<<<< HEAD
 HOME_STRATEGY = 'goalie_test'
+=======
+HOME_STRATEGY = 'defender_test'
+>>>>>>> 97f25b2f422fb9d16ba8238f0db6439c275c1d37
 AWAY_STRATEGY = None
 
 # loop wait times for each thread - how much to sleep between loops

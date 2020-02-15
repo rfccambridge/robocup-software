@@ -7,7 +7,7 @@ import signal
 import traceback
 import argparse
 
-# Remove pygame's annoying welcome message
+# Remove pygame welcome message
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 

@@ -121,7 +121,7 @@ class Analysis:
             return False
         # Check endpoint first to avoid worrying about step size in the loop
         def legal(pos):
-            return self._gs.is_pos_legal(g_pos, self._team, robot_id) or allow_illegal
+            return self._gs.is_pos_legal(pos, self._team, robot_id) or allow_illegal
         # print('End pos Legal? {}'.format(legal(g_pos)))
         # print('End pos Open? {}'.format(self._gs.is_position_open(g_pos, self._team, robot_id)))
         if not self._gs.is_position_open(g_pos, self._team, robot_id) or not legal(g_pos):

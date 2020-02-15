@@ -2,8 +2,10 @@ import numpy as np
 import time
 from typing import Optional, Tuple, Iterable
 
-# Analysis functions for strategy
-class Analysis:
+class Analysis(object):
+    """
+    The high level analysis class
+    """
     def get_future_ball_array(self):
         """Samples incrementally to return array of future predicted ball positions"""
         ball_pos = self._gs.get_ball_position()
@@ -60,7 +62,8 @@ class Analysis:
 
     def safest_intercept_point(self, robot_id: int) -> Tuple[float, float]:
         """determine the point in the ball's trajectory that the robot can reach
-        soonest relative to the ball (even if it's too late)"""
+        soonest relative to the ball (even if it's too late)
+        """
         future_ball_array = self.get_future_ball_array()
         robot_pos = self._gs.get_robot_position(self._team, robot_id)
         max_speed = self._gs.robot_max_speed(self._team, robot_id)

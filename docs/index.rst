@@ -6,6 +6,81 @@
 Welcome to RFC Cambridge's documentation!
 =========================================
 
+Welcome to our documentation! Good luck.
+
+Comms Module
+===================
+
+.. automodule:: comms.comms
+   :members:
+
+.. automodule:: comms.robot_commands
+   :members:
+
+Gamestate Module
+===================
+
+.. automodule:: gamestate.gamestate
+   :members:
+
+.. automodule:: gamestate.field
+   :members:
+
+.. automodule:: gamestate.analysis
+   :members:
+
+Refbox Module
+===================
+
+.. automodule:: refbox.refbox
+   :members:
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+Strategy Module
+===================
+
+.. automodule:: strategy.strategy
+   :members:
+
+.. automodule:: strategy.analysis
+   :members:
+
+.. automodule:: strategy.actions
+   :members:
+
+.. automodule:: strategy.plays
+   :members:
+
+.. automodule:: strategy.roles
+   :members:
+
+.. automodule:: strategy.routines
+   :members:
+
+.. automodule:: strategy.utils
+   :members:
+
+Simulator Module
+===================
+
+.. automodule:: simulator.simulator
+   :members:
+
+Vision Module
+===================
+
+.. automodule:: vision.data_providers
+   :members:
+
+Visualization Module
+=====================
+
+.. automodule:: visualization.visualization
+   :members:
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

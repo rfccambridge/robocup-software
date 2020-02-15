@@ -43,7 +43,7 @@ AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
 # which simulator initial setup to use (if simulating)
 SIMULATION_SETUP = 'full_teams'
 # which strategies each team is running (see strategy module)
-HOME_STRATEGY = 'attacker_test'
+HOME_STRATEGY = 'goalie_test'
 AWAY_STRATEGY = None
 
 # loop wait times for each thread - how much to sleep between loops
@@ -63,9 +63,9 @@ if __name__ == '__main__':
     print('------------------------------')
     print('Running in simulator mode: {}'.format(IS_SIMULATION))
     if not IS_SIMULATION:
-        print('Running in no radio mode: {}'.format(NO_RADIO))
-    print('Running in no refbox mode: {}'.format(NO_REFBOX))
-    
+        print(f'Running in no radio mode: {NO_RADIO}')
+    print(f'Running in no refbox mode: {NO_REFBOX}')
+
     # initialize gamestate + all other modules
     gamestate = GameState()
     vision = SSLVisionDataProvider(gamestate)

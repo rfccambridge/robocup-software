@@ -1,6 +1,11 @@
 # Robocup Software
 https://docs.google.com/document/d/1Eim1MRx77IE2ieGvYYDAL3BJYKYtR9JhJai6PuHB-iw/edit
 
+## Documentation
+[![Documentation Status](https://readthedocs.org/projects/robocup-docs/badge/?version=latest)](https://robocup-docs.readthedocs.io/en/latest/?badge=latest)
+
+Our full documentation is available [here](https://.robocup-docs.readthedocs.io/)
+
 __Python 3__ is required, due to compatibility issues with the pyserial module.
 In some cases, you may have to use python and pip commands without the 3.
 

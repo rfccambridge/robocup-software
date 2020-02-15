@@ -3,6 +3,7 @@ from struct import pack
 import binascii
 from ipaddress import ip_address
 import threading
+import time
 
 # from referee_pb2 import SSL_Referee_Game_Event
 from .referee_pb2 import SSL_Referee
@@ -46,8 +47,10 @@ class RefboxDataProvider:
         self._ip = ip
         self._port = port
         self._latest_packet = None
+        self._last_update_time = None
+        self._vision_loop_sleep = None
 
-    def start_updating(self):
+    def start_updating(self, loop_sleep):
         if self._is_running:
             raise Exception('RefboxDataProvider is always running')
         self._is_running = True
@@ -66,6 +69,8 @@ class RefboxDataProvider:
         )
         self._update_gamestate_thread.daemon = True
         self._update_gamestate_thread.start()
+
+        self._vision_loop_sleep = loop_sleep
 
     def stop_updating(self):
         if self._client:
@@ -91,4 +96,12 @@ class RefboxDataProvider:
         while self._is_running:
             self._gamestate.latest_refbox_message = self._latest_packet
 
+            if self._last_update_time is not None:
+                delta = time.time() - self._last_update_time
+                # print(delta)
+                if delta > self._vision_loop_sleep * 3:
+                    print("SSL-vision data loop large delay: " + str(delta))
+            self._last_update_time = time.time()
 
+            # yield to other threads
+            time.sleep(self._vision_loop_sleep)

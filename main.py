@@ -61,10 +61,10 @@ if __name__ == '__main__':
     # Welcome message
     print('RFC Cambridge Robocup Software')
     print('------------------------------')
-    print(f'Running in simulator mode: {IS_SIMULATION}')
+    print('Running in simulator mode: {}'.format(IS_SIMULATION))
     if not IS_SIMULATION:
-        print(f'Running in no radio mode: {NO_RADIO}')
-    print(f'Running in no refbox mode: {NO_REFBOX}')
+        print('Running in no radio mode: {}'.format(NO_RADIO))
+    print('Running in no refbox mode: {}'.format(NO_REFBOX))
     
     # initialize gamestate + all other modules
     gamestate = GameState()
@@ -82,7 +82,7 @@ if __name__ == '__main__':
         # spin up simulator to replace actual vision data + comms
         simulator.start_simulating(SIMULATION_SETUP, SIMULATION_LOOP_SLEEP)
         if not NO_REFBOX:
-            refbox.start_updating()
+            refbox.start_updating(VISION_LOOP_SLEEP)
     else:
         # spin up ssl-vision data polling to update gamestate
         vision.start_updating(VISION_LOOP_SLEEP)
@@ -94,7 +94,7 @@ if __name__ == '__main__':
                 away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
                 # away_comms.start_sending(COMMS_RECEIVE_LOOP_SLEEP)
         if not NO_REFBOX:
-            refbox.start_updating()
+            refbox.start_updating(VISION_LOOP_SLEEP)
     # spin up strategy threads to control the robots
     home_strategy.start_controlling(HOME_STRATEGY, CONTROL_LOOP_SLEEP)
     if CONTROL_BOTH_TEAMS:

@@ -2,8 +2,10 @@ import numpy as np
 import time
 from typing import Optional, Tuple, Iterable
 
-# Analysis functions for strategy
-class Analysis:
+class Analysis(object):
+    """
+    The high level analysis class
+    """
     def get_future_ball_array(self):
         """Samples incrementally to return array of future predicted ball positions"""
         ball_pos = self._gs.get_ball_position()
@@ -60,7 +62,8 @@ class Analysis:
 
     def safest_intercept_point(self, robot_id: int) -> Tuple[float, float]:
         """determine the point in the ball's trajectory that the robot can reach
-        soonest relative to the ball (even if it's too late)"""
+        soonest relative to the ball (even if it's too late)
+        """
         future_ball_array = self.get_future_ball_array()
         robot_pos = self._gs.get_robot_position(self._team, robot_id)
         max_speed = self._gs.robot_max_speed(self._team, robot_id)
@@ -121,7 +124,9 @@ class Analysis:
             return False
         # Check endpoint first to avoid worrying about step size in the loop
         def legal(pos):
-            return self._gs.is_pos_legal(g_pos, self._team, robot_id) or allow_illegal
+            return self._gs.is_pos_legal(pos, self._team, robot_id) or allow_illegal
+        # print('End pos Legal? {}'.format(legal(g_pos)))
+        # print('End pos Open? {}'.format(self._gs.is_position_open(g_pos, self._team, robot_id)))
         if not self._gs.is_position_open(g_pos, self._team, robot_id) or not legal(g_pos):
             return True
         path = g_pos - s_pos
@@ -136,6 +141,7 @@ class Analysis:
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
+            # print('Legal? {}'.format(legal(intermediate_pos)))
             if not self._gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
                 return True
         return False

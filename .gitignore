@@ -8,10 +8,11 @@
 *__pycache__
 
 # Misc
-*.txt
 *.dmp
 *.pkl
 *.vscode
+venv/
+.venv/
 
 # Emacs
 *~

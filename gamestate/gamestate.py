@@ -118,15 +118,18 @@ class GameState(object):
 
         
 
-class GameStateOld(Field, Analysis):
+class GameFunctions(Field, Analysis):
     """Game state contains all raw game information in one place.
        Many threads can edit and use the game state at once, cuz Python GIL
        Since using python, data types are specified in the comments below.
        Fundamental physics and game rules functions are available from gamestate.
     """
-    def __init__(self):
+    def __init__(self, game_data):
         # NOTE: Fields starting with _underscore are "private" so
         # should be accessed through getter and setter methods
+
+        for key, val in game_data.items():
+            self.__setattr__(key, val)
 
         # Thread keeps track of game status/events
         self._is_playing = False

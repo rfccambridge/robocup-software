@@ -31,9 +31,9 @@ class Coordinator(object):
     def __init__(self, 
                  yellow_strategy: Provider,
                  vision_provider : Provider,
-                 radio_provider: Provider =None,
-                 refbox_provider: Provider =None,
-                 blue_strategy: Provider =None):
+                 radio_provider: Provider = None,
+                 refbox_provider: Provider = None,
+                 blue_strategy: Provider = None):
         """
         Collects the objects to coordinate
         """

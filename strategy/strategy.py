@@ -152,14 +152,12 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
                     goal_pos = np.array([x, y, w])
                     # Use pathfinding
                     #self.move_straight(robot_id, goal_pos, is_urgent=True)
-                    if is_teleport:
-                        self._simulator.put_fake_robot(team, robot_id, goal_pos)
-                    else:
-                        self.path_find(robot_id, goal_pos)
+                    self.path_find(robot_id, goal_pos)
 
-    def click_teleport(self, team, robot_id):
+    def click_teleport(self):
         gs = self._gs
-        if gs.user_click_position is not None and robot_id is not None:
+        if gs.user_selected_robot is not None and gs.user_click_position is not None:
+            team, robot_id = gs.user_selected_robot
             x, y = gs.user_click_position
             if gs.user_drag_vector.any():
                 # face the dragged direction
@@ -187,17 +185,21 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
                 self._attacker_id = robot_id
         if self._attacker_id is not None:
             self.attacker(self._attacker_id)
-        self.click_teleport(self._team, self._attacker_id)
+        self.click_teleport()
 
     def defender_test(self):
         gs = self._gs
+        """
         if gs.user_selected_robot is not None:
             team, robot_id = gs.user_selected_robot
             if team == self._team:
                 self._defender_id = robot_id
         if self._defender_id is not None:
             self.defender(self._defender_id)
-        self.click_teleport(self._team, self._defender_id)
+        """
+        for robot_id in gs.get_robot_ids(self._team):
+            self.defender(robot_id)
+        self.click_teleport()
 
     def entry_video(self):
         robot_id_0 = 0

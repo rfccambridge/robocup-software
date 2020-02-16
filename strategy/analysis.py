@@ -118,7 +118,46 @@ class Analysis(object):
         # TODO: THIS IS A HACK TO MAKE IT STAY WITHIN CAMERA RANGE
         # if block_pos[0] > self._gs.FIELD_MAX_X - self._gs.ROBOT_RADIUS * 3 or block_pos[0] < self._gs.FIELD_MIN_X + self._gs.ROBOT_RADIUS * 3:
         #    return np.array([])
+#        if self._gs.is_pos_valid(interceptPos, team, robot_id)
         return block_pos
+
+    # finds a legal position for robot to move to
+    def find_legal_pos(self, robot_id: int) -> Tuple[float, float, float]:
+        robot_x, robot_y, robot_w = self._gs.get_robot_position(self._team, robot_id)
+        radius = self._gs.ROBOT_RADIUS
+        if self._gs.is_pos_legal([robot_x, robot_y], self._team, robot_id):
+            return [robot_x, robot_y, robot_w]
+        # Buffer to make sure it fully exits illegal area - is this too much?
+        buffer = 2 * radius
+        # If in one of the defense areas
+        elif self._gs.is_in_play([robot_x, robot_y]):
+            legal_x = self._gs.FIELD_MAX_X + self._gs.DEFENSE_AREA_X_LENGTH + buffer if robot_x < 0 \
+                        else self._gs.FIELD_MAX_X - self._gs.DEFENSE_AREA_X_LENGTH - buffer
+            legal_y = - self._gs.DEFENSE_AREA_Y_LENGTH / 2 - buffer if robot_y < 0 \
+                        else self._gs.DEFENSE_AREA_Y_LENGTH / 2 + buffer
+            # Look toward the center line if that is the closer exit, otherwise look toward touchlines
+            # TODO: Account for robot orientation as well
+            if abs(legal_x - robot_x) < abs(legal_y - robot_y):
+                goal_x = legal_x
+                goal_y = robot_y
+                while not self._gs.is_position_open([goal_x, goal_y], self._team, robot_id, radius):
+                    if robot_y < 0:
+                        goal_y -= radius
+                    else:
+                        goal_y += radius
+                return [goal_x, goal_y, robot_w]
+            else:
+                goal_y = legal_y
+                goal_x = robot_x
+                while not self._gs.is_position_open([goal_x, goal_y], self._team, robot_id, radius):
+                    if robot_x < 0:
+                        goal_x += radius
+                    else:
+                        goal_x -= radius
+                return [goal_x, goal_y, robot_w]
+        # TODO: Handling case when robot is out of bounds
+        else:
+            return [0, 0, None]
 
     def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=False):
         "incrementally check a linear path for obstacles"

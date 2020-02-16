@@ -61,5 +61,5 @@ class Roles:
         goal_center = (goal_top + goal_bottom) / 2
         maxDistance = np.linalg.norm(currPos - goal_center)
         interceptPos = self.block_goal_center_pos(maxDistance, ball_pos=None, team=self._team)
-
-        self.move_straight(robot_id, interceptPos)
+        if len(interceptPos) != 0:
+            self.move_straight(robot_id, interceptPos)

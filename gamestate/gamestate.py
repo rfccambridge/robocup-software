@@ -35,53 +35,17 @@ class GameData(object):
         self.visualization_data = None
         self.robot_commands = None
 
-class GameFunctions(Field, Analysis):
+class GameDataHelper(Field, Analysis):
     """
     A library providing convenience functions for extracting
-    information from a GameData obejct.
+    information from a GameData object.
     """
+
     def __init__(self, game_data):
-        # NOTE: Fields starting with _underscore are "private" so
-        # should be accessed through getter and setter methods
-
-        for key, val in game_data.items():
-            self.__setattr__(key, val)
-
-        # Thread keeps track of game status/events
-        self._is_playing = False
-        self._game_thread = None
-        self._game_loop_sleep = None
-        self._last_step_time = None
-
-        # RAW POSITION DATA (updated by vision data or simulator)
-        # [most recent data is stored at the front of the queue]
-        # queue of (time, pos) where positions are in the form np.array([x, y])
-        self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
-        # robot positions are np.array([x, y, w]) where w = rotation
-        self._blue_robot_positions = dict()  # Robot ID: queue of (time, pos)
-        self._yellow_robot_positions = dict()  # Robot ID: queue of (time, pos)
-
-        # Commands data (desired robot actions)
-        self._blue_robot_commands = dict()  # Robot ID: commands object
-        self._yellow_robot_commands = dict()  # Robot ID: commands object
-
-        # Game status/events
-        self.game_clock = None
-        self.is_blue_defense_side_left = True
-        self.refbox_msg = None
-        # TODO: enum all ref box restart commands
-
-        # UI Inputs - set from visualizer
-        self.user_click_position = None
-        self.user_drag_vector = None
-        self.user_selected_robot = None  # (team, id) of robot
-        self.user_selected_ball = False
-        self.user_charge_command = False
-        self.user_kick_command = False
-        self.user_dribble_command = False
-
-        # Refbox - the latest message delivered from the refbox
-        self.latest_refbox_message = None
+        """
+        Takes in a game_data object
+        """
+        self._gd = game_data
 
     def start_game(self, loop_sleep):
         self._game_loop_sleep = loop_sleep

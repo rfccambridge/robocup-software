@@ -2,7 +2,6 @@ import threading
 import traceback
 import numpy as np
 import time
-from multiprocessing import Process
 from multiprocessing import Queue
 import logging
 
@@ -28,28 +27,21 @@ except (SystemError, ImportError):
 
 
 class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
-    """Control loop for playing the game. Calculate desired robot actions,
-       and then sends commands into the gamestate thread using a queue
-       in order to control the game.
     """
-    def __init__(self, team, data_in_q, commands_out_q, simulator=None):
+    Control loop for playing the game. Calculate desired robot actions,
+    and then sends commands into the gamestate thread using a queue
+    in order to control the game.
+    """
+    def __init__(self, team, simulator=None):
         assert(team in ['blue', 'yellow'])
         self._team = team
-        self._data_in_q = data_in_q
-        self._commands_out_q = commands_out_q
+        self._data_in_q = Queue()
+        self._commands_out_q = Queue()
 
         self._is_controlling = False
         self._control_thread = None
         self._mode = None
         self._simulator = simulator
-
-        # Control process used for communicating with gamestate.
-        # Runs the algorithms in a different proc
-        self._control_process = None
-        # queue used for sending commands to gamestate thread
-        # as well as queue for recieving return messages from gamestate process
-        self._command_queue = Queue()  
-        self._gs_update_queue = Queue()
         
         # state for reducing frequency of expensive calls
         # (this also helps reduce oscillation)

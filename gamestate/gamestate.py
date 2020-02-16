@@ -24,8 +24,101 @@ ROBOT_LOST_TIME = .2
 # time after which lost robot is deleted from the gamestate
 ROBOT_REMOVE_TIME = 5
 
+from multiprocessing import Queue
 
-class GameState(Field, Analysis):
+class GameState(object):
+    """
+    A GameState object synchronises the entire game. It is
+    the source of truth for all game state related information
+    including vision, refbox data and commands that should be 
+    sent to the robot.
+    """
+    def __init__(self):
+        self.is_playing = False
+        # A queue of commands from the yellow strategy waiting to be processed
+        self.yellow_commands_queue = Queue()
+        # A queue of the latest gamestate waiting to be read by the yellow strategy proc
+        self.yellow_gamestate_queue = Queue()
+        self.yellow_strategy = Strategy('yellow', 
+                                        data_in_q=self.yellow_gamestate_queue,
+                                        commands_out_q=self.yellow_commands_queue)
+        self.yellow_strategy_process = Process(target=self.yellow_strategy.run_strategy))
+    
+        self.blue_commands_queue = Queue()
+        self.blue_gamestate_queue = Queue()
+        self.blue_strategy = Strategy('blue', 
+                                        data_in_q=self.blue_gamestate_queue,
+                                        commands_out_q=self.blue_commands_queue)
+        self.blue_strategy_process = Process(target=self.blue_strategy.run_strategy))
+
+        # Commands data (desired robot actions)
+        self._blue_robot_commands = dict()  # Robot ID: commands object
+        self._yellow_robot_commands = dict()  # Robot ID: commands object
+
+    def start_game(self):
+        self.is_playing = True
+        self.game_loop()
+
+    def stop_game(self):
+        self.is_playing = False
+        self.clean_up()
+
+    def game_loop(self):
+        while self.is_playing:
+            self.vision_data = self.get_updated_vision_data()
+            self.refbox_data = self.get_updated_refbox_data()
+            self.publish_new_gamestate()
+            self.update_robot_commands()
+            self.publish_robot_commands()
+
+    def get_updated_vision_data(self):
+        pass
+
+    def get_updated_refbox_data(self):
+        pass
+
+    def publish_robot_commands(self):
+        # send robot commands to xbee here
+        # or to simulator
+        pass
+
+    def publish_new_gamestate(self):
+        snapshot = self.snapshot_gamedata()
+        try:
+            self.blue_gamestate_queue.put_nowait(snapshot)
+        except:
+            # Likely queue is full
+            pass
+        try:
+            self.yellow_gamestate_queue.put_nowait(snapshot)
+        except:
+            # Likely queue is full 
+            pass
+    
+    def update_robot_commands(self):
+        try:
+            self._blue_robot_commands = self.blue_commands_queue.get_nowait()
+        except:
+            # Likely queue is empty
+            pass
+        try:
+            self._yellow_robot_commands = self.yellow_commands_queue.get_nowait()
+        except:
+            # Likely queue is empty
+            pass
+        
+    def snapshot_gamedata(self):
+        d = {}
+        d['vision_data'] = self.some_vision_data
+        return d
+
+    def clean_up(self):
+        self.yellow_strategy_process.terminate()
+        self.blue_strategy_process.terminate()
+
+        
+
+class GameStateOld(Field, Analysis):
     """Game state contains all raw game information in one place.
        Many threads can edit and use the game state at once, cuz Python GIL
        Since using python, data types are specified in the comments below.
@@ -84,6 +177,13 @@ class GameState(Field, Analysis):
             self._is_playing = False
             self._game_thread.join()
             self._game_thread = None
+
+    def new_game_loop(self):
+        # update_vision()
+        # update_refbox()
+        # send_new_state_to_strategy_procs()
+        # update_robot_commands()
+        # pipe_commands_to_xbee_process() if not simulation
 
     def game_loop(self):
         # set up game status

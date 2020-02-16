@@ -32,10 +32,11 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
        and then sends commands into the gamestate thread using a queue
        in order to control the game.
     """
-    def __init__(self, gamestate, team, simulator=None):
+    def __init__(self, team, data_in_q, commands_out_q, simulator=None):
         assert(team in ['blue', 'yellow'])
         self._team = team
-        self._gs = gamestate
+        self._data_in_q = data_in_q
+        self._commands_out_q = commands_out_q
 
         self._is_controlling = False
         self._control_thread = None
@@ -59,6 +60,7 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
         This call will may block until the new gamestate actually
         finishes being returned.
         """
+        return self._data_in_q.get()
 
     def start_controlling(self, mode, loop_sleep):
         """Spins up control process specified by mode, to command the robots"""
@@ -103,6 +105,14 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
             self._control_thread.join()
             self._control_thread = None
 
+    def run_strategy(self):
+        """
+        Receive messages from self.data_in_q and 
+        push commands to self.commands_out_q
+        """
+        new_gamestate = self._get_new_gamestate()
+        # do stuff
+        
     def control_loop(self):
         # wait until game begins (while other threads are initializing)
         self._gs.wait_until_game_begins()

@@ -8,10 +8,11 @@
 *__pycache__
 
 # Misc
-*.txt
 *.dmp
 *.pkl
 *.vscode
+venv/
+.venv/
 
 # Emacs
 *~
@@ -58,3 +59,6 @@ flycheck_*.el
 
 # directory configuration
 .dir-locals.el
+
+# Sphinx
+_build

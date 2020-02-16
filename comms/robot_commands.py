@@ -35,15 +35,15 @@ class RobotCommands:
     # Max speed from max power to motors => [no-load] 1090 mm/s (see firmware)
     # Reduce that by multiplying by min(sin(theta), cos(theta)) of wheels
     # Goal is to get upper bound on what firmware can obey accurately
-    ROBOT_MAX_SPEED = 600
+    ROBOT_MAX_SPEED = 500
     ROBOT_MAX_W = 6.14
-    MAX_KICK_SPEED = None  # TODO
+    MAX_KICK_SPEED = 2500  # TODO
     MAX_CHARGE_LEVEL = 250  # volts? should be whatever the board measures in
-    CHARGE_RATE = 20  # volts per second?
+    CHARGE_RATE = 60  # volts per second?
 
     # constants for deriving speed from waypoints
     # default proportional scaling constant for distance differences
-    SPEED_SCALE = 1.5
+    SPEED_SCALE = .9
     ROTATION_SPEED_SCALE = 3
 
     def __init__(self):
@@ -132,7 +132,10 @@ class RobotCommands:
     def get_serialized_team_command(team_commands):
         team_command_message = b""
         num_robots = len(team_commands)
-        assert num_robots <= 6, 'too many robots'
+        if len(team_commands) > 6:
+            # TODO: handle better?
+            print('too many robot ids seen, not sending any commands?')
+            num_robots = 0
         # pad message so it always contains 6 robots worth of data
         # (this is so firmware can deal with constant message length)
         for i in range(6 - num_robots):
@@ -148,6 +151,19 @@ class RobotCommands:
     def clear_waypoints(self):
         self.waypoints = []
 
+    # hacky way to make robot not slow down toward a destination:
+    # (append 2 waypoints in the same direction)
+    # DEPENDS ON SLOWDOWN LOGIC IN DERIVE_SPEEDS FUNCTION
+    def append_urgent_destination(self, pos, current_position):
+        direction = pos[:2] - current_position[:2]
+        if not direction.any():
+            return
+        epsilon = 1
+        waypoint = pos[:2] - direction / np.linalg.norm(direction) * epsilon
+        waypoint = np.array([waypoint[0], waypoint[1], pos[2]])
+        self.append_waypoint(waypoint, current_position)
+        self.append_waypoint(pos, current_position)
+
     def append_waypoint(self, waypoint, current_position):
         if self.waypoints:
             initial_pos = self.waypoints[-1]
@@ -158,19 +174,27 @@ class RobotCommands:
            (waypoint[2] == initial_pos[2] or waypoint[2] is None):
             return
         # print(f"{initial_pos}, {waypoint}")
-        # default to face waypoint (drives smoother)
-        # TODO: only for longer distances?
+
         x, y, w = waypoint
         if w is None:
             dx, dy = waypoint[:2] - initial_pos[:2]
-            dw = np.arctan2(dy, dx) - initial_pos[2]
-            w = initial_pos[2] + self.trim_angle_90(dw)
+            linear_distance = np.linalg.norm(np.array([dx, dy]))
+            DISTANCE_THRESHOLD = 1000
+            # default to face waypoint for longer distances
+            if linear_distance > DISTANCE_THRESHOLD:
+                dw = np.arctan2(dy, dx) - initial_pos[2]
+                w = initial_pos[2] + self.trim_angle_90(dw)
+            else:
+                w = current_position[2]
         self.waypoints.append(np.array([x, y, w]))
 
-    def set_waypoints(self, waypoints, current_position):
+    def set_waypoints(self, waypoints, current_position, is_urgent=False):
         self.clear_waypoints()
-        for waypoint in waypoints:
-            self.append_waypoint(waypoint, current_position)
+        for i, waypoint in enumerate(waypoints):
+            if i == (len(waypoints) - 1) and is_urgent:
+                self.append_urgent_destination(waypoint, current_position)
+            else:
+                self.append_waypoint(waypoint, current_position)
 
     # directly set the robot speed
     def set_speeds(self, x, y, w):
@@ -185,8 +209,9 @@ class RobotCommands:
             self.charge_level = self.MAX_CHARGE_LEVEL
 
     def kick_velocity(self):
-        # TODO
-        return MAX_KICK_SPEED
+        # TODO: more accurate using voltage
+        speed_factor = self.charge_level / self.MAX_CHARGE_LEVEL
+        return self.MAX_KICK_SPEED * speed_factor
 
     # predict where the robot will be if it follows the current command
     def predict_pos(self, pos, delta_time):
@@ -195,7 +220,7 @@ class RobotCommands:
         robot_x, robot_y = self.field_to_robot_perspective(w, np.array([x, y]))
         robot_x = robot_x + delta_time * self._x
         robot_y = robot_y + delta_time * self._y
-        new_w = w + delta_time * self._w
+        new_w = (w + delta_time * self._w) % (np.pi * 2)
         # transform the x and y back to field perspective
         new_x, new_y = self.robot_to_field_perspective(
             w, np.array([robot_x, robot_y])
@@ -225,18 +250,31 @@ class RobotCommands:
         # move with speed proportional to delta
         linear_speed = self.magnitude(delta) * self.SPEED_SCALE
         # slow down less for intermediate waypoints based on angle
+        # (always slows down fully for the final waypoint)
         min_waypoint_speed = 0
         if len(self.waypoints) > 1:
             next_delta = (self.waypoints[1] - goal_pos)[:2]
             if next_delta.any():
                 m1 = np.linalg.norm(delta)
                 m2 = np.linalg.norm(next_delta)
-                trimmed_angle = np.arccos(np.dot(delta, next_delta)/(m1*m2))
-                # slow down to floor for >90 degree turns, for straight
-                floor = .1  # (proportion of max speed)
+                # get angle between vectors (arccos -> 0 to pi)
+                inner_formula = np.dot(delta, next_delta)/(m1*m2)
+                if inner_formula > 1:
+                    # catch rounding errors
+                    assert(inner_formula - 1 < .001)
+                    inner_formula = 1
+                trimmed_angle = np.arccos(inner_formula)
+                if not (0 <= trimmed_angle <= np.pi):
+                    # not sure why this was ever triggering?
+                    print("how is trimmed angle:" + str(trimmed_angle))
+                    trimmed_angle = max(trimmed_angle, 0)
+                    trimmed_angle = min(trimmed_angle, np.pi)
                 trimmed_angle = min(trimmed_angle, np.pi / 2)
+                # slow down depending on the sharpness of the turn
+                # (to a floor for >90 degree turns, keep speed if straight)
+                MIN_SLOWDOWN = .15  # (proportion of max speed)
                 slowdown_factor = 1 - trimmed_angle / (np.pi / 2)
-                slowdown_factor = max(slowdown_factor, floor)
+                slowdown_factor = max(slowdown_factor, MIN_SLOWDOWN)
                 assert(slowdown_factor <= 1)
                 min_waypoint_speed = self._speed_limit * slowdown_factor
         linear_speed = linear_speed + min_waypoint_speed
@@ -244,11 +282,11 @@ class RobotCommands:
         self._x = linear_speed * norm_x
         # print("x: {}, goal_x: {}, vx: {}".format(og_x, goal_x, self._x))
         self._y = linear_speed * norm_y
-        # print("w: {}, goal_w: {}, d_w: {}".format(og_w, goal_w, norm_w))
         self._w = norm_w * self.ROTATION_SPEED_SCALE
         self._w = min(self._w, self.ROBOT_MAX_W)
         self._w = max(self._w, -self.ROBOT_MAX_W)
-
+        # print("w: {}, goal_w: {}, d_w: {}, self_w: {}".format(og_w, goal_w, norm_w, self._w))
+        
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
         # distance condition helpful for simulator b.c. won't overrun waypoint

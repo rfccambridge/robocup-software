@@ -2,6 +2,7 @@ import threading
 import time
 import numpy as np
 from collections import deque
+from typing import Tuple
 
 
 class Simulator(object):
@@ -18,12 +19,18 @@ class Simulator(object):
 
         self._initial_setup = None
 
-    # TODO: flush out system for initializing test scenarios
-    def put_fake_robot(self, team, robot_id, position):
+    def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
+        """initialize a robot with given id + team at (x, y, w) position"""
+        if position[2] is None:
+            position[2] = 0
         self._gamestate.update_robot_position(team, robot_id, position)
+        commands = self._gamestate.get_robot_commands(team, robot_id)
+        commands.clear_waypoints()
 
-    # initialize ball position data to reflect desired position + velocity
-    def put_fake_ball(self, position, velocity=np.array([0, 0])):
+    def put_fake_ball(self, position, velocity=None):
+        "initialize ball position data to reflect desired position + velocity"
+        if velocity is None:
+            velocity = np.array([0, 0])  
         self._gamestate.clear_ball_position()
         # use small dt to minimize deceleration correction
         dt = .05
@@ -34,6 +41,8 @@ class Simulator(object):
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
     def start_simulating(self, inital_setup, loop_sleep):
+        """Spin up simulator thread to update gamestate as though robots 
+        are following commands + physics"""
         self._initial_setup = inital_setup
         self._simulation_loop_sleep = loop_sleep
         self._is_simulating = True
@@ -64,8 +73,18 @@ class Simulator(object):
                 self.put_fake_robot('yellow', i, yellow_pos)
             self.put_fake_ball(np.array([0, 0]))
         elif self._initial_setup == "moving_ball":
-            self.put_fake_robot('blue', 1, np.array([0, 0, 0]))
-            self.put_fake_ball(np.array([1000, 1200]), np.array([0, -1200]))
+            self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
+            self.put_fake_ball(np.array([-2000, 1200]), np.array([0, -1200]))
+        elif self._initial_setup == "entry_video":
+            SCALE = 1  # if mini field
+            self.put_fake_ball(np.array([2000, 900]) * SCALE, np.array([0, 0]))
+            self.put_fake_robot('blue', 0, np.array([1000, 900, 0]) * SCALE)
+            self.put_fake_robot('blue', 8, np.array([2000, -1100, 0]) * SCALE)
+            self.put_fake_robot('yellow', 0, np.array([1800, -500, 0]) * SCALE)
+            self.put_fake_robot('yellow', 1, np.array([3000, 1200, 0]) * SCALE)
+            self.put_fake_robot('yellow', 2, np.array([3000, -1500, 0]) * SCALE)
+            self.put_fake_robot('yellow', 3, np.array([3500, 500, 0]) * SCALE)
+            self.put_fake_robot('yellow', 4, np.array([3500, -500, 0]) * SCALE)
         else:
             print('(initial_setup not recognized, empty field)')
 
@@ -99,40 +118,6 @@ class Simulator(object):
                 # print(gs.get_ball_velocity())
                 gs.update_ball_position(new_ball_pos)
 
-            for (team, robot_id), robot_commands in \
-                    gs.get_all_robot_commands():
-                # move robots according to commands
-                pos = gs.get_robot_position(team, robot_id)
-                new_pos = robot_commands.predict_pos(pos, delta_time)
-                gs.update_robot_position(
-                    team, robot_id, new_pos
-                )
-                # charge capacitors according to commands
-                if robot_commands.is_charging:
-                    robot_commands.simulate_charge(delta_time)
-                # simulate dribbling as gravity zone
-                if robot_commands.is_dribbling or True and \
-                   gs.ball_in_dribbler(team, robot_id):
-                    ball_pos = gs.get_ball_position()
-                    dribbler_center = gs.dribbler_pos(team, robot_id)
-                    robot_pos = gs.get_robot_position(team, robot_id)
-                    # simplistic model of capturing ball only if slow enough
-                    ball_v = gs.get_ball_velocity()
-                    DRIBBLE_CAPTURE_VELOCITY = 20
-                    if np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
-                        pullback_velocity = (robot_pos[:2] - ball_pos) * 3
-                        centering_velocity = (dribbler_center - ball_pos) * 3
-                        dribble_velocity = pullback_velocity + centering_velocity
-                        new_pos = ball_pos + dribble_velocity * delta_time
-                        self.put_fake_ball(new_pos)
-                # kick according to commands
-                if robot_commands.is_kicking:
-                    robot_commands.charge_level = 0
-                    if gs.ball_in_dribbler(team, robot_id):
-                        ball_pos = gs.get_ball_position()
-                        new_velocity = robot_commands.kick_velocity()
-                        self.put_fake_ball(ball_pos, new_velocity)
-
             for (team, robot_id), pos in \
                     gs.get_all_robot_positions():
                 # refresh positions of all robots
@@ -154,6 +139,7 @@ class Simulator(object):
                 ball_pos = gs.get_ball_position()
                 ball_overlap = gs.robot_ball_overlap(pos)
                 if ball_overlap.any():
+                    # print(ball_overlap)
                     # find where ball collided with robot
                     collision_pos = ball_pos + ball_overlap
                     ball_v = gs.get_ball_velocity()
@@ -166,11 +152,53 @@ class Simulator(object):
                             collision_pos -= ball_direction * step
                     # keep velocity in direction tangent to bot at collision
                     radius_vector = collision_pos - pos[:2]
+                    if gs.is_robot_front_sector(pos, collision_pos):
+                        # we are in the front sector, use flat angle
+                        radius_vector = gs.dribbler_pos(team, robot_id) - pos[:2]
                     tangent_vector = np.array([radius_vector[1], -radius_vector[0]])
                     assert(tangent_vector.any())
                     tangent_vector /= np.linalg.norm(tangent_vector)
                     new_v = np.dot(ball_v, tangent_vector) * tangent_vector
                     self.put_fake_ball(collision_pos, new_v)
+
+            for (team, robot_id), robot_commands in \
+                    gs.get_all_robot_commands():
+                # move robots according to commands
+                pos = gs.get_robot_position(team, robot_id)
+                new_pos = robot_commands.predict_pos(pos, delta_time)
+                gs.update_robot_position(
+                    team, robot_id, new_pos
+                )
+                # charge capacitors according to commands
+                if robot_commands.is_charging:
+                    robot_commands.simulate_charge(delta_time)
+                # simulate dribbling as gravity zone
+                if robot_commands.is_dribbling:
+                    ball_pos = gs.get_ball_position()
+                    dribbler_center = gs.dribbler_pos(team, robot_id)
+                    robot_pos = gs.get_robot_position(team, robot_id)
+                    # simplistic model of capturing ball only if slow enough
+                    ball_v = gs.get_ball_velocity()
+                    DRIBBLE_CAPTURE_VELOCITY = 20
+                    if gs.ball_in_dribbler(team, robot_id) and \
+                       np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
+                        pullback_velocity = (robot_pos[:2] - ball_pos) * 2
+                        centering_velocity = (dribbler_center - ball_pos) * 1
+                        total_velocity = pullback_velocity + centering_velocity
+                        new_pos = ball_pos + total_velocity * delta_time
+                        new_pos -= gs.robot_ball_overlap(robot_pos, new_pos)
+                        self.put_fake_ball(new_pos)
+                # kick according to commands
+                if robot_commands.is_kicking:
+                    if gs.ball_in_dribbler(team, robot_id):
+                        ball_pos = gs.get_ball_position()
+                        new_velocity = robot_commands.kick_velocity() * \
+                            gs.get_robot_direction(team, robot_id)
+                        new_pos = ball_pos + new_velocity * delta_time
+                        self.put_fake_ball(new_pos, new_velocity)
+                    robot_commands.charge_level = 0
+                    robot_commands.is_kicking = False
+
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)
 

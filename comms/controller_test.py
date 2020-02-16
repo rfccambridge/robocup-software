@@ -35,7 +35,7 @@ js = pygame.joystick.Joystick(0)
 print(js.get_name())
 
 # set up commands robot for a single robot
-ROBOT_ID = 8
+ROBOT_ID = 0
 robot_commands = RobotCommands()
 
 while True:
@@ -61,10 +61,10 @@ while True:
     robot_commands.set_speeds(speed_lateral, speed_forward, speed_rotation)
 
     if button_lt:
-        print("Stopping Dribble")
+        # print("Stopping Dribble")
         robot_commands.is_dribbling = False
     if button_rt:
-        print("Starting Dribble")
+        # print("Starting Dribble")
         robot_commands.is_dribbling = True
 
     if button_lb:

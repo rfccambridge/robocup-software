@@ -1,28 +1,48 @@
-import sys
 import threading
+import traceback
 import numpy as np
 import time
-# import gamestate file to use field dimension constants
-# (as opposed to importing the class GameState)
-sys.path.append('..')
-from gamestate import gamestate as gs
+
+# import lower-level strategy logic that we've separated for readability
+try:
+    from utils import Utils
+    from analysis import Analysis
+    from actions import Actions
+    from routines import Routines
+    from roles import Roles
+    from plays import Plays
+    from coaches import *
+except (SystemError, ImportError):
+    from .utils import Utils
+    from .actions import Actions
+    from .routines import Routines
+    from .roles import Roles
+    from .analysis import Analysis
+    from .coaches import *
+    from .plays import Plays
 
 
-class Strategy(object):
-    """Logic for playing the game. Uses data from gamestate to calculate desired
-       robot actions, and enters commands into gamestate to be sent by comms"""
-    def __init__(self, gamestate, team):
+class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
+    """Control loop for playing the game. Calculate desired robot actions,
+       and enters commands into gamestate to be sent by comms"""
+    def __init__(self, gamestate, team, simulator=None):
         assert(team in ['blue', 'yellow'])
         self._team = team
-        self._gamestate = gamestate
+        self._gs = gamestate
 
         self._is_controlling = False
         self._control_thread = None
         self._control_loop_sleep = None
         self._last_control_loop_time = None
         self._mode = None
+        self._simulator = simulator
+        
+        # state for reducing frequency of expensive calls
+        # (this also helps reduce oscillation)
+        self._last_RRT_times = {}  # robot_id : timestamp
 
     def start_controlling(self, mode, loop_sleep):
+        """Spins up control thread specified by mode, to command the robots"""
         self._mode = mode
         self._control_loop_sleep = loop_sleep
         self._is_controlling = True
@@ -30,6 +50,34 @@ class Strategy(object):
         # set to daemon mode so it will be easily killed
         self._control_thread.daemon = True
         self._control_thread.start()
+        # print info + initial state for the mode that is running
+        print("\nRunning strategy for {} team, mode: {}".format(
+            self._team, self._mode)
+        )
+        if self._mode == "UI":
+            print("""
+            Using UI Controls!
+            Robots:
+            - Click to select
+            - Click to set goal position (drag for direction)
+            - 'd' to toggle dribbler
+            - 'c' to charge kicker, 'k' to kick
+            Ball (IF SIMULATING):
+            - Click or 'b' to select
+            - Click to place (drag for speed)
+            """)
+
+        if self._mode == "entry_video":
+            print("2020 Registration Video Procedure!")
+            self.video_phase = 1
+        if self._mode == "goalie_test":
+            self._goalie_id = None
+        if self._mode == "attacker_test":
+            self._attacker_id = None
+        if self._mode == "defender_test":
+            self._defender_id = None
+        if self._mode == "full_game":
+            print("default strategy for playing a full game")
 
     def stop_controlling(self):
         if self._is_controlling:
@@ -39,215 +87,198 @@ class Strategy(object):
 
     def control_loop(self):
         # wait until game begins (while other threads are initializing)
-        self._gamestate.wait_until_game_begins()
-        print("\nRunning strategy for {} team, mode: {}".format(
-            self._team, self._mode)
-        )
-        while self._is_controlling:
-            # run the strategy corresponding to the given mode
-            if self._mode == "UI":
-                self.UI()
-            else:
-                print('(unrecognized mode, doing nothing)')
-
-            # tell all robots to refresh their speeds based on waypoints
-            team_commands = self._gamestate.get_team_commands(self._team)
-            team_commands = list(team_commands.items())
-            for robot_id, robot_commands in team_commands:
-                pos = self._gamestate.get_robot_position(self._team, robot_id)
-                # stop the robot if we've lost track of it
-                if self._gamestate.is_robot_lost(self._team, robot_id):
-                    robot_commands.set_speeds(0, 0, 0)
+        self._gs.wait_until_game_begins()
+        try:
+            while self._is_controlling:
+                # run the strategy corresponding to the given mode
+                if self._mode == "UI":
+                    self.UI()
+                elif self._mode == "goalie_test":
+                    self.goalie_test()
+                elif self._mode == "attacker_test":
+                    self.attacker_test()
+                elif self._mode == "defender_test":
+                    self.defender_test()
+                elif self._mode == "entry_video":
+                    self.entry_video()
+                elif self._mode == "full_game":
+                    self.full_game()
                 else:
-                    # recalculate the speed the robot should be commanded at
-                    robot_commands.derive_speeds(pos)
+                    print('(unrecognized mode, doing nothing)')
 
-            if self._last_control_loop_time is not None:
-                delta = time.time() - self._last_control_loop_time
-                if delta > self._control_loop_sleep * 3:
-                    print("Control loop large delay: " + str(delta))
-            self._last_control_loop_time = time.time()
-            # yield to other threads
-            time.sleep(self._control_loop_sleep)
+                # tell all robots to refresh their speeds based on waypoints
+                team_commands = self._gs.get_team_commands(self._team)
+                team_commands = list(team_commands.items())
+                for robot_id, robot_commands in team_commands:
+                    # stop the robot if we've lost track of it
+                    if self._gs.is_robot_lost(self._team, robot_id):
+                        robot_commands.set_speeds(0, 0, 0)
+                    else:
+                        # recalculate the speed the robot should be commanded at
+                        pos = self._gs.get_robot_position(self._team, robot_id)
+                        robot_commands.derive_speeds(pos)
+
+                if self._last_control_loop_time is not None:
+                    delta = time.time() - self._last_control_loop_time
+                    if delta > self._control_loop_sleep * 3:
+                        print("Control loop large delay: " + str(delta))
+                self._last_control_loop_time = time.time()
+                # yield to other threads
+                time.sleep(self._control_loop_sleep)
+        except Exception:
+            print('Unexpected Error!')
+            print(traceback.format_exc())
 
     # follow the user-input commands through visualizer
     def UI(self):
-        # set goal pos to click location on visualization window
-        if self._gamestate.user_click_position is not None:
-            x, y = self._gamestate.user_click_position
-            if self._gamestate.user_drag_vector.any():
+        gs = self._gs
+        if gs.user_selected_robot is not None:
+            team, robot_id = gs.user_selected_robot
+            if team == self._team:
+                commands = gs.get_robot_commands(self._team, robot_id)
+                # apply simple commands
+                commands.is_charging = gs.user_charge_command
+                commands.is_kicking = gs.user_kick_command
+                commands.is_dribbling = gs.user_dribble_command
+                # set goal pos to click location on visualization window
+                if gs.user_click_position is not None:
+                    x, y = gs.user_click_position
+                    if gs.user_drag_vector.any():
+                        # face the dragged direction
+                        dx, dy = gs.user_drag_vector
+                        w = np.arctan2(dy, dx)
+                    else:
+                        w = None
+                    goal_pos = np.array([x, y, w])
+                    # Use pathfinding
+                    #self.move_straight(robot_id, goal_pos, is_urgent=True)
+                    self.path_find(robot_id, goal_pos)
+
+    def click_teleport(self):
+        gs = self._gs
+        if gs.user_selected_robot is not None and gs.user_click_position is not None:
+            team, robot_id = gs.user_selected_robot
+            x, y = gs.user_click_position
+            if gs.user_drag_vector.any():
                 # face the dragged direction
-                dx, dy = self._gamestate.user_drag_vector
+                dx, dy = gs.user_drag_vector
                 w = np.arctan2(dy, dx)
             else:
                 w = None
             goal_pos = np.array([x, y, w])
-            if self._gamestate.user_selected_robot is not None:
-                team, robot_id = self._gamestate.user_selected_robot
-                if team == self._team:
-                    # self.move_straight(robot_ids[0], np.array(goal_pos))
-                    self.append_waypoint(robot_id, np.array(goal_pos))
+            self._simulator.put_fake_robot(team, robot_id, goal_pos)
 
-    # tell specific robot to move straight towards given location
-    def move_straight(self, robot_id, goal_pos):
-        current_pos = self._gamestate.get_robot_position(self._team, robot_id)
-        commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        commands.set_waypoints([goal_pos], current_pos)
+    def goalie_test(self):
+        gs = self._gs
+        if gs.user_selected_robot is not None:
+            team, robot_id = gs.user_selected_robot
+            if team == self._team:
+                self._goalie_id = robot_id
+        if self._goalie_id is not None:
+            self.goalie(self._goalie_id)
 
-    def append_waypoint(self, robot_id, goal_pos):
-        current_pos = self._gamestate.get_robot_position(self._team, robot_id)
-        commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        commands.append_waypoint(goal_pos, current_pos)
+    def attacker_test(self):
+        gs = self._gs
+        if gs.user_selected_robot is not None:
+            team, robot_id = gs.user_selected_robot
+            if team == self._team:
+                self._attacker_id = robot_id
+        if self._attacker_id is not None:
+            self.attacker(self._attacker_id)
+        self.click_teleport()
 
-    def get_ball_interception_point(self, robot_id):
-        robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
-        delta_t = .05
-        time = 0
-        while(True):
-            interception_pos = self._gamestate.predict_ball_pos(time)
-            separation_distance = np.linalg.norm(robot_pos - interception_pos)
-            max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
-            if separation_distance <= time * max_speed:
-                return interception_pos
-            else:
-                time += delta_t
+    def defender_test(self):
+        gs = self._gs
+        if gs.user_selected_robot is not None:
+            team, robot_id = gs.user_selected_robot
+            if team == self._team:
+                self._defender_id = robot_id
+        if self._defender_id is not None:
+            self.defender(self._defender_id)
+        self.click_teleport()
 
-    def best_goalie_pos(self):
-        ball_pos = self._gamestate.get_ball_position()
-        goal_top, goal_bottom = self._gamestate.get_defense_goal(self._team)
-        goal_center = (goal_top + goal_bottom) / 2
-        # for now, look at vector from goal center to ball
-        goal_to_ball = ball_pos - goal_center
-        if not goal_to_ball.any():
-            # should never happen, but good to prevent crash, and for debugging
-            print('ball is exactly on goal center w0t')
-            return np.array([*goal_center, 0])
-        angle_to_ball = np.arctan2(goal_to_ball[1], goal_to_ball[0])
-        norm_to_ball = goal_to_ball / np.linalg.norm(goal_to_ball)
-        GOALIE_OFFSET = 600  # goalie stays this far from goal center
-        x, y = goal_center + norm_to_ball * GOALIE_OFFSET
-        best_pos = np.array([x, y, angle_to_ball])
-        return best_pos
+    def entry_video(self):
+        robot_id_0 = 0
+        robot_id_1 = 8
+        # where the initial pass will be received
+        reception_pos = np.array([3200., 0., self.robot_face_ball(robot_id_1)])
+        pass_velocity = 800
+        shoot_velocity = 1200
+        # reduce for real life b.c. miniature field
+        # pass_velocity = 400
+        # shoot_velocity = 500
 
-    # Return angle (relative to the x axis) for robot to face a position
-    def face_pos(self, robot_id, pos):
-        robot_pos = self._gamestate_get_robot_position(self._team, robot_id)
-        dx, dy = pos - robot_pos
-        # use atan2 instead of atan because it takes into account x/y signs
-        # to give angle from -pi to pi, instead of limiting to -pi/2 to pi/2
-        return np.arctan2(dy, dx)
+        if self.video_phase >= 6:
+            self.goalie(robot_id_1, is_opposite_goal=True)
 
-    def face_ball(self, robot_id):
-        return self.face_pos(robot_id, self._gamestate.get_ball_position())
+        if self.video_phase == 1:
+            # robot 0 gets the ball
+            got_ball = self.get_ball(robot_id_0, charge_during=pass_velocity)
+            # robot 1 moves to pos to receive a pass
+            self.path_find(robot_id_1, reception_pos)
+            # transition once robot 0 has ball (robot 1 can keep moving)
+            if got_ball:
+                self.video_phase += 1
+                print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 2:
+            self.path_find(robot_id_1, reception_pos)
+            # robot 0 makes the pass towards reception pos
+            kicked = self.prepare_and_kick(robot_id_0, reception_pos, pass_velocity)
+            if kicked:
+                self.video_phase += 1
+                print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 3:
+            # robot 1 receives ball
+            got_ball = self.get_ball(robot_id_1, charge_during=shoot_velocity)
+            if got_ball:
+                self.video_phase += 1
+                print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 4:
+            # robot 1 moves to best kick pos to shoot
+            goal = self._gs.get_attack_goal(self._team)
+            center_of_goal = (goal[0] + goal[1]) / 2
+            shot = self.prepare_and_kick(robot_id_1, center_of_goal, shoot_velocity)
+            if shot:
+                self.video_phase += 1
+                print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 5:
+            self.set_dribbler(robot_id_1, False)
+            self.kick_ball(robot_id_1)
+            self.video_phase += 1
+            print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 6:
+            # Set robot 1 to be goalie, have them go to the goal (see top of loop)
+            self.video_phase += 1
+            print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 7:
+            if self._gs.get_ball_position()[0] > 3000:
+                return
+            # Wait for person to place a ball, then have robot 1 go to it
+            got_ball = self.get_ball(robot_id_0, charge_during=shoot_velocity)
+            if got_ball:
+                self.video_phase += 1
+                print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 8:
+            # Robot 1 moves to best kick pos to shoot
+            goal = self._gs.get_attack_goal(self._team)
+            center_of_goal = (goal[0] + goal[1]) / 2
+            shot = self.prepare_and_kick(robot_id_0, center_of_goal, shoot_velocity)
+            if shot:
+                self.video_phase += 1
+                print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 9:
+            self.set_dribbler(robot_id_0, False)
+            self.kick_ball(robot_id_0)
+            # Loop back to placing the ball
+            self.video_phase += 1
+            print("Moving to video phase {}".format(self.video_phase))
+        elif self.video_phase == 10:
+            if self._gs.get_ball_position()[0] > 3000:
+                self.video_phase = 7
+                print("Moving back to video phase {}".format(self.video_phase))
+        else:
+            pass
 
-    def is_path_blocked(self, s_pos, g_pos):
-        if (g_pos == s_pos).all():
-            return False
-        # Check endpoint first to avoid worrying about step size in the loop
-        if not self._gamestate.is_position_open(g_pos):
-            return True
-        path = g_pos - s_pos
-        norm_path = path / np.linalg.norm(path)
-        STEP_SIZE = gs.ROBOT_RADIUS
-        # step along the path and check if any points are blocked
-        for i in range(np.linalg.norm(path) / STEP_SIZE):
-            intermediate_pos = s_pos + norm_path * STEP_SIZE * i
-            if not self.is_position_open(intermediate_pos):
-                return True
-        return False
-
-    # RRT
-    def RRT_path_find(self, robot_id, goal_pos, lim=1000):
-        print("TODO: UPDATE RRT FUNCTION")
-        assert(False)
-        start_pos = self._gamestate.get_robot_position(robot_id)
-        graph = {start_pos: []}
-        prev = {start_pos: None}
-        cnt = 0
-        while cnt < lim:
-            # use gamestate.random_position()
-            new_pos = (np.random.randint(0, FIELD_W), np.random.randint(0, FIELD_H))
-            if np.random.random() < 0.05:
-                new_pos = goal_pos
-
-            # use gamestate.is_pos_valid
-            if not self._gamestate.is_position_open(new_pos) or new_pos in graph:
-                continue
-
-            nearest_pos = get_nearest_pos(graph, new_pos)
-
-            graph[new_pos].append(nearest_pos)
-            graph[nearest_pos].append(new_pos)
-            prev[new_pos] = nearest_pos
-
-            if new_pos[:2] == goal_pos[:2]:
-                break
-
-            cnt += 1
-
-        pos = get_nearest_pos(graph, goal_pos)  # get nearest position to goal in graph
-        path = []
-        while pos[:2] != start_pos[:2]:
-            path.append(pos)
-            pos = prev[pos]
-        path.reverse()
-        waypoints = [pos for pos in path]
-        robot_commands = self._gamestate.get_robot_commands(self._team, robot_id)
-        robot_commands.waypoints = waypoints
-
-    def get_nearest_pos(graph, new_pos):
-        rtn = None
-        min_dist = float('inf')
-        for pos in graph:
-            dist = np.sqrt((new_pos[0] - pos[0]) ** 2 + (new_pos[1] - pos[1]) ** 2)
-            if dist < min_dist:
-                min_dist = dist
-                rtn = pos
-        return rtn
-
-# determine best robot position (including rotation) to shoot or pass ie kick given the position or desired future location
-# of the ball (x,y) after the kick and before the kick (self, from_pos, to_pos)
-# determine location of robot including rotation to recieve as pass given
-# rotation to recieve the ball in current pos
-# go to the ball (and rotate to receive it)
-# assume the ball has already been kicked. add a buffer... "relax" parameter
-# min and max distance to ball path while still intercept
-# posssible interception points (first_intercept_point, last_intercept point) ****important edge case: ball stops in range
-# determine best robot position (including rotation) to shoot or pass ie kick given the position or desired future location
-# of the ball (x,y) after the kick and before the kick (self, from_pos, to_pos)
-    def best_kick_pos(self, from_pos, to_pos):
-        x = from_pos[0]
-        y = from_pos[1]
-        dx, dy = to_pos - from_pos
-        angle = np.arctan2(dy, dx)
-        return np.array([x, y, angle])
-    def intercept_range(self, robot_id):
-        first_intercept_point = self.get_ball_interception_point(robot_id)
-        # Now we find the last possible interception point.
-        # We start with code very much like get_ball_interception_point so that we can start our time
-        # variable at the time when the ball first gets within range.
-        robot_pos = self._gamestate.get_robot_position(self._team, robot_id)
-        delta_t = .05
-        time = 0
-        out_of_range = True
-        while(out_of_range):
-            interception_pos = self._gamestate.predict_ball_pos(time)
-            separation_distance = np.linalg.norm(robot_pos - interception_pos)
-            max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
-            if separation_distance <= time * max_speed:
-                out_of_range = False
-            else:
-                time += delta_t
-        while(not out_of_range):
-            # Note that time is starting at the time when the ball first got within range.
-            interception_pos = self._gamestate.predict_ball_pos(time)
-            separation_distance = np.linalg.norm(robot_pos - interception_pos)
-            max_speed = self._gamestate.robot_max_speed(self._team, robot_id)
-            # We have the opposite criteria to find the end of the window than the beginning.
-            if separation_distance > time * max_speed:
-                # we need to subtract delta_t because we found the last
-                last_intercept_point = self._gamestate.predict_ball_pos(time - delta_t)
-                out_of_range = True
-            else:
-                time += delta_t
-        return np.array([first_intercept_point, last_intercept_point])
+    def full_game(self):
+        coach = Coach(self)
+        coach.play()

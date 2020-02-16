@@ -13,7 +13,7 @@ from google.protobuf import descriptor_pb2
 _sym_db = _symbol_database.Default()
 
 
-import game_event_pb2 as game__event__pb2
+import refbox.game_event_pb2 as game__event__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(

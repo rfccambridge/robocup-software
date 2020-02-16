@@ -151,46 +151,49 @@ class Visualizer(object):
                     self.user_click_down = self.screen_to_field(
                         pygame.mouse.get_pos()
                     )
-
-                    # trigger button clicks
-                    for label, pos in self.buttons.items():
-                        dims = (BUTTON_WIDTH, BUTTON_HEIGHT)
-                        if self.is_collision(pos, dims, pygame.mouse.get_pos()):
-                            # prints current location of mouse
-                            print('button pressed: ' + label)
-
+                    if self._gs.is_in_play(self.user_click_down):
+                        # trigger button clicks
+                        for label, pos in self.buttons.items():
+                            dims = (BUTTON_WIDTH, BUTTON_HEIGHT)
+                            if self.is_collision(pos, dims, pygame.mouse.get_pos()):
+                                # prints current location of mouse
+                                print('button pressed: ' + label)
+                    else:
+                        self.user_click_down = None
                     # FOR DEBUGGING:
                     # print(self._gs.is_pos_valid(
                     #     self.user_click_down, 'blue', 1
                     # ))
 
                 if event.type == pygame.MOUSEBUTTONUP:
-                    self.user_click_up = self.screen_to_field(
-                        pygame.mouse.get_pos()
-                    )
-                    # ball/robot selection
-                    down, up = self.user_click_down, self.user_click_up
-                    robot_clicked = \
-                        self._gs.robot_at_position(down) and \
-                        self._gs.robot_at_position(up)
-                    ball_clicked = \
-                        self._gs.ball_overlap(down).any() and \
-                        self._gs.ball_overlap(up).any()
-                    if robot_clicked or ball_clicked:
-                        self.user_click_down = None
-                        self._gs.user_click_position = None
-                        self._gs.user_drag_vector = None
-                        if ball_clicked:
-                            self.select_ball()
-                        elif robot_clicked:
-                            self.select_robot(robot_clicked)
-
                     if self.user_click_down is not None:
+                        self.user_click_up = self.screen_to_field(
+                            pygame.mouse.get_pos()
+                        )
+                        # ball/robot selection
+                        down, up = self.user_click_down, self.user_click_up
+                        robot_clicked = \
+                            self._gs.robot_at_position(down) and \
+                            self._gs.robot_at_position(up)
+                        ball_clicked = \
+                            self._gs.ball_overlap(down).any() and \
+                            self._gs.ball_overlap(up).any()
+                        if robot_clicked or ball_clicked:
+                            self.user_click_down = None
+                            self._gs.user_click_position = None
+                            self._gs.user_drag_vector = None
+                            if ball_clicked:
+                                self.select_ball()
+                            elif robot_clicked:
+                                self.select_robot(robot_clicked)
+
                         # store xy of original mouse down, and drag vector
-                        self._gs.user_click_position = \
-                            self.user_click_down
-                        self._gs.user_drag_vector = \
-                            self.user_click_up - self.user_click_down
+                        if self.user_click_down is not None:
+                            self._gs.user_click_position = \
+                                self.user_click_down
+                            self._gs.user_drag_vector = \
+                                self.user_click_up - self.user_click_down
+                            self.user_click_down = None
 
             self._viewer.fill(FIELD_COLOR)
             self.render()

@@ -120,6 +120,38 @@ class Analysis(object):
         #    return np.array([])
         return block_pos
 
+    # finds a legal position for robot to move to
+    def find_legal_pos(self, robot_id: int) -> Tuple[float, float, float]:
+        robot_x, robot_y, robot_w = self._gs.get_robot_position(self._team, robot_id)
+        radius = self._gs.ROBOT_RADIUS
+        if self._gs.is_pos_legal([robot_x, robot_y], self._team, robot_id):
+            return [robot_x, robot_y, robot_w]
+        elif self._gs.is_in_play([robot_x, robot_y]):
+            legal_x = self._gs.FIELD_MAX_X + self._gs.DEFENSE_AREA_X_LENGTH + radius if robot_x < 0 \
+                        else self._gs.FIELD_MAX_X - self._gs.DEFENSE_AREA_X_LENGTH - radius
+            legal_y = - self._gs.DEFENSE_AREA_Y_LENGTH / 2 - radius if robot_y < 0 \
+                        else self._gs.DEFENSE_AREA_Y_LENGTH / 2 + radius
+            if abs(legal_x - robot_x) < abs(legal_y - robot_y):
+                goal_x = legal_x
+                goal_y = robot_y
+                while not self._gs.is_position_open([goal_x, goal_y], self._team, robot_id, radius):
+                    if robot_y < 0:
+                        goal_y -= radius
+                    else:
+                        goal_y += radius
+                return [goal_x, goal_y, robot_w]
+            else:
+                goal_y = legal_y
+                goal_x = robot_x
+                while not self._gs.is_position_open([goal_x, goal_y], self._team, robot_id, radius):
+                    if robot_x < 0:
+                        goal_x += radius
+                    else:
+                        goal_x -= radius
+                return [goal_x, goal_y, robot_w]
+        else:
+            return [0, 0, None]
+
     def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=False):
         "incrementally check a linear path for obstacles"
         s_pos = np.array(s_pos)[:2]

@@ -53,7 +53,7 @@ class Actions:
     # TODO: still goes through defense area - need to fix see is_path_blocked
     def path_find(self, robot_id: int, goal_pos: Tuple[float, float, float]) -> bool:
         if not self._gs.is_pos_legal(self._gs.get_robot_position(self._team, robot_id), self._team, robot_id):
-            self.move_straight(robot_id, [0, 0, None])
+            self.move_straight(robot_id, self.find_legal_pos(robot_id), True)
             return self.is_done_moving(robot_id)
         if not self._gs.is_position_open(goal_pos, self._team, robot_id):
             print("cannot path find to blocked goal")

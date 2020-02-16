@@ -22,25 +22,16 @@ class Roles:
             # returns the same thing as intercept_range
             safest_intercept_point = self.safest_intercept_point(robot_id)
             self.move_straight(robot_id, safest_intercept_point, is_urgent=True)
-        elif self._gs.is_ball_behind_goalie() and (shot_location is None):
+        elif self._gs.is_in_defense_area(self._gs.get_ball_position(), team) and (shot_location is None):
             goal_posts_pos = self._gs.get_defense_goal(team)
+            ball_pos_x, ball_pos_y = self._gs.get_ball_position()
             goalie_x, goalie_y, goalie_w = self._gs.get_robot_position(team, robot_id)
-            self.move_straight(robot_id, np.array([goal_posts_pos[0][0], goalie_y, goalie_w]))
-            # x, y = self._gs.get_ball_pos()
-            # goalie_x, goalie_y, goalie_w = self._gs.get_robot_position(team, robot_id)
-            # self.move_straight(robot_id, self.block_goal_center_pos(2*GOALIE_OFFSET, ball_pos=None, team=team))
-            # goalie_x, goalie_y, goalie_w = self._gs.get_robot_position(team, robot_id)
-            # goal_posts_pos = self._gs.get_defense_goal(self, team)
-            # if y > 0:
-            #     bottom_post_x, bottom_post_y = goal_posts_pos[1]
-            #     self.move_straight(robot_id, np.array([goalie_x, bottom_post_y + self._gs.ROBOT_RADIUS, goalie_w]))
-            #     self.move_straight(robot_id, np.array([bottom_post_x, bottom_post_y + self._gs.ROBOT_RADIUS, goalie_w]))
-            #     self.move_straight(robot_id, np.array([bottom_post_x, y, goalie_w]))
-            # else:
-            #     top_post_x, top_post_y = goal_posts_pos[0]
-            #     self.move_straight(robot_id, np.array([goalie_x, bottom_post_y - self._gs.ROBOT_RADIUS, goalie_w]))
-            #     self.move_straight(robot_id, np.array([bottom_post_x, bottom_post_y - self._gs.ROBOT_RADIUS, goalie_w]))
-            #     self.move_straight(robot_id, np.array([bottom_post_x, y, goalie_w]))
+            # we have two cases below so that this function works regardless which goal we're defending
+            if (goalie_x < ball_pos_x < goal_posts_pos[0][0]) or (goalie_x > ball_pos_x > goal_posts_pos[0][0]):
+                if  (goalie_y > ball_pos_y + self._gs.ROBOT_RADIUS) or (goalie_y < ball_pos_y - self._gs.ROBOT_RADIUS):
+                    self.move_straight(robot_id, np.array([goal_posts_pos[0][0], goalie_y, goalie_w]))
+            self.get_ball(robot_id)
+            #TODO clear ball (ie kick the ball somewhere sensible)
         else:
             goalie_pos = self.block_goal_center_pos(GOALIE_OFFSET, ball_pos=None, team=team)
             if goalie_pos.any():

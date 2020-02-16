@@ -8,6 +8,9 @@ logger = logging.getLogger(__name__)
 # Definitions + supporting logic for simple robot actions
 # (have a single step/end condition, return True when done)
 class Actions:
+    """Definitions and supporting logic for simple robot actions. Each function
+    will mostly have a single step/end condition, and return True when done.
+    """
     def pivot_with_ball(self, robot_id, face_pos: Tuple[float, float]) -> bool:
         """Move robot around ball without losing possession"""
         ball_pos = self._gs.get_ball_position()
@@ -38,13 +41,36 @@ class Actions:
             commands.is_charging = False
         return not commands.is_charging  # return whether we are done charging
 
-    def kick_ball(self, robot_id: int):
+    def kick_ball(self, robot_id: int) -> bool:
+        """Sends the kick command to the robot. The robot should already be
+        charged up to the correct kick strength setting using the charge
+        function before this command is sent.
+        
+        Args:
+            robot_id (int): robot id number
+        
+        Returns:
+            bool: true if successfully kicked, false otherwise
+        """
         commands = self._gs.get_robot_commands(self._team, robot_id)
         commands.is_kicking = True
+        # TODO: How do we get feedback?
+        return True
 
     def set_dribbler(self, robot_id: int, is_dribbling: bool) -> bool:
+        """Turns on the dribbler on the robot. 
+        
+        Args:
+            robot_id (int): robot id number
+            is_dribbling (bool): true if you want to dribble, false else
+        
+        Returns:
+            bool: true if successfully set, false otherwise
+        """
         commands = self._gs.get_robot_commands(self._team, robot_id)
         commands.is_dribbling = is_dribbling
+        # TODO: How do we get feedback?
+        return True
 
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id: int, goal_pos: Tuple[float, float, float], is_urgent=False):

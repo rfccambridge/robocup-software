@@ -5,7 +5,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class Utils:
+class Utils(object):
+    """Utility methodsfor math or waypoints."""
     def wrap_pi(self, angle: float) -> float:
         """convert angle to between -pi and pi"""
         return (angle + np.pi) % (np.pi * 2) - np.pi

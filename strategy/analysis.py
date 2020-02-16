@@ -118,6 +118,7 @@ class Analysis(object):
         # TODO: THIS IS A HACK TO MAKE IT STAY WITHIN CAMERA RANGE
         # if block_pos[0] > self._gs.FIELD_MAX_X - self._gs.ROBOT_RADIUS * 3 or block_pos[0] < self._gs.FIELD_MIN_X + self._gs.ROBOT_RADIUS * 3:
         #    return np.array([])
+#        if self._gs.is_pos_valid(interceptPos, team, robot_id)
         return block_pos
 
     def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=False):

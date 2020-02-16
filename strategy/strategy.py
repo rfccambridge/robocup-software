@@ -189,12 +189,16 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
 
     def defender_test(self):
         gs = self._gs
+        """
         if gs.user_selected_robot is not None:
             team, robot_id = gs.user_selected_robot
             if team == self._team:
                 self._defender_id = robot_id
         if self._defender_id is not None:
             self.defender(self._defender_id)
+        """
+        for robot_id in gs.get_robot_ids(self._team):
+            self.defender(robot_id)
         self.click_teleport()
 
     def entry_video(self):

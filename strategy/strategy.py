@@ -2,6 +2,11 @@ import threading
 import traceback
 import numpy as np
 import time
+from multiprocessing import Process
+from multiprocessing import Queue
+import logging
+
+logger = logging.getLogger(__name__)
 
 # import lower-level strategy logic that we've separated for readability
 try:
@@ -24,7 +29,9 @@ except (SystemError, ImportError):
 
 class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
     """Control loop for playing the game. Calculate desired robot actions,
-       and enters commands into gamestate to be sent by comms"""
+       and then sends commands into the gamestate thread using a queue
+       in order to control the game.
+    """
     def __init__(self, gamestate, team, simulator=None):
         assert(team in ['blue', 'yellow'])
         self._team = team
@@ -32,28 +39,37 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
 
         self._is_controlling = False
         self._control_thread = None
-        self._control_loop_sleep = None
-        self._last_control_loop_time = None
         self._mode = None
         self._simulator = simulator
+
+        # Control process used for communicating with gamestate.
+        # Runs the algorithms in a different proc
+        self._control_process = None
+        # queue used for sending commands to gamestate thread
+        # as well as queue for recieving return messages from gamestate process
+        self._command_queue = Queue()  
+        self._gs_update_queue = Queue()
         
         # state for reducing frequency of expensive calls
         # (this also helps reduce oscillation)
         self._last_RRT_times = {}  # robot_id : timestamp
+    
+    def _get_new_gamestate(self):
+        """Fetches new gamestate from the separate gamestate process.
+        This call will may block until the new gamestate actually
+        finishes being returned.
+        """
 
     def start_controlling(self, mode, loop_sleep):
-        """Spins up control thread specified by mode, to command the robots"""
+        """Spins up control process specified by mode, to command the robots"""
+        self._control_process = Process(target=self.control_loop, 
+            args=(self._command_queue, self._gs_update_queue))
         self._mode = mode
         self._control_loop_sleep = loop_sleep
         self._is_controlling = True
-        self._control_thread = threading.Thread(target=self.control_loop)
-        # set to daemon mode so it will be easily killed
-        self._control_thread.daemon = True
-        self._control_thread.start()
-        # print info + initial state for the mode that is running
-        print("\nRunning strategy for {} team, mode: {}".format(
-            self._team, self._mode)
-        )
+        
+        print(f"Running strategy for {self._team} team, mode: {self._mode}")
+
         if self._mode == "UI":
             print("""
             Using UI Controls!
@@ -80,6 +96,8 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
             print("default strategy for playing a full game")
 
     def stop_controlling(self):
+        """Stop the control processes by killing it."""
+        # TODO: Turn this code into killing a new process.
         if self._is_controlling:
             self._is_controlling = False
             self._control_thread.join()
@@ -118,16 +136,9 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
                         pos = self._gs.get_robot_position(self._team, robot_id)
                         robot_commands.derive_speeds(pos)
 
-                if self._last_control_loop_time is not None:
-                    delta = time.time() - self._last_control_loop_time
-                    if delta > self._control_loop_sleep * 3:
-                        print("Control loop large delay: " + str(delta))
-                self._last_control_loop_time = time.time()
-                # yield to other threads
-                time.sleep(self._control_loop_sleep)
         except Exception:
-            print('Unexpected Error!')
-            print(traceback.format_exc())
+            logger.exception('Unexpected Error!')
+            logger.exception(traceback.format_exc())
 
     # follow the user-input commands through visualizer
     def UI(self):

@@ -41,8 +41,10 @@ BUTTON_TEXT_COLOR = (255, 255, 255)
 WINDOW_BUFFER = 70
 
 class Visualizer(object):
-    """Robocup homegrown visualization library that essentially does the same
-    as the modules in OpenAI gym."""
+    """
+    Robocup homegrown visualization library that essentially does the same
+    as the modules in OpenAI gym.
+    """
 
     def __init__(self, gamestate, home_strategy, away_strategy):
         self._viewer = None

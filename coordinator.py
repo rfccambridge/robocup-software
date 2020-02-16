@@ -1,12 +1,25 @@
 from multiprocessing import Queue
 
 class Provider(object):
+    """
+    Basic interface class that reads data in from the Coordinator, 
+    does some action, and then writes actions back to the coordinator.  
+    """
     def __init__(self):
         self.data_in_q = Queue()
         self.commands_out_q = Queue()
     
     def run(self):
-        raise NotImplementedError
+        """
+        Handle provider specific logic. Should accept data from
+        self.data_in_q and write outputs to self.commands_out_q.
+        Needs to be implemented in child classes. Should be a loop that
+        runs forever (while True)
+        
+        Raises:
+            NotImplementedError: You forgot to implement this in child classes
+        """
+        raise NotImplementedError("Need to implement run() in child classes.")
     
 class Coordinator(object):
     """

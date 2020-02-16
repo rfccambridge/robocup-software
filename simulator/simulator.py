@@ -3,14 +3,16 @@ import time
 import numpy as np
 from collections import deque
 from typing import Tuple
+from coordinator import Provider
 
 
-class Simulator(object):
+class Simulator(Provider):
     """Simulator class spins to update gamestate instead of vision and comms.
        Applies rudimentary physics and commands, to allow offline prototyping.
     """
     # TODO: when we get multiple comms, connect to all available robots
     def __init__(self, gamestate):
+        super().__init__()
         self._gamestate = gamestate
         self._is_simulating = False
         self._thread = None
@@ -40,19 +42,8 @@ class Simulator(object):
         # print(f"{self._gamestate._ball_position}")
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
-    def start_simulating(self, inital_setup, loop_sleep):
-        """Spin up simulator thread to update gamestate as though robots 
-        are following commands + physics"""
-        self._initial_setup = inital_setup
-        self._simulation_loop_sleep = loop_sleep
-        self._is_simulating = True
-        self._thread = threading.Thread(target=self.simulation_loop)
-        # set to daemon mode so it will be easily killed
-        self._thread.daemon = True
-        self._thread.start()
-
-    def simulation_loop(self):
-        gs = self._gamestate
+    def run(self):
+        gs = self.data_in_q.get()
         # wait until game begins (while other threads are initializing)
         gs.wait_until_game_begins()
         print("\nSimulator running with initial setup: {}".format(
@@ -89,7 +80,8 @@ class Simulator(object):
             print('(initial_setup not recognized, empty field)')
 
         # run the simulation loop
-        while self._is_simulating:
+        while True:
+            gs = self.data_in_q.get()
             delta_time = 0
             if self._last_step_time is not None:
                 delta_time = time.time() - self._last_step_time
@@ -200,8 +192,3 @@ class Simulator(object):
             # yield to other threads
             time.sleep(self._simulation_loop_sleep)
 
-    def stop_simulating(self):
-        if self._is_simulating:
-            self._is_simulating = False
-            self._thread.join()
-            self._thread = None

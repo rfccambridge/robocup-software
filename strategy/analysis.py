@@ -1,13 +1,18 @@
 import numpy as np
 import time
 from typing import Optional, Tuple, Iterable
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Analysis(object):
     """
     The high level analysis class
     """
     def get_future_ball_array(self):
-        """Samples incrementally to return array of future predicted ball positions"""
+        """
+        Samples incrementally to return array of future predicted ball positions
+        """
         ball_pos = self._gs.get_ball_position()
         # this definition of new_ball_pos guarentees that they are not the same intitally
         new_ball_pos = ball_pos - np.array([1, 1])

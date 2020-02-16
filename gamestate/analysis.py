@@ -1,10 +1,9 @@
 import numpy as np
 
-
-# Part of the Gamestate class we've separated out for readability
 class Analysis(object):
-    """Fundamental analysis functions for gamestate that are shared between
-       simulator and strategy - think physics stuff.
+    """
+    Fundamental analysis functions for gamestate that are shared between 
+    simulator and strategy - think physics stuff.
     """
     BALL_RADIUS = 21 * 1.5
     ROBOT_RADIUS = 90 * 1.5  # in most cases model robot as circle
@@ -15,8 +14,10 @@ class Analysis(object):
     # ball constant slowdown due to friction
     BALL_DECCELERATION = 350  # mm/s^2
 
-    # returns the amount of overlap between circles as (x, y) vector
     def overlap(self, pos1, pos2, radius_sum):
+        """
+        returns the amount of overlap between circles as (x, y) vector
+        """
         delta = pos2[:2] - pos1[:2]
         if not delta.any():
             return np.array([radius_sum, 0])
@@ -26,19 +27,25 @@ class Analysis(object):
             return touching_delta - delta
         return np.array([0, 0])
 
-    # overlap between two robots
     def robot_overlap(self, pos1, pos2, buffer_dist=0):
+        """
+        overlap between two robots
+        """
         return self.overlap(pos1, pos2, self.ROBOT_RADIUS * 2 + buffer_dist)
 
-    # if position is in front face of robot
     def is_robot_front_sector(self, robot_pos, pos):
+        """
+        if position is in front face of robot
+        """
         dx, dy = pos[:2] - robot_pos[:2]
         angle = np.arctan2(dy, dx)
         dw = angle - robot_pos[2]
         return np.cos(dw) * self.ROBOT_RADIUS > self.ROBOT_DRIBBLER_RADIUS
 
-    # overlap between robot and ball
     def robot_ball_overlap(self, robot_pos, ball_pos=None):
+        """
+        overlap between robot and ball
+        """
         if ball_pos is None:
             ball_pos = self.get_ball_position()
         # account for flat front of robot in this case
@@ -54,13 +61,17 @@ class Analysis(object):
             return np.array([overlap * np.cos(w), overlap * np.sin(w)])
         return self.overlap(robot_pos, ball_pos, self.ROBOT_RADIUS + self.BALL_RADIUS)
 
-    # overlap of position and ball
     def ball_overlap(self, pos):
+        """
+        overlap of position and ball
+        """
         ball_pos = self.get_ball_position()
         return self.overlap(pos, ball_pos, self.BALL_RADIUS)
 
-    # returns the x, y position in center of robot's dribbler
     def dribbler_pos(self, team, robot_id):
+        """
+        returns the x, y position in center of robot's dribbler
+        """
         x, y, w = self.get_robot_position(team, robot_id)
         direction = np.array([np.cos(w), np.sin(w)])
         relative_pos = direction * (self.ROBOT_DRIBBLER_RADIUS + self.BALL_RADIUS)
@@ -72,8 +83,10 @@ class Analysis(object):
         x, y = dribbler_pos - direction * (self.ROBOT_DRIBBLER_RADIUS + self.BALL_RADIUS / 2)
         return np.array([x, y, robot_w])
 
-    # if ball is in position to be dribbled
     def ball_in_dribbler_single_frame(self, team, robot_id, ball_pos=None):
+        """
+        if ball is in position to be dribbled
+        """
         if ball_pos is None:
             ball_pos = self.get_ball_position()
         robot_pos = self.get_robot_position(team, robot_id)
@@ -104,8 +117,10 @@ class Analysis(object):
                 return False
         return True
 
-    # return whether robot can be in a location without colliding another robot
     def is_position_open(self, pos, team, robot_id, buffer_dist=0):
+        """
+        return whether robot can be in a location without colliding another robot
+        """
         for key, robot_pos in self.get_all_robot_positions():
             if key == (team, robot_id):
                 continue
@@ -113,15 +128,19 @@ class Analysis(object):
                 return False
         return True
 
-    # return robot team and id occupying a current position, if any
     def robot_at_position(self, pos):
+        """
+        return robot team and id occupying a current position, if any
+        """
         for (team, robot_id), robot_pos in self.get_all_robot_positions():
             if self.overlap(pos, robot_pos, self.ROBOT_RADIUS).any():
                 return (team, robot_id)
         return None
 
-    # Here we find ball velocity at most recent timestamp from position data
     def get_ball_velocity(self):
+        """
+        Here we find ball velocity at most recent timestamp from position data
+        """
         # TOOD: smooth out this value by averaging?
         # prev_velocity = self.ball_velocity
         positions = self._ball_position
@@ -182,8 +201,10 @@ class Analysis(object):
         return predicted_pos
 
     # TODO: move to strategy analysis
-    # return where in goal ball is going to if it is going in
     def is_shot_coming(self, team):
+        """
+        return where in goal ball is going to if it is going in
+        """
         start_ball_pos = self.get_ball_position()
         start_x = start_ball_pos[0]
         start_y = start_ball_pos[1]

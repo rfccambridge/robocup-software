@@ -4,6 +4,7 @@ import numpy as np
 from collections import deque
 from typing import Tuple
 from coordinator import Provider
+from gamestate import GameFunctions
 
 
 class Simulator(Provider):
@@ -11,9 +12,9 @@ class Simulator(Provider):
        Applies rudimentary physics and commands, to allow offline prototyping.
     """
     # TODO: when we get multiple comms, connect to all available robots
-    def __init__(self, gamestate):
+    def __init__(self):
         super().__init__()
-        self._gamestate = gamestate
+        self._gamestate = GameFunctions(self.data_in_q.get())
         self._is_simulating = False
         self._thread = None
         self._simulation_loop_sleep = None
@@ -43,7 +44,7 @@ class Simulator(Provider):
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
     def run(self):
-        gs = self.data_in_q.get()
+        self._gamestate = GameFunctions(self.data_in_q.get())
         # wait until game begins (while other threads are initializing)
         gs.wait_until_game_begins()
         print("\nSimulator running with initial setup: {}".format(
@@ -81,7 +82,8 @@ class Simulator(Provider):
 
         # run the simulation loop
         while True:
-            gs = self.data_in_q.get()
+            gd = self.data_in_q.get()
+            gs = GameFunctions(gd)
             delta_time = 0
             if self._last_step_time is not None:
                 delta_time = time.time() - self._last_step_time

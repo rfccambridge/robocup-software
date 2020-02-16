@@ -24,11 +24,21 @@ ROBOT_LOST_TIME = .2
 # time after which lost robot is deleted from the gamestate
 ROBOT_REMOVE_TIME = 5        
 
+class GameData(object):
+    """
+    This stores the complete raw state of the game world including
+    vision information, refbox commands and robot commands.
+    """
+    def __init__(self):
+        self.vision_data = None
+        self.refbox_data = None
+        self.visualization_data = None
+        self.robot_commands = None
+
 class GameFunctions(Field, Analysis):
-    """Game state contains all raw game information in one place.
-       Many threads can edit and use the game state at once, cuz Python GIL
-       Since using python, data types are specified in the comments below.
-       Fundamental physics and game rules functions are available from gamestate.
+    """
+    A library providing convenience functions for extracting
+    information from a GameData obejct.
     """
     def __init__(self, game_data):
         # NOTE: Fields starting with _underscore are "private" so
@@ -87,39 +97,11 @@ class GameFunctions(Field, Analysis):
             self._game_thread.join()
             self._game_thread = None
 
-    def new_game_loop(self):
-        # update_vision()
-        # update_refbox()
-        # send_new_state_to_strategy_procs()
-        # update_robot_commands()
-        # pipe_commands_to_xbee_process() if not simulation
-
-    def game_loop(self):
-        # set up game status
-        self.game_clock = 0
-        while self._is_playing:
-            delta_time = 0
-            if self._last_step_time is not None:
-                delta_time = time.time() - self._last_step_time
-                if delta_time > self._game_loop_sleep * 3:
-                    print("Game loop large delay: " + str(delta_time))
-            self._last_step_time = time.time()
-
-            self.game_clock += delta_time
-
-            # yield to other threads
-            time.sleep(self._game_loop_sleep)
-
     def other_team(self, team):
         if team == 'blue':
             return 'yellow'
         else:
             return 'blue'
-    
-    # GAME STATUS/EVENT FUNCTIONS
-    def wait_until_game_begins(self):
-        while self.game_clock is None:
-            time.sleep(.01)
 
     # RAW DATA GET/SET FUNCTIONS
     # returns position ball was last seen at, or (0, 0) if unseen

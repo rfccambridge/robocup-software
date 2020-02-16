@@ -118,15 +118,13 @@ class Simulator(object):
                 # print(gs.get_ball_velocity())
                 gs.update_ball_position(new_ball_pos)
 
-            for (team, robot_id), pos in \
-                    gs.get_all_robot_positions():
+            for (team, robot_id), pos in gs.get_all_robot_positions():
                 # refresh positions of all robots
                 pos = gs.get_robot_position(team, robot_id)
                 gs.update_robot_position(team, robot_id, pos)
 
                 # handle collisions with other robots
-                for (team2, robot_id2), pos2 in \
-                        gs.get_all_robot_positions():
+                for (team2, robot_id2), pos2 in gs.get_all_robot_positions():
                     if (team2, robot_id2) != (team, robot_id) and \
                        gs.robot_overlap(pos, pos2).any():
                         overlap = gs.robot_overlap(pos, pos2)

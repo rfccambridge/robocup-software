@@ -6,6 +6,9 @@ import sys
 import signal
 import traceback
 import argparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Remove pygame's annoying welcome message
 import os
@@ -30,6 +33,9 @@ parser.add_argument('-nra', '--no_radio',
 parser.add_argument('-nre', '--no_refbox',
                     action="store_true",
                     help='ignores commands from the refbox.')
+parser.add_argument('-d', '--debug',
+                    action="store_true",
+                    help='Uses more verbose logging for debugging.')
 command_line_args = parser.parse_args()
 
 # whether or not we are running with real field and robots
@@ -57,6 +63,10 @@ GAME_LOOP_SLEEP = .1
 
 if __name__ == '__main__':
     VERBOSE = False
+    logging_level = logging.INFO
+    if command_line_args.debug:
+        logging_level = logging.DEBUG
+    logging.basicConfig(level=logging_level)
 
     # Welcome message
     print('RFC Cambridge Robocup Software')
@@ -77,7 +87,7 @@ if __name__ == '__main__':
     away_strategy = Strategy(gamestate, AWAY_TEAM, simulator)
 
     # choose which modules to run based on run conditions
-    print('Spinning up Threads...')
+    logger.info('Spinning up Threads...')
     if IS_SIMULATION:
         # spin up simulator to replace actual vision data + comms
         simulator.start_simulating(SIMULATION_SETUP, SIMULATION_LOOP_SLEEP)

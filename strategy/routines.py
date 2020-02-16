@@ -1,4 +1,8 @@
 from typing import Tuple
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # Definitions + supporting logic for multi-step sequences of actions
 # Use simple state management, return whether finished

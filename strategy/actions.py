@@ -1,7 +1,9 @@
 import numpy as np
 import time
 from typing import Iterable, Optional, List, Tuple
+import logging
 
+logger = logging.getLogger(__name__)
 
 # Definitions + supporting logic for simple robot actions
 # (have a single step/end condition, return True when done)

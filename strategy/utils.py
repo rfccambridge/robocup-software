@@ -1,7 +1,9 @@
 """Strategy helper functions for geometry + working with commands"""
-
 import numpy as np
 from typing import Tuple, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Utils:
     def wrap_pi(self, angle: float) -> float:
@@ -16,7 +18,7 @@ class Utils:
         """format + insert list of waypoints into robot commands"""
         current_pos = self._gs.get_robot_position(self._team, robot_id)
         commands = self._gs.get_robot_commands(self._team, robot_id)
-        # print(waypoints)
+        # logger.debug("Waypoints: %s", waypoints)
         for i, p in enumerate(waypoints):
             assert(len(p) == 2 or len(p) == 3)
             if len(p) == 2:

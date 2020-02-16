@@ -1,9 +1,8 @@
 import numpy as np
 
-
-# Part of the Gamestate class we've separated out for readability
 class Field(object):
-    """Gamestate functions about the field specs
+    """
+    Part of the Gamestate class we've separated out for readability
     """
     # FIELD + ROBOT DIMENSIONS (mm)
     FIELD_SCALE = 1  # useful if using a miniature field
@@ -18,8 +17,10 @@ class Field(object):
     DEFENSE_AREA_X_LENGTH = 1000 * FIELD_SCALE
     DEFENSE_AREA_Y_LENGTH = 2000 * FIELD_SCALE
 
-    # returns bottom left corner of defense area
     def defense_area_corner(self, team):
+        """
+        returns bottom left corner of defense area
+        """
         if team == "blue" and self.is_blue_defense_side_left or \
            team == "yellow" and not self.is_blue_defense_side_left:
             min_x = self.FIELD_MIN_X
@@ -46,8 +47,10 @@ class Field(object):
         in_other_defense_area = self.is_in_defense_area(pos, self.other_team(team))
         return self.is_in_play(pos) and not in_own_defense_area and not in_other_defense_area
 
-    # return a random position inside the field
     def random_position(self):
+        """
+        return a random position inside the field
+        """
         return (np.random.randint(0, self.FIELD_X_LENGTH),
                 np.random.randint(0, self.FIELD_Y_LENGTH))
 

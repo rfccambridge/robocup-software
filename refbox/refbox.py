@@ -9,14 +9,29 @@ import time
 from .referee_pb2 import SSL_Referee
 
 class RefboxClient:
-    
+    """
+    A client class to get information from the refbox.
+    """
     def __init__(self, ip = '224.5.23.1', port=10003):
+        """
+        Creates a RefboxClient object
+        
+        Args:
+            ip (str, optional): The ip to listen to refbox messages on. Defaults to '224.5.23.1'.
+            port (int, optional): The port to listen for refbox messages on. Defaults to 10003.
+        """
         self.ip = ip
         self.port = port
 
 
     def connect(self):
-        """Binds the client with ip and port and configure to UDP multicast."""
+        """
+        Connects to the socket but doesn't start receiving packets yet
+        
+        Raises:
+            ValueError: If IP is not string
+            ValueError: If port is not int type
+        """
 
         if not isinstance(self.ip, str):
             raise ValueError('IP type should be string type')
@@ -28,17 +43,36 @@ class RefboxClient:
         self.sock.bind((self.ip, self.port))
 
     def receive(self):
-        """Receive package and decode."""
+        """
+        Receive a single packet from the refbox
+        
+        Returns:
+            SSL_Referee: The protobuf message from the refbox
+        """
         data, _ = self.sock.recvfrom(1024)
         decoded_data = SSL_Referee.FromString(data)
         return decoded_data
 
     def disconnect(self):
+        """
+        Closes the socket
+        """
         if self.sock:
             self.sock.close()
 
 class RefboxDataProvider:
+    """
+    A wrapper around a RefboxClient to help update a gamestate object
+    """
     def __init__(self, gamestate, ip = '224.5.23.1', port=10003):
+        """
+        Creates a RefboxDataProvider object
+        
+        Args:
+            gamestate (GameState): The gamestate object which we should update the state of
+            ip (str, optional): The IP address to listen for messages on. Defaults to '224.5.23.1'.
+            port (int, optional): The port to listen for messages. Defaults to 10003.
+        """
         self._is_running = False
         self._client = None
         self._receive_data_thread = None
@@ -51,6 +85,12 @@ class RefboxDataProvider:
         self._vision_loop_sleep = None
 
     def start_updating(self, loop_sleep):
+        """
+        Start updating the gamestate with the latest info.
+        
+        Args:
+            loop_sleep ([type]): The time to wait between each update.
+        """
         if self._is_running:
             raise Exception('RefboxDataProvider is always running')
         self._is_running = True
@@ -73,6 +113,9 @@ class RefboxDataProvider:
         self._vision_loop_sleep = loop_sleep
 
     def stop_updating(self):
+        """
+        Stop updating the gamestate and close the client
+        """
         if self._client:
             self._client.disconnect()
 
@@ -87,11 +130,16 @@ class RefboxDataProvider:
         
 
     def receive_data_loop(self):
+        """
+        A loop to receive the latest packets.
+        """
         while self._is_running:
             self._latest_packet = self._client.receive()
 
     def gamestate_update_loop(self):
-        # wait until game begins (while other threads are initializing)
+        """
+        A loop to update the gamestate with the latest packets
+        """
         self._gamestate.wait_until_game_begins()
         while self._is_running:
             self._gamestate.latest_refbox_message = self._latest_packet

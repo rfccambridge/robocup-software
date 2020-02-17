@@ -130,7 +130,7 @@ class Analysis(object):
         # Buffer to make sure it fully exits illegal area - is this too much?
         buffer = 2 * radius
         # If in one of the defense areas
-        elif self._gs.is_in_play([robot_x, robot_y]):
+        if self._gs.is_in_play([robot_x, robot_y]):
             legal_x = self._gs.FIELD_MAX_X + self._gs.DEFENSE_AREA_X_LENGTH + buffer if robot_x < 0 \
                         else self._gs.FIELD_MAX_X - self._gs.DEFENSE_AREA_X_LENGTH - buffer
             legal_y = - self._gs.DEFENSE_AREA_Y_LENGTH / 2 - buffer if robot_y < 0 \

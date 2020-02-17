@@ -13,8 +13,7 @@ class Simulator(Provider):
        Applies rudimentary physics and commands, to allow offline prototyping.
     """
     # TODO: when we get multiple comms, connect to all available robots
-    def __init__(self, gamestate):
-        self._gamestate = gamestate
+    def __init__(self):
         self._is_simulating = False
         self._simulation_loop_sleep = None
         self._last_step_time = None

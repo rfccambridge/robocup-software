@@ -1,11 +1,8 @@
 from multiprocessing import Queue
-<<<<<<< HEAD
 from gamestate import GameState
-=======
 import logging
 
 logger = logging.getLogger(__name__)
->>>>>>> e67aadd554d566b5520b0599a9f299ed12cacd90
 
 class Provider(object):
     """
@@ -46,7 +43,7 @@ class Coordinator(object):
         Collects the objects to coordinate
         """
         self.vision_provider = vision_provider
-        self.yellow_radio_provider = radio_provider
+        self.yellow_radio_provider = yellow_radio_provider
         self.refbox_provider = refbox_provider
         self.yellow_strategy = yellow_strategy
         self.blue_strategy = blue_strategy

@@ -78,8 +78,8 @@ if __name__ == '__main__':
     print(f'Running in no refbox mode: {NO_REFBOX}')
 
     # initialize gamestate + all other modules
-    simulator = Simulator(gamestate) if IS_SIMULATION else None
-    home_strategy = Strategy(gamestate, HOME_TEAM, simulator)
+    simulator = Simulator() 
+    home_strategy = Strategy(HOME_TEAM)
 
     c = Coordinator(home_strategy, simulator)
     import time

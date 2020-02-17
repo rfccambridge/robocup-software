@@ -2,7 +2,7 @@ import traceback
 import numpy as np
 import time
 import logging
-
+from coordinator import Provider
 logger = logging.getLogger(__name__)
 
 # import lower-level strategy logic that we've separated for readability
@@ -27,11 +27,10 @@ except (SystemError, ImportError):
 class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     """Control loop for playing the game. Calculate desired robot actions,
        and enters commands into gamestate to be sent by comms"""
-    def __init__(self, gamestate, team, simulator=None):
+    def __init__(self, team, simulator=None):
         super().__init__()
         assert(team in ['blue', 'yellow'])
         self._team = team
-        self._gs = gamestate
 
         self._is_controlling = False
         self._last_control_loop_time = None

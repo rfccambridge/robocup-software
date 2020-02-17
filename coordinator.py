@@ -1,5 +1,11 @@
 from multiprocessing import Queue
+<<<<<<< HEAD
 from gamestate import GameState
+=======
+import logging
+
+logger = logging.getLogger(__name__)
+>>>>>>> e67aadd554d566b5520b0599a9f299ed12cacd90
 
 class Provider(object):
     """

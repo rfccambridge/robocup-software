@@ -69,6 +69,8 @@ class Coordinator(object):
         
         for proc in self.processes:
             proc.start()
+
+        self.game_loop()
         
     def stop_game(self):
         for proc in self.processes:
@@ -88,7 +90,10 @@ class Coordinator(object):
         """
         Gets updated vision data from either SSLVision or the simulator
         """
-        return self.vision_provider.commands_out_q.get()
+        try:
+            return self.vision_provider.commands_out_q.get_nowait()
+        except:
+            pass
 
     def get_updated_refbox_data(self):
         """
@@ -111,6 +116,7 @@ class Coordinator(object):
                 return self.yellow_radio_provider.data_in_q.put(self.robot_commands)
             except:
                 pass
+        self.vision_provider.data_in_q.put_nowait(self.gamestate)
 
     def publish_new_gamestate(self):
         try:

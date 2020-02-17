@@ -192,8 +192,7 @@ class Simulator(Provider):
                         robot_commands.charge_level = 0
                         robot_commands.is_kicking = False
 
-            # TODO: Add this.
-            self.commands_out_q.put(gs.vision_packet)
+            self.commands_out_q.put(gs)
 
     def stop_simulating(self):
         raise NotImplementedError

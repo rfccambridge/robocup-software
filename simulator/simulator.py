@@ -18,7 +18,6 @@ class Simulator(Provider):
         self._is_simulating = False
         self._simulation_loop_sleep = None
         self._last_step_time = None
-
         self._initial_setup = None
 
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
@@ -196,9 +195,5 @@ class Simulator(Provider):
                         robot_commands.charge_level = 0
                         robot_commands.is_kicking = False
 
-
     def stop_simulating(self):
-        if self._is_simulating:
-            self._is_simulating = False
-            self._thread.join()
-            self._thread = None
+        raise NotImplementedError

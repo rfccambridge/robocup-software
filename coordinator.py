@@ -78,7 +78,7 @@ class Coordinator(object):
         # Need to push in a gamestate object initially
         self.vision_provider.data_in_q.put_nowait(self.gamestate)
         while True:
-            self.vision_data = self.get_updated_vision_data()
+            self.gamestate = self.get_updated_vision_data()
             self.refbox_data = self.get_updated_refbox_data()
             self.publish_new_gamestate()
             self.update_robot_commands()

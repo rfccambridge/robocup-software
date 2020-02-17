@@ -3,6 +3,8 @@ import time
 import numpy as np
 from collections import deque
 from typing import Tuple
+import logging
+from coordinator import Provider
 
 
 class Simulator(object):

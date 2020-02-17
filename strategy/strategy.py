@@ -1,7 +1,9 @@
-import threading
 import traceback
 import numpy as np
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 # import lower-level strategy logic that we've separated for readability
 try:
@@ -22,17 +24,16 @@ except (SystemError, ImportError):
     from .plays import Plays
 
 
-class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
+class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     """Control loop for playing the game. Calculate desired robot actions,
        and enters commands into gamestate to be sent by comms"""
     def __init__(self, gamestate, team, simulator=None):
+        super().__init__()
         assert(team in ['blue', 'yellow'])
         self._team = team
         self._gs = gamestate
 
         self._is_controlling = False
-        self._control_thread = None
-        self._control_loop_sleep = None
         self._last_control_loop_time = None
         self._mode = None
         self._simulator = simulator
@@ -44,12 +45,8 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
     def start_controlling(self, mode, loop_sleep):
         """Spins up control thread specified by mode, to command the robots"""
         self._mode = mode
-        self._control_loop_sleep = loop_sleep
         self._is_controlling = True
-        self._control_thread = threading.Thread(target=self.control_loop)
-        # set to daemon mode so it will be easily killed
-        self._control_thread.daemon = True
-        self._control_thread.start()
+
         # print info + initial state for the mode that is running
         print("\nRunning strategy for {} team, mode: {}".format(
             self._team, self._mode)
@@ -80,14 +77,11 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
             print("default strategy for playing a full game")
 
     def stop_controlling(self):
-        if self._is_controlling:
-            self._is_controlling = False
-            self._control_thread.join()
-            self._control_thread = None
+        pass
 
-    def control_loop(self):
+    def run(self):
         # wait until game begins (while other threads are initializing)
-        self._gs.wait_until_game_begins()
+        # self._gs.wait_until_game_begins()
         try:
             while self._is_controlling:
                 # run the strategy corresponding to the given mode
@@ -117,17 +111,9 @@ class Strategy(Utils, Analysis, Actions, Routines, Roles, Plays):
                         # recalculate the speed the robot should be commanded at
                         pos = self._gs.get_robot_position(self._team, robot_id)
                         robot_commands.derive_speeds(pos)
-
-                if self._last_control_loop_time is not None:
-                    delta = time.time() - self._last_control_loop_time
-                    if delta > self._control_loop_sleep * 3:
-                        print("Control loop large delay: " + str(delta))
-                self._last_control_loop_time = time.time()
-                # yield to other threads
-                time.sleep(self._control_loop_sleep)
         except Exception:
-            print('Unexpected Error!')
-            print(traceback.format_exc())
+            logger.exception('Unexpected Error!')
+            logger.exception(traceback.format_exc())
 
     # follow the user-input commands through visualizer
     def UI(self):

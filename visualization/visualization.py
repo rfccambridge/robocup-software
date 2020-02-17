@@ -120,10 +120,10 @@ class Visualizer(Provider):
 
     def run(self):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
-        logger.debug("Attempting to initialize viz")
-        self.init_shit()
         logger.debug("Attempting to initialize visualizer with pygame")
         pygame.init()
+        logger.debug("Attempting to initialize viz")
+        self.init_shit()
         logger.debug("Initialized visualizer with pygame")
         # wait until game begins (while other threads are initializing)
         while True:

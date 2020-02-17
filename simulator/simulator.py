@@ -43,9 +43,10 @@ class Simulator(Provider):
         has_started = False
         while True:
             gs = self.data_in_q.get() 
-            logger.info("\nSimulator running with initial setup: {}".format(
-                self._initial_setup
-            ))
+            self._gamestate = gs
+            # logger.info("\nSimulator running with initial setup: {}".format(
+            #     self._initial_setup
+            # ))
             # initialize the chosen scenario
             if self._initial_setup == 'full_teams':
                 for i in range(1, 7):

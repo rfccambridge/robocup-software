@@ -39,7 +39,8 @@ class Coordinator(object):
                  yellow_radio_provider: Provider = None,
                  refbox_provider: Provider = None,
                  blue_strategy: Provider = None,
-                 blue_radio_provider: Provider = None):
+                 blue_radio_provider: Provider = None,
+                 visualization_provider: Provider = None):
         """
         Collects the objects to coordinate
         """
@@ -49,6 +50,7 @@ class Coordinator(object):
         self.yellow_strategy = yellow_strategy
         self.blue_strategy = blue_strategy
         self.blue_radio_provider = blue_radio_provider
+        self.visualization_provider = visualization_provider
 
         # Stores the processes currently in use by the coordinator
         self.processes = []
@@ -66,7 +68,8 @@ class Coordinator(object):
             self.processes.append(Process(target=self.refbox_provider.run))        
         if self.yellow_radio_provider:
             self.processes.append(Process(target=self.yellow_radio_provider.run))
-        
+        if self.visualization_provider:
+            self.processes.append(Process(target=self.visualization_provider.run))        
         for proc in self.processes:
             proc.start()
 
@@ -133,7 +136,12 @@ class Coordinator(object):
             self.vision_provider.data_in_q.put_nowait(self.gamestate)
         except:
             pass
-    
+        try:
+            if self.visualization_provider:
+                self.visualization_provider.data_in_q.put_nowait(self.gamestate)
+        except:
+            pass
+        
     def update_robot_commands(self):
         try:
             if self.blue_strategy:

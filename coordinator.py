@@ -31,34 +31,32 @@ class Coordinator(object):
     def __init__(self, 
                  yellow_strategy: Provider,
                  vision_provider : Provider,
-                 radio_provider: Provider = None,
+                 yellow_radio_provider: Provider = None,
                  refbox_provider: Provider = None,
-                 blue_strategy: Provider = None):
+                 blue_strategy: Provider = None,
+                 blue_radio_provider: Provider = None):
         """
         Collects the objects to coordinate
         """
         self.vision_provider = vision_provider
-        self.radio_provider = radio_provider
+        self.yellow_radio_provider = radio_provider
         self.refbox_provider = refbox_provider
         self.yellow_strategy = yellow_strategy
         self.blue_strategy = blue_strategy
-
-        self.is_playing = False
-
-        # Commands data (desired robot actions)
-        self.robot_commands = dict()
-
-        # This stores the global state of the game
-        self.game_data = dict()
+        self.blue_radio_provider = blue_radio_provider
 
         # Stores the processes currently in use by the coordinator
         self.processes = []
+
+        self.gamestate = {}
 
     def start_game(self):
         self.processes.append(Process(target=self.vision_provider.run))
         self.processes.append(Process(target=self.yellow_strategy.run))
         if self.blue_strategy:
             self.processes.append(Process(target=self.blue_strategy.run))
+        if self.blue_radio_provider:
+            self.processes.append(Process(target=self.blue_radio_provider.run))
         if self.refbox_provider:
             self.processes.append(Process(target=self.refbox_provider.run))        
         if self.radio_provider:

@@ -83,6 +83,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         # self._gs.wait_until_game_begins()
         while True:
             gs = self.data_in_q.get()
+            self._gs = gs
             try:
                 while self._is_controlling:
                     # run the strategy corresponding to the given mode
@@ -99,7 +100,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                     elif self._mode == "full_game":
                         self.full_game()
                     else:
-                        print('(unrecognized mode, doing nothing)')
+                        logger.error('(unrecognized mode, doing nothing)')
 
                     # tell all robots to refresh their speeds based on waypoints
                     team_commands = self._gs.get_team_commands(self._team)

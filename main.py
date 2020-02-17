@@ -21,6 +21,7 @@ from strategy import Strategy
 from visualization import Visualizer
 from comms import Comms
 from simulator import Simulator
+from coordinator import Coordinator
 
 # Setup command line arg parsing
 parser = argparse.ArgumentParser(description='Runs our main codebase')
@@ -77,15 +78,12 @@ if __name__ == '__main__':
     print(f'Running in no refbox mode: {NO_REFBOX}')
 
     # initialize gamestate + all other modules
-    gamestate = GameState()
-    vision = SSLVisionDataProvider(gamestate)
-    refbox = RefboxDataProvider(gamestate)
-    home_comms = Comms(gamestate, HOME_TEAM)
-    away_comms = Comms(gamestate, AWAY_TEAM, True)
     simulator = Simulator(gamestate) if IS_SIMULATION else None
     home_strategy = Strategy(gamestate, HOME_TEAM, simulator)
-    away_strategy = Strategy(gamestate, AWAY_TEAM, simulator)
 
+    c = Coordinator(home_strategy, simulator)
+
+    exit() #testing only!!!!!
     # choose which modules to run based on run conditions
     logger.info('Spinning up Threads...')
     if IS_SIMULATION:

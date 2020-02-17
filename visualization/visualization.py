@@ -2,7 +2,6 @@ import sys
 import math
 import time
 import numpy as np
-import pygame
 from typing import Iterable, Tuple, Optional
 from coordinator import Provider
 import logging
@@ -120,6 +119,7 @@ class Visualizer(Provider):
 
     def run(self):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
+        import pygame
         logger.debug("Attempting to initialize visualizer with pygame")
         pygame.init()
         logger.debug("Attempting to initialize viz")

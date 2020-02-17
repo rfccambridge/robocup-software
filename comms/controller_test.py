@@ -10,7 +10,7 @@ Axis 2 and 3 are right and down respectively on RIGHT joystick
 ranges from -1 to 1
 0 is always the neutral position
 """
-import pygame
+# import pygame #REMOVED FOR TESTING!!!!!
 import time
 try:
     from radio import Radio

@@ -82,38 +82,40 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def run(self):
         # wait until game begins (while other threads are initializing)
         # self._gs.wait_until_game_begins()
-        try:
-            while self._is_controlling:
-                # run the strategy corresponding to the given mode
-                if self._mode == "UI":
-                    self.UI()
-                elif self._mode == "goalie_test":
-                    self.goalie_test()
-                elif self._mode == "attacker_test":
-                    self.attacker_test()
-                elif self._mode == "defender_test":
-                    self.defender_test()
-                elif self._mode == "entry_video":
-                    self.entry_video()
-                elif self._mode == "full_game":
-                    self.full_game()
-                else:
-                    print('(unrecognized mode, doing nothing)')
-
-                # tell all robots to refresh their speeds based on waypoints
-                team_commands = self._gs.get_team_commands(self._team)
-                team_commands = list(team_commands.items())
-                for robot_id, robot_commands in team_commands:
-                    # stop the robot if we've lost track of it
-                    if self._gs.is_robot_lost(self._team, robot_id):
-                        robot_commands.set_speeds(0, 0, 0)
+        while True:
+            gs = self.data_in_q.get()
+            try:
+                while self._is_controlling:
+                    # run the strategy corresponding to the given mode
+                    if self._mode == "UI":
+                        self.UI()
+                    elif self._mode == "goalie_test":
+                        self.goalie_test()
+                    elif self._mode == "attacker_test":
+                        self.attacker_test()
+                    elif self._mode == "defender_test":
+                        self.defender_test()
+                    elif self._mode == "entry_video":
+                        self.entry_video()
+                    elif self._mode == "full_game":
+                        self.full_game()
                     else:
-                        # recalculate the speed the robot should be commanded at
-                        pos = self._gs.get_robot_position(self._team, robot_id)
-                        robot_commands.derive_speeds(pos)
-        except Exception:
-            logger.exception('Unexpected Error!')
-            logger.exception(traceback.format_exc())
+                        print('(unrecognized mode, doing nothing)')
+
+                    # tell all robots to refresh their speeds based on waypoints
+                    team_commands = self._gs.get_team_commands(self._team)
+                    team_commands = list(team_commands.items())
+                    for robot_id, robot_commands in team_commands:
+                        # stop the robot if we've lost track of it
+                        if self._gs.is_robot_lost(self._team, robot_id):
+                            robot_commands.set_speeds(0, 0, 0)
+                        else:
+                            # recalculate the speed the robot should be commanded at
+                            pos = self._gs.get_robot_position(self._team, robot_id)
+                            robot_commands.derive_speeds(pos)
+            except Exception:
+                logger.exception('Unexpected Error!')
+                logger.exception(traceback.format_exc())
 
     # follow the user-input commands through visualizer
     def UI(self):

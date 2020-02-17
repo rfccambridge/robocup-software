@@ -1,4 +1,5 @@
 from multiprocessing import Queue
+from gamestate import GameState
 
 class Provider(object):
     """
@@ -48,7 +49,7 @@ class Coordinator(object):
         # Stores the processes currently in use by the coordinator
         self.processes = []
 
-        self.gamestate = {}
+        self.gamestate = GameState() 
 
     def start_game(self):
         self.processes.append(Process(target=self.vision_provider.run))
@@ -84,21 +85,34 @@ class Coordinator(object):
         """
         Gets updated refbox data if 
         """
+        if not self.refbox_provider:
+            return None
         return self.refbox_provider.commands_out_q.get()
 
     def publish_robot_commands(self):
         # send robot commands to xbee here
         # or to simulator
-        return self.radio_provider.data_in_q.put(self.robot_commands)
+        if self.blue_radio_provider:
+            try:
+                return self.blue_radio_provider.data_in_q.put(self.robot_commands)
+            except:
+                pass
+        if self.yellow_radio_provider:
+            try:
+                return self.yellow_radio_provider.data_in_q.put(self.robot_commands)
+            except:
+                pass
 
     def publish_new_gamestate(self):
         try:
-            self.blue_gamestate_queue.put_nowait(snapshot)
+            if self.blue_strategy:
+                self.blue_strategy.data_in_q.put_nowait(self.gamestate)
         except:
             # Likely queue is full
             pass
         try:
-            self.yellow_gamestate_queue.put_nowait(snapshot)
+            if self.yellow_strategy:
+                self.yellow_strategy.data_in_q.put_nowait(self.gamestate)
         except:
             # Likely queue is full 
             pass

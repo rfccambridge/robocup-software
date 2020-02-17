@@ -82,7 +82,9 @@ if __name__ == '__main__':
     home_strategy = Strategy(gamestate, HOME_TEAM, simulator)
 
     c = Coordinator(home_strategy, simulator)
-
+    import time
+    time.sleep(10)
+    c.stop_game()
     exit() #testing only!!!!!
     # choose which modules to run based on run conditions
     logger.info('Spinning up Threads...')

@@ -45,7 +45,7 @@ class Visualizer(Provider):
     """Robocup homegrown visualization library that essentially does the same
     as the modules in OpenAI gym."""
 
-    def __init__(self, gamestate, home_strategy, away_strategy):
+    def __init__(self, gamestate):
         self._viewer = None
         self._clock = None
 
@@ -53,9 +53,6 @@ class Visualizer(Provider):
         self.user_click_up = None
 
         self._gs = gamestate
-        # get references to strategy objects to display strategic information
-        self._home_strategy = home_strategy
-        self._away_strategy = away_strategy
         self._updating = True
 
         # derive screen dimentions from field dimensions
@@ -284,13 +281,6 @@ class Visualizer(Provider):
                     TRAJECTORY_LINE_WIDTH
                 )
                 prev_waypoint = waypoint
-            # TEST: draw interception range
-            interception_range = self._home_strategy.intercept_range(0)
-            if interception_range is not None:
-                self.draw_position(interception_range[0])
-                midpoint = (interception_range[1]+interception_range[0])/2
-                self.draw_position(midpoint)
-                self.draw_position(interception_range[1])                
             # highlight selected robot
             if (team, robot_id) == self._gs.user_selected_robot:
                 self.draw_circle(
@@ -305,8 +295,6 @@ class Visualizer(Provider):
         if not self._gs.is_ball_lost():
             # draw where the best position is to kick towards the mouse.
             # mouse_pos = self.screen_to_field(pygame.mouse.get_pos())
-            # kick_pos = self._home_strategy.best_kick_pos(ball_pos, mouse_pos)
-            # self.draw_waypoint(kick_pos)
 
             # draw where we think ball will be in 1s
             predicted_pos = self._gs.predict_ball_pos(1)
@@ -330,11 +318,6 @@ class Visualizer(Provider):
                 ball_pos + velocity,
                 TRAJECTORY_LINE_WIDTH
             )
-
-        # debug strategy stuff
-        # best_goalie_pos = self._home_strategy.best_goalie_pos()
-        # if best_goalie_pos.any():
-        #    self.draw_waypoint(best_goalie_pos)
 
         # draw user click location with a red 'X'
         if self.user_click_down is not None and self.user_click_up is None:

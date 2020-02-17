@@ -83,21 +83,18 @@ class Coordinator(object):
         # Need to push in a gamestate object initially
         self.vision_provider.data_in_q.put_nowait(self.gamestate)
         while True:
-            self.gamestate = self.get_updated_vision_data()
-            if not self.gamestate:
-                logger.error('Gamestate is none')
-                self.stop_game()
+            self.update_vision_data()
             self.refbox_data = self.get_updated_refbox_data()
             self.publish_new_gamestate()
             self.update_robot_commands()
             self.publish_robot_commands()
 
-    def get_updated_vision_data(self):
+    def update_vision_data(self):
         """
         Gets updated vision data from either SSLVision or the simulator
         """
         try:
-            return self.vision_provider.commands_out_q.get_nowait()
+            self.gamestate = self.vision_provider.commands_out_q.get_nowait()
         except:
             pass
 

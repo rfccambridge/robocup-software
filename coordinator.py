@@ -101,22 +101,21 @@ class Coordinator(object):
         """
         if not self.refbox_provider:
             return None
-        return self.refbox_provider.commands_out_q.get()
+        return self.refbox_provider.commands_out_q.get_nowait()
 
     def publish_robot_commands(self):
         # send robot commands to xbee here
         # or to simulator
         if self.blue_radio_provider:
             try:
-                return self.blue_radio_provider.data_in_q.put(self.robot_commands)
+                return self.blue_radio_provider.data_in_q.put_nowait(self.gamestate)
             except:
                 pass
         if self.yellow_radio_provider:
             try:
-                return self.yellow_radio_provider.data_in_q.put(self.robot_commands)
+                return self.yellow_radio_provider.data_in_q.put_nowait(self.gamestate)
             except:
                 pass
-        self.vision_provider.data_in_q.put_nowait(self.gamestate)
 
     def publish_new_gamestate(self):
         try:
@@ -129,6 +128,10 @@ class Coordinator(object):
             self.yellow_strategy.data_in_q.put_nowait(self.gamestate)
         except:
             # Likely queue is full 
+            pass
+        try:
+            self.vision_provider.data_in_q.put_nowait(self.gamestate)
+        except:
             pass
     
     def update_robot_commands(self):

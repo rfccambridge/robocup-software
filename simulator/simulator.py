@@ -46,7 +46,11 @@ class Simulator(Provider):
         raise NotImplementedError
 
     def run(self):
+        has_started = False
         while True:
+            if not has_started:
+                logger.info("Starting the simulator.")
+                has_started = True
             gs = self.data_in_q.get()
             # wait until game begins (while other threads are initializing)
             gs.wait_until_game_begins()

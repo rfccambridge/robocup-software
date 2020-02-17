@@ -65,6 +65,8 @@ class Coordinator(object):
             self.processes.append(Process(target=self.refbox_provider.run))        
         if self.radio_provider:
             self.processes.append(Process(target=self.radio_provider.run))
+        for proc in self.processes:
+            proc.start()
         
     def stop_game(self):
         for proc in self.processes:

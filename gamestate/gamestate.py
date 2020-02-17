@@ -71,35 +71,6 @@ class GameState(Field, Analysis):
         # Refbox - the latest message delivered from the refbox
         self.latest_refbox_message = None
 
-    def start_game(self, loop_sleep):
-        self._game_loop_sleep = loop_sleep
-        self._is_playing = True
-        self._game_thread = threading.Thread(target=self.game_loop)
-        # set to daemon mode so it will be easily killed
-        self._game_thread.daemon = True
-        self._game_thread.start()
-
-    def end_game(self):
-        if self._is_playing:
-            self._is_playing = False
-            self._game_thread.join()
-            self._game_thread = None
-
-    def game_loop(self):
-        # set up game status
-        self.game_clock = 0
-        while self._is_playing:
-            delta_time = 0
-            if self._last_step_time is not None:
-                delta_time = time.time() - self._last_step_time
-                if delta_time > self._game_loop_sleep * 3:
-                    print("Game loop large delay: " + str(delta_time))
-            self._last_step_time = time.time()
-
-            self.game_clock += delta_time
-
-            # yield to other threads
-            time.sleep(self._game_loop_sleep)
 
     def other_team(self, team):
         if team == 'blue':
@@ -109,8 +80,7 @@ class GameState(Field, Analysis):
     
     # GAME STATUS/EVENT FUNCTIONS
     def wait_until_game_begins(self):
-        while self.game_clock is None:
-            time.sleep(.01)
+        pass
 
     # RAW DATA GET/SET FUNCTIONS
     # returns position ball was last seen at, or (0, 0) if unseen

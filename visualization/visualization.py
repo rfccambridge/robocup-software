@@ -5,6 +5,9 @@ import numpy as np
 import pygame
 from typing import Iterable, Tuple, Optional
 from coordinator import Provider
+import logging
+
+logger = logging.getLogger(__name__)
 
 # rendering constants (dimensions are in field - mm)
 FIELD_LINE_WIDTH = 20
@@ -45,14 +48,16 @@ class Visualizer(Provider):
     """Robocup homegrown visualization library that essentially does the same
     as the modules in OpenAI gym."""
 
-    def __init__(self, gamestate):
+    def __init__(self):
+        super().__init__()
         self._viewer = None
         self._clock = None
 
         self.user_click_down = None
         self.user_click_up = None
 
-        self._gs = gamestate
+    def init_shit(self):
+        self._gs = self.data_in_q.get()
         self._updating = True
 
         # derive screen dimentions from field dimensions
@@ -73,7 +78,6 @@ class Visualizer(Provider):
         }
 
         # Designed to be run in main thread so it works on more platforms
-        pygame.init()
         self._viewer = pygame.display.set_mode(
             (self._TOTAL_SCREEN_WIDTH, self._TOTAL_SCREEN_HEIGHT)
         )
@@ -116,6 +120,11 @@ class Visualizer(Provider):
 
     def run(self):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
+        logger.debug("Attempting to initialize viz")
+        self.init_shit()
+        logger.debug("Attempting to initialize visualizer with pygame")
+        pygame.init()
+        logger.debug("Initialized visualizer with pygame")
         # wait until game begins (while other threads are initializing)
         while True:
             self._gs = self.data_in_q.get()

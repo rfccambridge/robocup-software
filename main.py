@@ -79,7 +79,7 @@ if __name__ == '__main__':
     print(f'Running in no refbox mode: {NO_REFBOX}')
 
     # initialize gamestate + all other modules
-    simulator = Simulator() 
+    simulator = Simulator(SIMULATION_SETUP) 
     home_strategy = Strategy(HOME_TEAM)
     visualization_provider = Visualizer()
 
@@ -92,7 +92,6 @@ if __name__ == '__main__':
     logger.info('Spinning up Threads...')
     if IS_SIMULATION:
         # spin up simulator to replace actual vision data + comms
-        simulator.start_simulating(SIMULATION_SETUP, SIMULATION_LOOP_SLEEP)
         if not NO_REFBOX:
             refbox.start_updating(VISION_LOOP_SLEEP)
     else:

@@ -13,10 +13,10 @@ class Simulator(Provider):
        Applies rudimentary physics and commands, to allow offline prototyping.
     """
     # TODO: when we get multiple comms, connect to all available robots
-    def __init__(self):
+    def __init__(self, initial_setup):
         super().__init__()
+        self._initial_setup = initial_setup
         self._is_simulating = False
-        self._initial_setup = None
 
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
         """initialize a robot with given id + team at (x, y, w) position"""
@@ -39,16 +39,11 @@ class Simulator(Provider):
         # print(f"{self._gamestate._ball_position}")
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
-    def start_simulating(self, inital_setup, loop_sleep):
-        """Spin up simulator thread to update gamestate as though robots 
-        are following commands + physics"""
-        raise NotImplementedError
-
     def run(self):
         has_started = False
         while True:
             gs = self.data_in_q.get() 
-            print("\nSimulator running with initial setup: {}".format(
+            logger.info("\nSimulator running with initial setup: {}".format(
                 self._initial_setup
             ))
             # initialize the chosen scenario

@@ -111,29 +111,24 @@ class Coordinator(object):
             # Likely queue is full
             pass
         try:
-            if self.yellow_strategy:
-                self.yellow_strategy.data_in_q.put_nowait(self.gamestate)
+            self.yellow_strategy.data_in_q.put_nowait(self.gamestate)
         except:
             # Likely queue is full 
             pass
     
     def update_robot_commands(self):
         try:
-            self._blue_robot_commands = self.blue_commands_queue.get_nowait()
+            if self.blue_strategy:
+                self.gamestate._blue_robot_commands = self.blue_strategy.commands_out_q.get_nowait()
         except:
             # Likely queue is empty
             pass
         try:
-            self._yellow_robot_commands = self.yellow_commands_queue.get_nowait()
+            self.gamestate._yellow_robot_commands = self.yellow_strategy.commands_out_q.get_nowait()
         except:
             # Likely queue is empty
             pass
         
-    def snapshot_gamedata(self):
-        d = {}
-        d['vision_data'] = self.some_vision_data
-        return d
-
     def clean_up(self):
-        self.yellow_strategy_process.terminate()
-        self.blue_strategy_process.terminate()
+        for proc in self.processes:
+            proc.terminate()

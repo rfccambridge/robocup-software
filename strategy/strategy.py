@@ -82,7 +82,9 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         # wait until game begins (while other threads are initializing)
         # self._gs.wait_until_game_begins()
         while True:
+            logger.debug("Fetching a gamestate packet.")
             gs = self.data_in_q.get()
+            logger.debug("Got a gamestate packet: %s", gs)
             self._gs = gs
             try:
                 while self._is_controlling:

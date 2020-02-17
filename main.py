@@ -7,6 +7,7 @@ import signal
 import traceback
 import argparse
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ if __name__ == '__main__':
     home_strategy = Strategy(HOME_TEAM)
 
     c = Coordinator(home_strategy, simulator)
-    import time
+    c.start_game()
     time.sleep(10)
     c.stop_game()
     exit() #testing only!!!!!

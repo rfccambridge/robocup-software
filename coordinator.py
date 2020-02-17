@@ -1,4 +1,5 @@
 from multiprocessing import Queue
+from multiprocessing import Process
 from gamestate import GameState
 import logging
 
@@ -63,8 +64,9 @@ class Coordinator(object):
             self.processes.append(Process(target=self.blue_radio_provider.run))
         if self.refbox_provider:
             self.processes.append(Process(target=self.refbox_provider.run))        
-        if self.radio_provider:
-            self.processes.append(Process(target=self.radio_provider.run))
+        if self.yellow_radio_provider:
+            self.processes.append(Process(target=self.yellow_radio_provider.run))
+        
         for proc in self.processes:
             proc.start()
         
@@ -73,7 +75,9 @@ class Coordinator(object):
             proc.terminate()
 
     def game_loop(self):
-        while self.is_playing:
+        # Need to push in a gamestate object initially
+        self.vision_provider.data_in_q.put_nowait(self.gamestate)
+        while True:
             self.vision_data = self.get_updated_vision_data()
             self.refbox_data = self.get_updated_refbox_data()
             self.publish_new_gamestate()

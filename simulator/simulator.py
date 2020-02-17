@@ -14,9 +14,8 @@ class Simulator(Provider):
     """
     # TODO: when we get multiple comms, connect to all available robots
     def __init__(self):
+        super().__init__()
         self._is_simulating = False
-        self._simulation_loop_sleep = None
-        self._last_step_time = None
         self._initial_setup = None
 
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
@@ -48,12 +47,7 @@ class Simulator(Provider):
     def run(self):
         has_started = False
         while True:
-            if not has_started:
-                logger.info("Starting the simulator.")
-                has_started = True
-            gs = self.data_in_q.get()
-            # wait until game begins (while other threads are initializing)
-            gs.wait_until_game_begins()
+            gs = self.data_in_q.get() 
             print("\nSimulator running with initial setup: {}".format(
                 self._initial_setup
             ))
@@ -197,6 +191,9 @@ class Simulator(Provider):
                             self.put_fake_ball(new_pos, new_velocity)
                         robot_commands.charge_level = 0
                         robot_commands.is_kicking = False
+
+            # TODO: Add this.
+            self.commands_out_q.put(gs.vision_packet)
 
     def stop_simulating(self):
         raise NotImplementedError

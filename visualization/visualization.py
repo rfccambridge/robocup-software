@@ -5,6 +5,8 @@ import numpy as np
 from typing import Iterable, Tuple, Optional
 from coordinator import Provider
 import logging
+import pygame
+import multiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -119,16 +121,17 @@ class Visualizer(Provider):
 
     def run(self):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
-        import pygame
-        logger.debug("Attempting to initialize visualizer with pygame")
+        logger = logging.getLogger('visualization')
+        logger.addHandler(logging.FileHandler('visualization.log', mode='a'))
+        logger.warning("Initializing Visualization")
         pygame.init()
-        logger.debug("Attempting to initialize viz")
         self.init_shit()
         logger.debug("Initialized visualizer with pygame")
         # wait until game begins (while other threads are initializing)
         while True:
             self._gs = self.data_in_q.get()
             self._gs.wait_until_game_begins()
+            logger.debug("heyeyeyeyeyeyeyeyeyeyeyeye")
             while self._updating:
                 # make sure prints from all threads get flushed to terminal
                 sys.stdout.flush()
@@ -136,6 +139,7 @@ class Visualizer(Provider):
                     if event.type == pygame.QUIT:
                         self._updating = False
                     if event.type == pygame.KEYDOWN:
+                        logger.debug("Keydown click detected")
                         # hotkey controls
                         if event.key == pygame.K_b:
                             self.select_ball()

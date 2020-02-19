@@ -7,8 +7,12 @@ import signal
 import traceback
 import argparse
 import logging
+import logging.handlers
+import multiprocessing
 import time
 
+
+# http://plumberjack.blogspot.com/2010/09/using-logging-with-multiprocessing.html
 logger = logging.getLogger(__name__)
 
 # Remove pygame's annoying welcome message
@@ -68,7 +72,7 @@ if __name__ == '__main__':
     logging_level = logging.INFO
     if command_line_args.debug:
         logging_level = logging.DEBUG
-    logging.basicConfig(level=logging_level)
+    logging.basicConfig(level=logging_level, filename='robocup.log')
 
     # Welcome message
     print('RFC Cambridge Robocup Software')

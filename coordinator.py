@@ -4,7 +4,6 @@ import multiprocessing
 from gamestate import GameState
 import logging
 import signal
-import random 
 
 logger = logging.getLogger(__name__)
 
@@ -48,28 +47,17 @@ class Provider(object):
         pass
 
     def destroy(self):
-        number = random.randrange(100)
-        print(f'Destroying data-in_q: {number}')
         self.destroy_queue(self.data_in_q)
-        print(f'Destroyed data-in_q: {number}')
-        print(f'Destroying command_out_q: {number}')
         self.destroy_queue(self.commands_out_q)
-        print(f'Destroyed command_out_q: {number}')
-        print(f'DESTROYING {multiprocessing.current_process().pid}')
 
     def destroy_queue(self, q):
         q.close()
         try:
             while True:
-                print('in here')
                 item = q.get_nowait()
         except:
             pass
         q.join_thread()
-        pass
-        
-
-
     
 class Coordinator(object):
     """
@@ -105,8 +93,6 @@ class Coordinator(object):
 
 
     def start_game(self):
-        default_handler = signal.getsignal(signal.SIGINT)
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
         self.processes.append(Process(target=self.vision_provider.start_providing, args=[self.stop_event]))
         self.processes.append(Process(target=self.yellow_strategy.start_providing, args=[self.stop_event]))
         # if self.blue_strategy:
@@ -119,9 +105,8 @@ class Coordinator(object):
         #     self.processes.append(Process(target=self.yellow_radio_provider.run, args=[self.exit_event]))
         if self.visualization_provider:
             self.processes.append(Process(target=self.visualization_provider.start_providing, args=[self.stop_event]))
-        print(f'vision === pid == {self.processes[0]}')
-        print(f'yellow strategy === pid == {self.processes[1]}')
-        print(f'visualization provider === pid == {self.processes[2]}')
+        default_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         for proc in reversed(self.processes):
             proc.daemon = True
             proc.start()
@@ -130,7 +115,6 @@ class Coordinator(object):
         
     def stop_game(self):
         self.stop_event.set()
-        print('Setting exit event')
 
     def game_loop(self):
         # Need to push in a gamestate object initially
@@ -141,7 +125,6 @@ class Coordinator(object):
             self.publish_new_gamestate()
             self.update_robot_commands()
             self.publish_robot_commands()
-        print('finished game_loop')
 
     def update_vision_data(self):
         """

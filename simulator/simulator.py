@@ -40,7 +40,6 @@ class Simulator(Provider):
 
     def pre_run(self):
         gs = self.data_in_q.get() 
-        print('PRE RUN')
         self._gamestate = gs
         # logger.info("\nSimulator running with initial setup: {}".format(
         #     self._initial_setup
@@ -74,7 +73,6 @@ class Simulator(Provider):
             self.put_fake_robot('yellow', 4, np.array([3500, -500, 0]) * SCALE)
         else:
             print('(initial_setup not recognized, empty field)')
-        print('pre run complete')
 
     def run(self):
         try:

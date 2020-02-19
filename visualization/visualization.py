@@ -143,31 +143,29 @@ class Visualizer(Provider):
         logger.warning("Initializing Visualization")
         logger.debug("Initialized visualizer with pygame")
         # wait until game begins (while other threads are initializing)
-        logger.warning(f'{exit_event.is_set()}')
         self._gs = self.data_in_q.get()
         self._gs.wait_until_game_begins()
         logger.debug("heyeyeyeyeyeyeyeyeyeyeyeye")
         # make sure prints from all threads get flushed to terminal
-        logger.warning(f'{exit_event.is_set()}')
         sys.stdout.flush()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self._updating = False
-            if event.type == pygame.KEYDOWN:
-                logger.info("Keydown click detected")
-                # hotkey controls
-                if event.key == pygame.K_b:
-                    self.select_ball()
-                elif robot_clicked:
-                    self.select_robot(robot_clicked)
+        # for event in pygame.event.get():
+        #     if event.type == pygame.QUIT:
+        #         self._updating = False
+        #     if event.type == pygame.KEYDOWN:
+        #         logger.info("Keydown click detected")
+        #         # hotkey controls
+        #         if event.key == pygame.K_b:
+        #             self.select_ball()
+        #         elif robot_clicked:
+        #             self.select_robot(robot_clicked)
 
-            # store xy of original mouse down, and drag vector
-            if self.user_click_down is not None:
-                self._gs.user_click_position = \
-                    self.user_click_down
-                self._gs.user_drag_vector = \
-                    self.user_click_up - self.user_click_down
-                self.user_click_down = None
+        #     # store xy of original mouse down, and drag vector
+        #     if self.user_click_down is not None:
+        #         self._gs.user_click_position = \
+        #             self.user_click_down
+        #         self._gs.user_drag_vector = \
+        #             self.user_click_up - self.user_click_down
+        #         self.user_click_down = None
 
         self._viewer.fill(FIELD_COLOR)
         self.render()

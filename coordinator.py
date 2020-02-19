@@ -4,10 +4,11 @@ import multiprocessing
 from gamestate import GameState
 import logging
 import signal
+import random 
 
 logger = logging.getLogger(__name__)
 
-stop_event = Event()
+MAX_Q_SIZE = 10
 
 class Provider(object):
     """
@@ -15,12 +16,8 @@ class Provider(object):
     does some action, and then writes actions back to the coordinator.  
     """
     def __init__(self):
-        default_handler = signal.getsignal(signal.SIGINT)
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-        signal.signal(signal.SIGINT, default_handler)
-        self.data_in_q = Queue()
-        self.commands_out_q = Queue()
-        self.stop_event = stop_event
+        self.data_in_q = Queue(MAX_Q_SIZE)
+        self.commands_out_q = Queue(MAX_Q_SIZE)
 
     def run(self):
         """
@@ -37,9 +34,9 @@ class Provider(object):
         """
         raise NotImplementedError("Need to implement run() in child classes.")
 
-    def start_providing(self):
+    def start_providing(self, stop_event):
         self.pre_run()
-        while not self.stop_event.is_set():
+        while not stop_event.is_set():
             self.run()
         self.post_run()
         self.destroy()
@@ -48,11 +45,16 @@ class Provider(object):
         pass
     
     def post_run(self):
-        print("POST RUN")
+        pass
 
     def destroy(self):
-        # self.destroy_queue(self.data_in_q)
-        # self.destroy_queue(self.commands_out_q)
+        number = random.randrange(100)
+        print(f'Destroying data-in_q: {number}')
+        self.destroy_queue(self.data_in_q)
+        print(f'Destroyed data-in_q: {number}')
+        print(f'Destroying command_out_q: {number}')
+        self.destroy_queue(self.commands_out_q)
+        print(f'Destroyed command_out_q: {number}')
         print(f'DESTROYING {multiprocessing.current_process().pid}')
 
     def destroy_queue(self, q):
@@ -63,9 +65,8 @@ class Provider(object):
                 item = q.get_nowait()
         except:
             pass
-        print('waitingt for q join')
         q.join_thread()
-        print('q joinged')
+        pass
         
 
 
@@ -100,13 +101,14 @@ class Coordinator(object):
         self.processes = []
 
         self.gamestate = GameState()
+        self.stop_event = Event()
 
 
     def start_game(self):
         default_handler = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, signal.SIG_IGN)
-        self.processes.append(Process(target=self.vision_provider.start_providing))
-        self.processes.append(Process(target=self.yellow_strategy.start_providing))
+        self.processes.append(Process(target=self.vision_provider.start_providing, args=[self.stop_event]))
+        self.processes.append(Process(target=self.yellow_strategy.start_providing, args=[self.stop_event]))
         # if self.blue_strategy:
         #     self.processes.append(Process(target=self.blue_strategy.run, args=[self.exit_event]))
         # if self.blue_radio_provider:
@@ -116,7 +118,7 @@ class Coordinator(object):
         # if self.yellow_radio_provider:
         #     self.processes.append(Process(target=self.yellow_radio_provider.run, args=[self.exit_event]))
         if self.visualization_provider:
-            self.processes.append(Process(target=self.visualization_provider.start_providing))
+            self.processes.append(Process(target=self.visualization_provider.start_providing, args=[self.stop_event]))
         print(f'vision === pid == {self.processes[0]}')
         print(f'yellow strategy === pid == {self.processes[1]}')
         print(f'visualization provider === pid == {self.processes[2]}')
@@ -127,13 +129,13 @@ class Coordinator(object):
         self.game_loop()
         
     def stop_game(self):
-        stop_event.set()
+        self.stop_event.set()
         print('Setting exit event')
 
     def game_loop(self):
         # Need to push in a gamestate object initially
         self.vision_provider.data_in_q.put_nowait(self.gamestate)
-        while not stop_event.is_set():
+        while not self.stop_event.is_set():
             self.update_vision_data()
             self.refbox_data = self.get_updated_refbox_data()
             self.publish_new_gamestate()

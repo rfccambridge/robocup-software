@@ -45,17 +45,27 @@ BUTTON_TEXT_COLOR = (255, 255, 255)
 # how much space to include outside the field
 WINDOW_BUFFER = 70
 
+LOGGING_LEVELS = {
+    'debug': logging.DEBUG,
+    'info': logging.INFO,
+    'warning': logging.WARNING,
+    'error': logging.ERROR,
+}
+
 class Visualizer(Provider):
     """Robocup homegrown visualization library that essentially does the same
     as the modules in OpenAI gym."""
 
-    def __init__(self):
+    def __init__(self, log_level='info'):
         super().__init__()
         self._viewer = None
         self._clock = None
 
         self.user_click_down = None
         self.user_click_up = None
+
+        self.log_level = LOGGING_LEVELS.get(log_level, logging.INFO)
+
 
     def init_shit(self):
         self._gs = self.data_in_q.get()
@@ -133,90 +143,37 @@ class Visualizer(Provider):
         logger.warning("Initializing Visualization")
         logger.debug("Initialized visualizer with pygame")
         # wait until game begins (while other threads are initializing)
+        logger.warning(f'{exit_event.is_set()}')
         self._gs = self.data_in_q.get()
         self._gs.wait_until_game_begins()
         logger.debug("heyeyeyeyeyeyeyeyeyeyeyeye")
         # make sure prints from all threads get flushed to terminal
-        logger.warning(f'{self.stop_event.is_set()}')
+        logger.warning(f'{exit_event.is_set()}')
         sys.stdout.flush()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._updating = False
             if event.type == pygame.KEYDOWN:
-                logger.debug("Keydown click detected")
+                logger.info("Keydown click detected")
                 # hotkey controls
                 if event.key == pygame.K_b:
                     self.select_ball()
-                # toggle dribbler
-                if event.key == pygame.K_d:
-                    old = self._gs.user_dribble_command
-                    self._gs.user_dribble_command = not old
-                # charge while key down
-                if event.key == pygame.K_c:
-                    self._gs.user_charge_command = True
-                # kick only once
-                if event.key == pygame.K_k:
-                    self._gs.user_kick_command = True
-                else:
-                    self._gs.user_kick_command = False
-            if event.type == pygame.KEYUP:
-                # stop charging on release
-                if event.key == pygame.K_c:
-                    self._gs.user_charge_command = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                self.user_click_up = None
-                self.user_click_down = self.screen_to_field(
-                    pygame.mouse.get_pos()
-                )
-                if self._gs.is_in_play(self.user_click_down):
-                    # trigger button clicks
-                    for label, pos in self.buttons.items():
-                        dims = (BUTTON_WIDTH, BUTTON_HEIGHT)
-                        if self.is_collision(pos, dims, pygame.mouse.get_pos()):
-                            # prints current location of mouse
-                            print('button pressed: ' + label)
-                else:
-                    self.user_click_down = None
-                # FOR DEBUGGING:
-                # print(self._gs.is_pos_valid(
-                #     self.user_click_down, 'blue', 1
-                # ))
+                elif robot_clicked:
+                    self.select_robot(robot_clicked)
 
-            if event.type == pygame.MOUSEBUTTONUP:
-                if self.user_click_down is not None:
-                    self.user_click_up = self.screen_to_field(
-                        pygame.mouse.get_pos()
-                    )
-                    # ball/robot selection
-                    down, up = self.user_click_down, self.user_click_up
-                    robot_clicked = \
-                        self._gs.robot_at_position(down) and \
-                        self._gs.robot_at_position(up)
-                    ball_clicked = \
-                        self._gs.ball_overlap(down).any() and \
-                        self._gs.ball_overlap(up).any()
-                    if robot_clicked or ball_clicked:
-                        self.user_click_down = None
-                        self._gs.user_click_position = None
-                        self._gs.user_drag_vector = None
-                        if ball_clicked:
-                            self.select_ball()
-                        elif robot_clicked:
-                            self.select_robot(robot_clicked)
+            # store xy of original mouse down, and drag vector
+            if self.user_click_down is not None:
+                self._gs.user_click_position = \
+                    self.user_click_down
+                self._gs.user_drag_vector = \
+                    self.user_click_up - self.user_click_down
+                self.user_click_down = None
 
-                    # store xy of original mouse down, and drag vector
-                    if self.user_click_down is not None:
-                        self._gs.user_click_position = \
-                            self.user_click_down
-                        self._gs.user_drag_vector = \
-                            self.user_click_up - self.user_click_down
-                        self.user_click_down = None
-
-            self._viewer.fill(FIELD_COLOR)
-            self.render()
-            pygame.display.flip()
-            # yield to other threads
-            logger.info("Exiting Pygame Visualization")
+        self._viewer.fill(FIELD_COLOR)
+        self.render()
+        pygame.display.flip()
+        # yield to other threads
+        logger.info("Exiting Pygame Visualization")
 
     def select_ball(self):
         self._gs.user_selected_ball = True

@@ -1,4 +1,3 @@
-import threading
 import time
 import numpy as np
 from collections import deque
@@ -39,9 +38,9 @@ class Simulator(Provider):
         # print(f"{self._gamestate._ball_position}")
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
-    def run(self):
+    def run(self, exit_event):
         has_started = False
-        while True:
+        while not exit_event.is_set():
             gs = self.data_in_q.get() 
             self._gamestate = gs
             # logger.info("\nSimulator running with initial setup: {}".format(
@@ -189,6 +188,7 @@ class Simulator(Provider):
                         robot_commands.is_kicking = False
 
             self.commands_out_q.put(gs)
+        self.destroy()
 
     def stop_simulating(self):
         raise NotImplementedError

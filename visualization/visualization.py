@@ -119,7 +119,7 @@ class Visualizer(Provider):
         pos -= np.array([self._gs.FIELD_MAX_X, self._gs.FIELD_MAX_Y])
         return pos
 
-    def run(self):
+    def run(self, exit_event):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
         logger = logging.getLogger('visualization')
         logger.addHandler(logging.FileHandler('visualization.log', mode='a'))
@@ -128,12 +128,14 @@ class Visualizer(Provider):
         self.init_shit()
         logger.debug("Initialized visualizer with pygame")
         # wait until game begins (while other threads are initializing)
-        while True:
+        while not exit_event.is_set():
+            logger.warning(f'{exit_event.is_set()}')
             self._gs = self.data_in_q.get()
             self._gs.wait_until_game_begins()
             logger.debug("heyeyeyeyeyeyeyeyeyeyeyeye")
-            while self._updating:
+            while not exit_event.is_set():
                 # make sure prints from all threads get flushed to terminal
+                logger.warning(f'{exit_event.is_set()}')
                 sys.stdout.flush()
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -214,6 +216,8 @@ class Visualizer(Provider):
                 # yield to other threads
             logger.info("Exiting Pygame Visualization")
             pygame.quit()
+        logger.warning('EXITING IVSUAL')
+        self.destroy()
 
     def select_ball(self):
         self._gs.user_selected_ball = True

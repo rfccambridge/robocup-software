@@ -1,7 +1,9 @@
 from multiprocessing import Queue
-from multiprocessing import Process
+from multiprocessing import Process, Event
+import multiprocessing
 from gamestate import GameState
 import logging
+import signal
 
 logger = logging.getLogger(__name__)
 
@@ -11,10 +13,13 @@ class Provider(object):
     does some action, and then writes actions back to the coordinator.  
     """
     def __init__(self):
+        default_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         self.data_in_q = Queue()
         self.commands_out_q = Queue()
-    
-    def run(self):
+        signal.signal(signal.SIGINT, default_handler)
+
+    def run(self, exit_event):
         """
         Handle provider specific logic. Should accept data from
         self.data_in_q and write outputs to self.commands_out_q.
@@ -23,8 +28,19 @@ class Provider(object):
         
         Raises:
             NotImplementedError: You forgot to implement this in child classes
+
+        Args:
+            exit_event : multiprocessing.Event. Indicates whether the provider should exit or not
         """
         raise NotImplementedError("Need to implement run() in child classes.")
+
+    def destroy(self):
+        # self.data_in_q.close()
+        # self.commands_out_q.close()
+        # self.data_in_q.cancel_join_thread()
+        # self.commands_out_q.cancel_join_thread()
+        print(f'DESTROYING {multiprocessing.current_process().pid}')
+        pass
     
 class Coordinator(object):
     """
@@ -56,38 +72,43 @@ class Coordinator(object):
         self.processes = []
 
         self.gamestate = GameState() 
+        self.exit_event = Event()
+
 
     def start_game(self):
-        self.processes.append(Process(target=self.vision_provider.run))
-        self.processes.append(Process(target=self.yellow_strategy.run))
+        default_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        self.processes.append(Process(target=self.vision_provider.run,args=[self.exit_event]))
+        self.processes.append(Process(target=self.yellow_strategy.run, args=[self.exit_event]))
         if self.blue_strategy:
-            self.processes.append(Process(target=self.blue_strategy.run))
+            self.processes.append(Process(target=self.blue_strategy.run, args=[self.exit_event]))
         if self.blue_radio_provider:
-            self.processes.append(Process(target=self.blue_radio_provider.run))
+            self.processes.append(Process(target=self.blue_radio_provider.run, args=[self.exit_event]))
         if self.refbox_provider:
-            self.processes.append(Process(target=self.refbox_provider.run))        
+            self.processes.append(Process(target=self.refbox_provider.run, args=[self.exit_event]))        
         if self.yellow_radio_provider:
-            self.processes.append(Process(target=self.yellow_radio_provider.run))
+            self.processes.append(Process(target=self.yellow_radio_provider.run, args=[self.exit_event]))
         if self.visualization_provider:
-            self.processes.append(Process(target=self.visualization_provider.run))        
+            self.processes.append(Process(target=self.visualization_provider.run, args=[self.exit_event]))        
         for proc in self.processes:
             proc.start()
-
+        signal.signal(signal.SIGINT, default_handler)
         self.game_loop()
         
     def stop_game(self):
-        for proc in self.processes:
-            proc.terminate()
+        self.exit_event.set()
+        print('Setting exit event')
 
     def game_loop(self):
         # Need to push in a gamestate object initially
         self.vision_provider.data_in_q.put_nowait(self.gamestate)
-        while True:
+        while not self.exit_event.is_set():
             self.update_vision_data()
             self.refbox_data = self.get_updated_refbox_data()
             self.publish_new_gamestate()
             self.update_robot_commands()
             self.publish_robot_commands()
+        print('finished game_loop')
 
     def update_vision_data(self):
         """
@@ -155,6 +176,3 @@ class Coordinator(object):
             # Likely queue is empty
             pass
         
-    def clean_up(self):
-        for proc in self.processes:
-            proc.terminate()

@@ -86,64 +86,77 @@ if __name__ == '__main__':
     simulator = Simulator(SIMULATION_SETUP) 
     home_strategy = Strategy(HOME_TEAM)
     visualization_provider = Visualizer()
-
-    c = Coordinator(home_strategy, simulator, visualization_provider=visualization_provider)
+    c = Coordinator(home_strategy, 
+                    simulator, 
+                    visualization_provider=visualization_provider)
+    def stop_it(signum, frame):
+        print(multiprocessing.current_process().pid)
+        c.stop_game()
+        print('time to die')
+    signal.signal(signal.SIGINT, stop_it)
     c.start_game()
-    time.sleep(10)
-    c.stop_game()
-    exit() #testing only!!!!!
-    # choose which modules to run based on run conditions
-    logger.info('Spinning up Threads...')
-    if IS_SIMULATION:
-        # spin up simulator to replace actual vision data + comms
-        if not NO_REFBOX:
-            refbox.start_updating(VISION_LOOP_SLEEP)
-    else:
-        # spin up ssl-vision data polling to update gamestate
-        vision.start_updating(VISION_LOOP_SLEEP)
-        if not NO_RADIO:
-            # spin up comms to send commands to robots
-            home_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
-            # home_comms.start_receiving(COMMS_RECEIVE_LOOP_SLEEP)
-            if CONTROL_BOTH_TEAMS:
-                away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
-                # away_comms.start_sending(COMMS_RECEIVE_LOOP_SLEEP)
-        if not NO_REFBOX:
-            refbox.start_updating(VISION_LOOP_SLEEP)
-    # spin up strategy threads to control the robots
-    home_strategy.start_controlling(HOME_STRATEGY, CONTROL_LOOP_SLEEP)
-    if CONTROL_BOTH_TEAMS:
-        away_strategy.start_controlling(AWAY_STRATEGY, CONTROL_LOOP_SLEEP)
-    # initialize visualizer to show robots on screen
-    visualizer = Visualizer(gamestate, home_strategy, away_strategy)
-    # start the game  - now everything should be going
-    gamestate.start_game(GAME_LOOP_SLEEP)
+    print(multiprocessing.current_process().pid)
+    print('exiting')
+    print(multiprocessing.active_children())
+    for proc in multiprocessing.active_children():
+        print(proc)
+        print(f"is alive: {proc.is_alive()}")
+        print(f"joining")
+        proc.join()
+    print('done!')
+    # sys.exit() #testing only!!!!!
+    # # choose which modules to run based on run conditions
+    # logger.info('Spinning up Threads...')
+    # if IS_SIMULATION:
+    #     # spin up simulator to replace actual vision data + comms
+    #     if not NO_REFBOX:
+    #         refbox.start_updating(VISION_LOOP_SLEEP)
+    # else:
+    #     # spin up ssl-vision data polling to update gamestate
+    #     vision.start_updating(VISION_LOOP_SLEEP)
+    #     if not NO_RADIO:
+    #         # spin up comms to send commands to robots
+    #         home_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
+    #         # home_comms.start_receiving(COMMS_RECEIVE_LOOP_SLEEP)
+    #         if CONTROL_BOTH_TEAMS:
+    #             away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
+    #             # away_comms.start_sending(COMMS_RECEIVE_LOOP_SLEEP)
+    #     if not NO_REFBOX:
+    #         refbox.start_updating(VISION_LOOP_SLEEP)
+    # # spin up strategy threads to control the robots
+    # home_strategy.start_controlling(HOME_STRATEGY, CONTROL_LOOP_SLEEP)
+    # if CONTROL_BOTH_TEAMS:
+    #     away_strategy.start_controlling(AWAY_STRATEGY, CONTROL_LOOP_SLEEP)
+    # # initialize visualizer to show robots on screen
+    # visualizer = Visualizer(gamestate, home_strategy, away_strategy)
+    # # start the game  - now everything should be going
+    # gamestate.start_game(GAME_LOOP_SLEEP)
 
-    # Prepare to be interrupted by user
-    exit_signal_received = False
+    # # Prepare to be interrupted by user
+    # exit_signal_received = False
 
-    def exit_gracefully(signum, frame):
-        global exit_signal_received
-        if exit_signal_received:
-            return
-        else:
-            exit_signal_received = True
-        print('Exiting Everything')
-        # clean up all threads
-        vision.stop_updating()
-        refbox.stop_updating()
-        home_comms.stop_sending_and_receiving()
-        away_comms.stop_sending_and_receiving()
-        simulator.stop_simulating()
-        home_strategy.stop_controlling()
-        away_strategy.stop_controlling()
-        gamestate.end_game()
-        print('Done Cleaning Up All Threads')
-        sys.exit()
-    signal.signal(signal.SIGINT, exit_gracefully)
+    # def exit_gracefully(signum, frame):
+    #     global exit_signal_received
+    #     if exit_signal_received:
+    #         return
+    #     else:
+    #         exit_signal_received = True
+    #     print('Exiting Everything')
+    #     # clean up all threads
+    #     vision.stop_updating()
+    #     refbox.stop_updating()
+    #     home_comms.stop_sending_and_receiving()
+    #     away_comms.stop_sending_and_receiving()
+    #     simulator.stop_simulating()
+    #     home_strategy.stop_controlling()
+    #     away_strategy.stop_controlling()
+    #     gamestate.end_game()
+    #     print('Done Cleaning Up All Threads')
+    #     sys.exit()
+    # signal.signal(signal.SIGINT, exit_gracefully)
 
-    print('Running! Ctrl-c repeatedly to quit (C-c-k on eshell?!)')
+    # print('Running! Ctrl-c repeatedly to quit (C-c-k on eshell?!)')
 
-    # (visualizer runs on main thread to work on all platforms)
-    visualizer.visualization_loop(VISUALIZATION_LOOP_SLEEP)
-    traceback.print_stack()
+    # # (visualizer runs on main thread to work on all platforms)
+    # visualizer.visualization_loop(VISUALIZATION_LOOP_SLEEP)
+    # traceback.print_stack()

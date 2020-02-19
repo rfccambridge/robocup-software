@@ -78,14 +78,19 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def stop_controlling(self):
         pass
 
-    def run(self):
+    def run(self, exit_event):
         # wait until game begins (while other threads are initializing)
         # self._gs.wait_until_game_begins()
-        while True:
-            gs = self.data_in_q.get()
+        while not exit_event.is_set():
+            try:
+                gs = self.data_in_q.get_nowait()
+            except:
+                pass
+            if not gs:
+                continue
             self._gs = gs
             try:
-                while self._is_controlling:
+                while not exit_event.is_set():
                     # run the strategy corresponding to the given mode
                     if self._mode == "UI":
                         self.UI()
@@ -116,6 +121,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             except Exception:
                 logger.exception('Unexpected Error!')
                 logger.exception(traceback.format_exc())
+        self.destroy()
 
     # follow the user-input commands through visualizer
     def UI(self):
@@ -141,6 +147,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                     # Use pathfinding
                     #self.move_straight(robot_id, goal_pos, is_urgent=True)
                     self.path_find(robot_id, goal_pos)
+
 
     def click_teleport(self):
         gs = self._gs

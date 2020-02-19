@@ -11,7 +11,6 @@ import logging.handlers
 import multiprocessing
 import time
 
-
 # http://plumberjack.blogspot.com/2010/09/using-logging-with-multiprocessing.html
 logger = logging.getLogger(__name__)
 
@@ -73,7 +72,6 @@ if __name__ == '__main__':
     if command_line_args.debug:
         logging_level = logging.DEBUG
     logging.basicConfig(level=logging_level, filename='robocup.log')
-
     # Welcome message
     print('RFC Cambridge Robocup Software')
     print('------------------------------')
@@ -97,13 +95,11 @@ if __name__ == '__main__':
     c.start_game()
     print(multiprocessing.current_process().pid)
     print('exiting')
-    print(multiprocessing.active_children())
-    for proc in multiprocessing.active_children():
-        print(proc)
-        print(f"is alive: {proc.is_alive()}")
-        print(f"joining")
-        proc.join()
     print('done!')
+    sys.exit()
+    while True:
+        time.sleep(2)
+        print(multiprocessing.active_children())
     # sys.exit() #testing only!!!!!
     # # choose which modules to run based on run conditions
     # logger.info('Spinning up Threads...')

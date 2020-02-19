@@ -7,6 +7,8 @@ import signal
 
 logger = logging.getLogger(__name__)
 
+stop_event = Event()
+
 class Provider(object):
     """
     Basic interface class that reads data in from the Coordinator, 
@@ -15,11 +17,12 @@ class Provider(object):
     def __init__(self):
         default_handler = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, default_handler)
         self.data_in_q = Queue()
         self.commands_out_q = Queue()
-        signal.signal(signal.SIGINT, default_handler)
+        self.stop_event = stop_event
 
-    def run(self, exit_event):
+    def run(self):
         """
         Handle provider specific logic. Should accept data from
         self.data_in_q and write outputs to self.commands_out_q.
@@ -34,13 +37,38 @@ class Provider(object):
         """
         raise NotImplementedError("Need to implement run() in child classes.")
 
-    def destroy(self):
-        # self.data_in_q.close()
-        # self.commands_out_q.close()
-        # self.data_in_q.cancel_join_thread()
-        # self.commands_out_q.cancel_join_thread()
-        print(f'DESTROYING {multiprocessing.current_process().pid}')
+    def start_providing(self):
+        self.pre_run()
+        while not self.stop_event.is_set():
+            self.run()
+        self.post_run()
+        self.destroy()
+
+    def pre_run(self):
         pass
+    
+    def post_run(self):
+        print("POST RUN")
+
+    def destroy(self):
+        # self.destroy_queue(self.data_in_q)
+        # self.destroy_queue(self.commands_out_q)
+        print(f'DESTROYING {multiprocessing.current_process().pid}')
+
+    def destroy_queue(self, q):
+        q.close()
+        try:
+            while True:
+                print('in here')
+                item = q.get_nowait()
+        except:
+            pass
+        print('waitingt for q join')
+        q.join_thread()
+        print('q joinged')
+        
+
+
     
 class Coordinator(object):
     """
@@ -71,38 +99,41 @@ class Coordinator(object):
         # Stores the processes currently in use by the coordinator
         self.processes = []
 
-        self.gamestate = GameState() 
-        self.exit_event = Event()
+        self.gamestate = GameState()
 
 
     def start_game(self):
         default_handler = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, signal.SIG_IGN)
-        self.processes.append(Process(target=self.vision_provider.run,args=[self.exit_event]))
-        self.processes.append(Process(target=self.yellow_strategy.run, args=[self.exit_event]))
-        if self.blue_strategy:
-            self.processes.append(Process(target=self.blue_strategy.run, args=[self.exit_event]))
-        if self.blue_radio_provider:
-            self.processes.append(Process(target=self.blue_radio_provider.run, args=[self.exit_event]))
-        if self.refbox_provider:
-            self.processes.append(Process(target=self.refbox_provider.run, args=[self.exit_event]))        
-        if self.yellow_radio_provider:
-            self.processes.append(Process(target=self.yellow_radio_provider.run, args=[self.exit_event]))
+        self.processes.append(Process(target=self.vision_provider.start_providing))
+        self.processes.append(Process(target=self.yellow_strategy.start_providing))
+        # if self.blue_strategy:
+        #     self.processes.append(Process(target=self.blue_strategy.run, args=[self.exit_event]))
+        # if self.blue_radio_provider:
+        #     self.processes.append(Process(target=self.blue_radio_provider.run, args=[self.exit_event]))
+        # if self.refbox_provider:
+        #     self.processes.append(Process(target=self.refbox_provider.run, args=[self.exit_event]))        
+        # if self.yellow_radio_provider:
+        #     self.processes.append(Process(target=self.yellow_radio_provider.run, args=[self.exit_event]))
         if self.visualization_provider:
-            self.processes.append(Process(target=self.visualization_provider.run, args=[self.exit_event]))        
-        for proc in self.processes:
+            self.processes.append(Process(target=self.visualization_provider.start_providing))
+        print(f'vision === pid == {self.processes[0]}')
+        print(f'yellow strategy === pid == {self.processes[1]}')
+        print(f'visualization provider === pid == {self.processes[2]}')
+        for proc in reversed(self.processes):
+            proc.daemon = True
             proc.start()
         signal.signal(signal.SIGINT, default_handler)
         self.game_loop()
         
     def stop_game(self):
-        self.exit_event.set()
+        stop_event.set()
         print('Setting exit event')
 
     def game_loop(self):
         # Need to push in a gamestate object initially
         self.vision_provider.data_in_q.put_nowait(self.gamestate)
-        while not self.exit_event.is_set():
+        while not stop_event.is_set():
             self.update_vision_data()
             self.refbox_data = self.get_updated_refbox_data()
             self.publish_new_gamestate()

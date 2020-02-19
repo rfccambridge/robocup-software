@@ -45,17 +45,27 @@ BUTTON_TEXT_COLOR = (255, 255, 255)
 # how much space to include outside the field
 WINDOW_BUFFER = 70
 
+LOGGING_LEVELS = {
+    'debug': logging.DEBUG,
+    'info': logging.INFO,
+    'warning': logging.WARNING,
+    'error': logging.ERROR,
+}
+
 class Visualizer(Provider):
     """Robocup homegrown visualization library that essentially does the same
     as the modules in OpenAI gym."""
 
-    def __init__(self):
+    def __init__(self, log_level='info'):
         super().__init__()
         self._viewer = None
         self._clock = None
 
         self.user_click_down = None
         self.user_click_up = None
+
+        self.log_level = LOGGING_LEVELS.get(log_level, logging.INFO)
+
 
     def init_shit(self):
         self._gs = self.data_in_q.get()
@@ -141,7 +151,7 @@ class Visualizer(Provider):
                     if event.type == pygame.QUIT:
                         self._updating = False
                     if event.type == pygame.KEYDOWN:
-                        logger.debug("Keydown click detected")
+                        logger.info("Keydown click detected")
                         # hotkey controls
                         if event.key == pygame.K_b:
                             self.select_ball()

@@ -4,10 +4,15 @@ import multiprocessing
 from gamestate import GameState
 import logging
 import signal
+from queue import Empty, Full
 
 logger = logging.getLogger(__name__)
 
+# Do not make this large or bad things will happen
 MAX_Q_SIZE = 10
+
+# Warning: This file is a pain in the ass as it deals with all of the multiprocessing.
+# Only modify it as a last resort, or if you have a shittone of debugging time available.
 
 class Provider(object):
     """
@@ -15,25 +20,28 @@ class Provider(object):
     does some action, and then writes actions back to the coordinator.  
     """
     def __init__(self):
+        """
+        Sets up queues for reading data in and out of this provider
+        """
         self.data_in_q = Queue(MAX_Q_SIZE)
         self.commands_out_q = Queue(MAX_Q_SIZE)
 
     def run(self):
         """
-        Handle provider specific logic. Should accept data from
-        self.data_in_q and write outputs to self.commands_out_q.
-        Needs to be implemented in child classes. Should be a loop that
-        runs forever (while True)
+        Handle provider specific logic. This function is continuously repeatedly called.
+        Should accept data from self.data_in_q and write outputs to self.commands_out_q.
+        Needs to be implemented in child classes.
         
         Raises:
             NotImplementedError: You forgot to implement this in child classes
-
-        Args:
-            exit_event : multiprocessing.Event. Indicates whether the provider should exit or not
         """
         raise NotImplementedError("Need to implement run() in child classes.")
 
     def start_providing(self, stop_event):
+        """
+        Starts the provider. Should always be run on a background process.
+        Usually this is called from Coordinator.start_game()
+        """
         self.pre_run()
         while not stop_event.is_set():
             self.run()
@@ -41,16 +49,31 @@ class Provider(object):
         self.destroy()
 
     def pre_run(self):
+        """
+        This function is called exactly once whenever a provider is started, and before self.run() is called. 
+        Override this function to do initialization that it wouldn't be possible to to in self.run() (which gets
+        called repeatedly).
+        """
         pass
     
     def post_run(self):
+        """
+        This function is called exactly once after the last iteratation of self.run() but before the
+        provider is destroyed. Override this to do de-initialization.
+        """
         pass
 
     def destroy(self):
+        """
+        Called by self.start_providing(). No need to call from anywhere else
+        """
         self.destroy_queue(self.data_in_q)
         self.destroy_queue(self.commands_out_q)
 
     def destroy_queue(self, q):
+        """
+        Helper function for destroying multiprocessing.Queue objects
+        """
         q.close()
         try:
             while True:
@@ -59,6 +82,22 @@ class Provider(object):
             pass
         q.join_thread()
     
+class DisableSignals(object):
+    """
+    An object for disabling signals (SIGINT).
+
+    Usage:
+
+    with DisableSignals():
+        # Do stuff here
+    """
+    def __enter__(self):
+        self.default_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+    def __exit__(self, type, value, traceback):
+        signal.signal(signal.SIGINT, self.default_handler)
+
 class Coordinator(object):
     """
     A Coordinator object synchronises the entire game. It
@@ -88,35 +127,52 @@ class Coordinator(object):
         # Stores the processes currently in use by the coordinator
         self.processes = []
 
+        # The source of truth gamestate object
         self.gamestate = GameState()
+
+        # This event is used to signal to the child processes when to stop
         self.stop_event = Event()
 
 
     def start_game(self):
+        """
+        Starts all of the providers in their own processes..
+        This should be called from main.py once a Coordinator has been instantiated
+        """
         self.processes.append(Process(target=self.vision_provider.start_providing, args=[self.stop_event]))
         self.processes.append(Process(target=self.yellow_strategy.start_providing, args=[self.stop_event]))
-        # if self.blue_strategy:
-        #     self.processes.append(Process(target=self.blue_strategy.run, args=[self.exit_event]))
-        # if self.blue_radio_provider:
-        #     self.processes.append(Process(target=self.blue_radio_provider.run, args=[self.exit_event]))
-        # if self.refbox_provider:
-        #     self.processes.append(Process(target=self.refbox_provider.run, args=[self.exit_event]))        
-        # if self.yellow_radio_provider:
-        #     self.processes.append(Process(target=self.yellow_radio_provider.run, args=[self.exit_event]))
+        if self.blue_strategy:
+            self.processes.append(Process(target=self.blue_strategy.start_providing, args=[self.stop_event]))
+        if self.blue_radio_provider:
+            self.processes.append(Process(target=self.blue_radio_provider.start_providing, args=[self.stop_event]))
+        if self.refbox_provider:
+            self.processes.append(Process(target=self.refbox_provider.start_providing, args=[self.stop_event]))        
+        if self.yellow_radio_provider:
+            self.processes.append(Process(target=self.yellow_radio_provider.start_providing, args=[self.stop_event]))
         if self.visualization_provider:
             self.processes.append(Process(target=self.visualization_provider.start_providing, args=[self.stop_event]))
-        default_handler = signal.getsignal(signal.SIGINT)
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-        for proc in reversed(self.processes):
-            proc.daemon = True
-            proc.start()
-        signal.signal(signal.SIGINT, default_handler)
+        
+        # Disable signals before fork so only parent process responds to SIGINT
+        with DisableSignals():
+            for proc in self.processes:
+                proc.daemon = True
+                proc.start()
+
+        # Start main game loop
         self.game_loop()
         
     def stop_game(self):
+        """
+        Sets the stop signal. Called from a signal handler in main.py.
+        Causes both the game loop and all child processes to stop.
+        """
         self.stop_event.set()
 
     def game_loop(self):
+        """
+        This is the main loop of the game that runs continuously in the main process.
+        This should only be called from self.start_game()
+        """
         # Need to push in a gamestate object initially
         self.vision_provider.data_in_q.put_nowait(self.gamestate)
         while not self.stop_event.is_set():
@@ -130,65 +186,82 @@ class Coordinator(object):
         """
         Gets updated vision data from either SSLVision or the simulator
         """
-        try:
-            self.gamestate = self.vision_provider.commands_out_q.get_nowait()
-        except:
-            pass
+        new_gamestate = self.get_from_provider_ignore_exceptions(self.vision_provider)
+        if new_gamestate:
+            self.gamestate = new_gamestate
 
     def get_updated_refbox_data(self):
         """
-        Gets updated refbox data if 
+        Gets updated refbox data
         """
-        if not self.refbox_provider:
-            return None
-        return self.refbox_provider.commands_out_q.get_nowait()
+        return self.get_from_provider_ignore_exceptions(self.refbox_provider)
 
     def publish_robot_commands(self):
-        # send robot commands to xbee here
-        # or to simulator
-        if self.blue_radio_provider:
-            try:
-                return self.blue_radio_provider.data_in_q.put_nowait(self.gamestate)
-            except:
-                pass
-        if self.yellow_radio_provider:
-            try:
-                return self.yellow_radio_provider.data_in_q.put_nowait(self.gamestate)
-            except:
-                pass
+        """
+        Publishes robot commands via the data_in_q to whoever wants them.
+        Most likely the radio provider. or perhaps a simulator
+        """
+        self.push_to_provider_ignore_exceptions(self.blue_radio_provider, self.gamestate)
+        self.push_to_provider_ignore_exceptions(self.yellow_radio_provider, self.gamestate)
 
     def publish_new_gamestate(self):
-        try:
-            if self.blue_strategy:
-                self.blue_strategy.data_in_q.put_nowait(self.gamestate)
-        except:
-            # Likely queue is full
-            pass
-        try:
-            self.yellow_strategy.data_in_q.put_nowait(self.gamestate)
-        except:
-            # Likely queue is full 
-            pass
-        try:
-            self.vision_provider.data_in_q.put_nowait(self.gamestate)
-        except:
-            pass
-        try:
-            if self.visualization_provider:
-                self.visualization_provider.data_in_q.put_nowait(self.gamestate)
-        except:
-            pass
+        """
+        Pushes the current gamestate to the data_in_q of the providers that need it
+        """
+        self.push_to_provider_ignore_exceptions(self.blue_strategy, self.gamestate)
+        self.push_to_provider_ignore_exceptions(self.yellow_strategy, self.gamestate)
+        self.push_to_provider_ignore_exceptions(self.vision_provider, self.gamestate)
+        self.push_to_provider_ignore_exceptions(self.visualization_provider, self.gamestate)
 
     def update_robot_commands(self):
+        """
+        Retrieves new robot commands dict from the strategy providers, and updates global gamestate
+        """
+        new_blue_robot_commands = self.get_from_provider_ignore_exceptions(self.blue_strategy)
+        if new_blue_robot_commands:
+            self.gamestate._blue_robot_commands = new_blue_robot_commands
+
+        new_yellow_robot_commands = self.get_from_provider_ignore_exceptions(self.yellow_strategy)
+        if new_yellow_robot_commands:
+            self.gamestate._yellow_robot_commands = new_yellow_robot_commands
+
+    def push_to_provider_ignore_exceptions(self, provider, item):
+        """
+        A non-blocking helper method to .put() to a provider's 
+        data_in_q queue and ignore any exceptions.
+        
+        Args:
+            q (Provider): The provider in question
+
+        Returns:
+            The item from the queue, or None.
+        """
+        if not provider:
+            return None
+        q = provider.data_in_q
         try:
-            if self.blue_strategy:
-                self.gamestate._blue_robot_commands = self.blue_strategy.commands_out_q.get_nowait()
-        except:
-            # Likely queue is empty
+            q.put_nowait(item)
+        except Full:
             pass
+
+    def get_from_provider_ignore_exceptions(self, provider):
+        """
+        A non-blocking helper method to .get() from a provider's 
+        commands_out_q queue and ignore any exceptions.
+        
+        Args:
+            q (Provider): The provider in question
+
+        Returns:
+            The item from the queue, or None.
+        """
+        if not provider:
+            return None
+        q = provider.commands_out_q
         try:
-            self.gamestate._yellow_robot_commands = self.yellow_strategy.commands_out_q.get_nowait()
-        except:
-            # Likely queue is empty
-            pass
+            item = q.get_nowait()
+        except Empty:
+            return None
+        return item
+        
         

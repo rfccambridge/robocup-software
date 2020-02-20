@@ -81,7 +81,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def pre_run(self):
         self._gs = self.data_in_q.get()
 
-    def run(self):
+    def run(self, gamestate):
         # wait until game begins (while other threads are initializing)
         # self._gs.wait_until_game_begins()
         try:

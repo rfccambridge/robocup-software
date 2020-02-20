@@ -74,14 +74,7 @@ class Simulator(Provider):
         else:
             print('(initial_setup not recognized, empty field)')
 
-    def run(self):
-        try:
-            gs = self.data_in_q.get_nowait() 
-        except:
-            return
-        if not gs:
-            return 
-        self._gamestate = gs
+    def run(self, gamestate):
         # delta_time = 0
         # self._last_step_time = None
         # if self._last_step_time is not None:

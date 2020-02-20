@@ -136,7 +136,7 @@ class Visualizer(Provider):
     def post_run(self):
         pygame.quit()
         
-    def run(self):
+    def run(self, gamestate):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
         logger = logging.getLogger('visualization')
         logger.addHandler(logging.FileHandler('visualization.log', mode='a'))

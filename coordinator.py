@@ -25,17 +25,31 @@ class Provider(object):
         """
         self.data_in_q = Queue(MAX_Q_SIZE)
         self.commands_out_q = Queue(MAX_Q_SIZE)
+        self.gamestate = None
 
-    def run(self):
+    def run(self, gamestate):
         """
-        Handle provider specific logic. This function is continuously repeatedly called.
-        Should accept data from self.data_in_q and write outputs to self.commands_out_q.
+        Handle provider specific logic. This function is continuously repeatedly called AT MINIMUM
+        once every second but likely much much more frequently. 
+        It should write outputs back to the coordinator via the self.commands_out_q
         Needs to be implemented in child classes.
         
+        Args:
+            gamestate (gamestate.GameState): The latest gamestate object delivered to this provider.
         Raises:
             NotImplementedError: You forgot to implement this in child classes
         """
         raise NotImplementedError("Need to implement run() in child classes.")
+
+    def _update_gamestate(self):
+        """
+        Get the latest gamestate from the coordinator. Do not call this method from
+        outside the provider.
+        """
+        try:
+            self.gamestate = self.data_in_q.get(timeout=1)
+        except Empty:
+            pass
 
     def start_providing(self, stop_event):
         """
@@ -44,7 +58,8 @@ class Provider(object):
         """
         self.pre_run()
         while not stop_event.is_set():
-            self.run()
+            self._update_gamestate()
+            self.run(self.gamestate)
         self.post_run()
         self.destroy()
 

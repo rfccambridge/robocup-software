@@ -223,7 +223,15 @@ class Coordinator(object):
             self.refbox_data = self.get_updated_refbox_data()
             self.publish_new_gamestate()
             self.update_robot_commands()
-            self.publish_robot_commands()
+            self.update_visualizer_data()
+
+    def update_visualizer_data(self):
+        """
+        Gets updated visualizer data from the visualizer
+        """
+        viz_data = self.get_from_provider_ignore_exceptions(self.visualization_provider)
+        if viz_data:
+            self.gamestate.viz_inputs = viz_data
 
     def update_vision_data(self):
         """
@@ -239,14 +247,6 @@ class Coordinator(object):
         """
         return self.get_from_provider_ignore_exceptions(self.refbox_provider)
 
-    def publish_robot_commands(self):
-        """
-        Publishes robot commands via the data_in_q to whoever wants them.
-        Most likely the radio provider. or perhaps a simulator
-        """
-        self.push_to_provider_ignore_exceptions(self.blue_radio_provider, self.gamestate)
-        self.push_to_provider_ignore_exceptions(self.yellow_radio_provider, self.gamestate)
-
     def publish_new_gamestate(self):
         """
         Pushes the current gamestate to the data_in_q of the providers that need it
@@ -255,6 +255,8 @@ class Coordinator(object):
         self.push_to_provider_ignore_exceptions(self.yellow_strategy, self.gamestate)
         self.push_to_provider_ignore_exceptions(self.vision_provider, self.gamestate)
         self.push_to_provider_ignore_exceptions(self.visualization_provider, self.gamestate)
+        self.push_to_provider_ignore_exceptions(self.blue_radio_provider, self.gamestate)
+        self.push_to_provider_ignore_exceptions(self.yellow_radio_provider, self.gamestate)
 
     def update_robot_commands(self):
         """

@@ -7,8 +7,11 @@ import signal
 import traceback
 import argparse
 import logging
+import logging.handlers
+import multiprocessing
 import time
 
+# http://plumberjack.blogspot.com/2010/09/using-logging-with-multiprocessing.html
 logger = logging.getLogger(__name__)
 
 # Remove pygame's annoying welcome message
@@ -68,8 +71,7 @@ if __name__ == '__main__':
     logging_level = logging.INFO
     if command_line_args.debug:
         logging_level = logging.DEBUG
-    logging.basicConfig(level=logging_level)
-
+    logging.basicConfig(level=logging_level, filename='robocup.log')
     # Welcome message
     print('RFC Cambridge Robocup Software')
     print('------------------------------')
@@ -82,64 +84,11 @@ if __name__ == '__main__':
     simulator = Simulator(SIMULATION_SETUP) 
     home_strategy = Strategy(HOME_TEAM)
     visualization_provider = Visualizer()
-
-    c = Coordinator(home_strategy, simulator, visualization_provider=visualization_provider)
+    c = Coordinator(home_strategy, 
+                    simulator, 
+                    visualization_provider=visualization_provider)
+    def stop_it(signum, frame):
+        c.stop_game()
+    signal.signal(signal.SIGINT, stop_it)
     c.start_game()
-    time.sleep(10)
-    c.stop_game()
-    exit() #testing only!!!!!
-    # choose which modules to run based on run conditions
-    logger.info('Spinning up Threads...')
-    if IS_SIMULATION:
-        # spin up simulator to replace actual vision data + comms
-        if not NO_REFBOX:
-            refbox.start_updating(VISION_LOOP_SLEEP)
-    else:
-        # spin up ssl-vision data polling to update gamestate
-        vision.start_updating(VISION_LOOP_SLEEP)
-        if not NO_RADIO:
-            # spin up comms to send commands to robots
-            home_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
-            # home_comms.start_receiving(COMMS_RECEIVE_LOOP_SLEEP)
-            if CONTROL_BOTH_TEAMS:
-                away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
-                # away_comms.start_sending(COMMS_RECEIVE_LOOP_SLEEP)
-        if not NO_REFBOX:
-            refbox.start_updating(VISION_LOOP_SLEEP)
-    # spin up strategy threads to control the robots
-    home_strategy.start_controlling(HOME_STRATEGY, CONTROL_LOOP_SLEEP)
-    if CONTROL_BOTH_TEAMS:
-        away_strategy.start_controlling(AWAY_STRATEGY, CONTROL_LOOP_SLEEP)
-    # initialize visualizer to show robots on screen
-    visualizer = Visualizer(gamestate, home_strategy, away_strategy)
-    # start the game  - now everything should be going
-    gamestate.start_game(GAME_LOOP_SLEEP)
-
-    # Prepare to be interrupted by user
-    exit_signal_received = False
-
-    def exit_gracefully(signum, frame):
-        global exit_signal_received
-        if exit_signal_received:
-            return
-        else:
-            exit_signal_received = True
-        print('Exiting Everything')
-        # clean up all threads
-        vision.stop_updating()
-        refbox.stop_updating()
-        home_comms.stop_sending_and_receiving()
-        away_comms.stop_sending_and_receiving()
-        simulator.stop_simulating()
-        home_strategy.stop_controlling()
-        away_strategy.stop_controlling()
-        gamestate.end_game()
-        print('Done Cleaning Up All Threads')
-        sys.exit()
-    signal.signal(signal.SIGINT, exit_gracefully)
-
-    print('Running! Ctrl-c repeatedly to quit (C-c-k on eshell?!)')
-
-    # (visualizer runs on main thread to work on all platforms)
-    visualizer.visualization_loop(VISUALIZATION_LOOP_SLEEP)
-    traceback.print_stack()
+    sys.exit()

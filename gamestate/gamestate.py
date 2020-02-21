@@ -60,14 +60,16 @@ class GameState(Field, Analysis):
         # TODO: enum all ref box restart commands
 
         # UI Inputs - set from visualizer
-        self.user_click_position = None
-        self.user_drag_vector = None
-        self.user_selected_robot = None  # (team, id) of robot
-        self.user_selected_ball = False
-        self.user_charge_command = False
-        self.user_kick_command = False
-        self.user_dribble_command = False
-
+        self.viz_inputs = {
+            "user_click_position": None,
+            "user_drag_vector": None,
+            "user_selected_robot": None,  # (team, id) of robot
+            "user_selected_ball": False,
+            "user_charge_command": False,
+            "user_kick_command": False,
+            "user_dribble_command": False
+        }
+        
         # Refbox - the latest message delivered from the refbox
         self.latest_refbox_message = None
 

@@ -31,7 +31,7 @@ class Provider(object):
         """
         Handle provider specific logic. This function is continuously repeatedly called AT MINIMUM
         once every second but likely much much more frequently. 
-        It should write outputs back to the coordinator via the self.commands_out_q
+        It should return it's output which will be sent back to the coordinator.
         Needs to be implemented in child classes.
         
         Args:
@@ -51,15 +51,27 @@ class Provider(object):
         except Empty:
             pass
 
+    def _send_result_back_to_coordinator(self, result):
+        """
+        Return the result from the provider back to the coordinator.
+        Do not call this method from outside the provider.
+        """
+        try:
+            self.commands_out_q.put_nowait(result)
+        except Full:
+            pass
+
     def start_providing(self, stop_event):
         """
         Starts the provider. Should always be run on a background process.
         Usually this is called from Coordinator.start_game()
         """
-        self.pre_run()
+        result = self.pre_run()
+        self._send_result_back_to_coordinator(result)
         while not stop_event.is_set():
             self._update_gamestate()
-            self.run(self.gamestate)
+            result = self.run(self.gamestate)
+            self._send_result_back_to_coordinator(result)
         self.post_run()
         self.destroy()
 
@@ -67,7 +79,7 @@ class Provider(object):
         """
         This function is called exactly once whenever a provider is started, and before self.run() is called. 
         Override this function to do initialization that it wouldn't be possible to to in self.run() (which gets
-        called repeatedly).
+        called repeatedly). Any output returned will be sent back to the coordinator
         """
         pass
     

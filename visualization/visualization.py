@@ -143,21 +143,19 @@ class Visualizer(Provider):
     def pre_run(self):
         if self.logger is None:
             self.create_logger()
-        self.logger.warning("Calling pre_run in visualization")
+        self.logger.debug("Calling pre_run in visualization")
         pygame.init()
         self.init_shit() 
 
     def post_run(self):
-        self.logger.warning("Calling post_run in visualization")
+        self.logger.debug("Calling post_run in visualization")
         pygame.quit()
         
     def run(self, gamestate):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
         # wait until game begins (while other threads are initializing)
         self._gs = self.data_in_q.get()
-        self.logger.warning("testing")
         self._gs.wait_until_game_begins()
-        self.logger.debug("heyeyeyeyeyeyeyeyeyeyeyeye")
         # make sure prints from all threads get flushed to terminal
         sys.stdout.flush()
         # for event in pygame.event.get():

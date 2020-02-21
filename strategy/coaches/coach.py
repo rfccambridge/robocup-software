@@ -36,9 +36,9 @@ class Coach(object):
         return self._strategy._team == 'yellow'
 		
     def play(self):
-        if self._gs.refbox_msg is None:
+        if self._gs.latest_refbox_message is None:
             return
-        self._command_dict[self._gs.refbox_msg.command]
+        self._command_dict[self._gs.latest_refbox_message.command]
 
     def halt(self):
         raise NotImplementedError

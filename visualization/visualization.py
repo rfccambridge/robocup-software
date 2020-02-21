@@ -154,10 +154,10 @@ class Visualizer(Provider):
     def run(self, gamestate):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
         # wait until game begins (while other threads are initializing)
-        self._gs = self.data_in_q.get()
-        self._gs.wait_until_game_begins()
+        self._gs = gamestate
+        self.logger.info("gamestate.robot_positions = %s", gamestate.get_all_robot_positions())
         # make sure prints from all threads get flushed to terminal
-        sys.stdout.flush()
+        time.sleep(0.033)
         # for event in pygame.event.get():
         #     if event.type == pygame.QUIT:
         #         self._updating = False
@@ -181,7 +181,6 @@ class Visualizer(Provider):
         self.render()
         pygame.display.flip()
         # yield to other threads
-        self.logger.info("Exiting Pygame Visualization")
 
     def select_ball(self):
         self._gs.user_selected_ball = True

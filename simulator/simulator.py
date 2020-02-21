@@ -55,7 +55,6 @@ class Simulator(Provider):
         if self.logger is None:
             self.create_logger()
         self.logger.debug("Calling pre_run in visualization")
-        
         gs = self.data_in_q.get() 
         self._gamestate = gs
         # logger.info("\nSimulator running with initial setup: {}".format(
@@ -95,6 +94,7 @@ class Simulator(Provider):
 
     def run(self, gs):
         # self.logger.info("hello")
+        self._gamestate = gs
         delta_time = 0
         if self._last_step_time is not None:
             delta_time = time.time() - self._last_step_time
@@ -201,4 +201,4 @@ class Simulator(Provider):
                     self.put_fake_ball(new_pos, new_velocity)
                 robot_commands.charge_level = 0
                 robot_commands.is_kicking = False
-        return gs
+        return self._gamestate

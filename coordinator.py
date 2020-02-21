@@ -166,18 +166,18 @@ class Coordinator(object):
         Starts all of the providers in their own processes..
         This should be called from main.py once a Coordinator has been instantiated
         """
-        self.processes.append(Process(target=self.vision_provider.start_providing, args=[self.stop_event]))
-        self.processes.append(Process(target=self.yellow_strategy.start_providing, args=[self.stop_event]))
+        self.processes.append(Process(target=self.vision_provider.start_providing, args=[self.stop_event], name='Vision Provider Process'))
+        self.processes.append(Process(target=self.yellow_strategy.start_providing, args=[self.stop_event], name='Yellow Strategy Provider Process'))
         if self.blue_strategy:
-            self.processes.append(Process(target=self.blue_strategy.start_providing, args=[self.stop_event]))
+            self.processes.append(Process(target=self.blue_strategy.start_providing, args=[self.stop_event], name='Blue Strategy Provider Process'))
         if self.blue_radio_provider:
-            self.processes.append(Process(target=self.blue_radio_provider.start_providing, args=[self.stop_event]))
+            self.processes.append(Process(target=self.blue_radio_provider.start_providing, args=[self.stop_event], name='Blue Radio Provider Process'))
         if self.refbox_provider:
-            self.processes.append(Process(target=self.refbox_provider.start_providing, args=[self.stop_event]))        
+            self.processes.append(Process(target=self.refbox_provider.start_providing, args=[self.stop_event], name='Refbox Provider Process'))        
         if self.yellow_radio_provider:
-            self.processes.append(Process(target=self.yellow_radio_provider.start_providing, args=[self.stop_event]))
+            self.processes.append(Process(target=self.yellow_radio_provider.start_providing, args=[self.stop_event], name='Yellow Radio Provider Process'))
         if self.visualization_provider:
-            self.processes.append(Process(target=self.visualization_provider.start_providing, args=[self.stop_event]))
+            self.processes.append(Process(target=self.visualization_provider.start_providing, args=[self.stop_event], name='Visualization Provider Process'))
         
         # Disable signals before fork so only parent process responds to SIGINT
         with DisableSignals():

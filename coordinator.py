@@ -25,7 +25,7 @@ class Provider(object):
         """
         self.data_in_q = Queue(MAX_Q_SIZE)
         self.commands_out_q = Queue(MAX_Q_SIZE)
-        self.gamestate = None
+        self._hidden_provider_gamestate = None
 
     def run(self, gamestate):
         """
@@ -47,7 +47,7 @@ class Provider(object):
         outside the provider.
         """
         try:
-            self.gamestate = self.data_in_q.get(timeout=1)
+            self._hidden_provider_gamestate = self.data_in_q.get(timeout=1)
         except Empty:
             pass
 
@@ -56,6 +56,8 @@ class Provider(object):
         Return the result from the provider back to the coordinator.
         Do not call this method from outside the provider.
         """
+        if not result:
+            return
         try:
             self.commands_out_q.put_nowait(result)
         except Full:
@@ -70,7 +72,7 @@ class Provider(object):
         self._send_result_back_to_coordinator(result)
         while not stop_event.is_set():
             self._update_gamestate()
-            result = self.run(self.gamestate)
+            result = self.run(self._hidden_provider_gamestate)
             self._send_result_back_to_coordinator(result)
         self.post_run()
         self.destroy()

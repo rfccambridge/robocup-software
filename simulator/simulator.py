@@ -16,6 +16,7 @@ class Simulator(Provider):
         super().__init__()
         self._initial_setup = initial_setup
         self._is_simulating = False
+        self._last_step_time = time.time()
 
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
         """initialize a robot with given id + team at (x, y, w) position"""
@@ -74,7 +75,7 @@ class Simulator(Provider):
         else:
             print('(initial_setup not recognized, empty field)')
         # pass the initialized gamestate back to coordinator
-        self.commands_out_q.put(self._gamestate)
+        return self._gamestate
 
     def run(self, gs):
         delta_time = 0
@@ -183,7 +184,4 @@ class Simulator(Provider):
                     self.put_fake_ball(new_pos, new_velocity)
                 robot_commands.charge_level = 0
                 robot_commands.is_kicking = False
-        try:
-            self.commands_out_q.put_nowait(gs)
-        except:
-            pass
+        return gs

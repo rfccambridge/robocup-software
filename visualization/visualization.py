@@ -153,25 +153,6 @@ class Visualizer(Provider):
         
     def run(self, gamestate):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
-<<<<<<< HEAD
-        logger.debug("Attempting to initialize visualizer with pygame")
-        pygame.init()
-        logger.debug("Attempting to initialize viz")
-        self.init_shit()
-        logger.debug("Initialized visualizer with pygame")
-        # wait until game begins (while other threads are initializing)
-        while True:
-            self._gs = self.data_in_q.get()
-            while self._updating:
-                # make sure prints from all threads get flushed to terminal
-                sys.stdout.flush()
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        self._updating = False
-                    if event.type == pygame.KEYDOWN:
-                        # hotkey controls
-                        if event.key == pygame.K_b:
-=======
         # wait until game begins (while other threads are initializing)
         time.sleep(0.05)
         self._gs = gamestate
@@ -237,7 +218,6 @@ class Visualizer(Provider):
                         self._gs.viz_inputs['user_click_position'] = None
                         self._gs.viz_inputs['user_drag_vector'] = None
                         if ball_clicked:
->>>>>>> 96e47e382cb9c5322fd09fb37293b98b9dd6568d
                             self.select_ball()
                         elif robot_clicked:
                             self.select_robot(robot_clicked)

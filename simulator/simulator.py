@@ -3,6 +3,7 @@ import numpy as np
 from collections import deque
 from typing import Tuple
 import logging
+from logging.handlers import SocketHandler
 from coordinator import Provider
 
 logger = logging.getLogger(__name__)
@@ -14,9 +15,20 @@ class Simulator(Provider):
     # TODO: when we get multiple comms, connect to all available robots
     def __init__(self, initial_setup):
         super().__init__()
+        self.logger = None
         self._initial_setup = initial_setup
         self._is_simulating = False
         self._last_step_time = time.time()
+
+    def create_logger(self):
+        self.logger = logging.getLogger('simulator')
+        self.logger.addHandler(logging.FileHandler('simulator.log', mode='a'))
+        self.logger.warning("Initializing Simulator")
+        self.logger.debug("Initialized Simulator")
+        self.logger.setLevel(1)
+        socket_handler = SocketHandler('0.0.0.0', 19996)
+        self.logger.addHandler(socket_handler)
+        self.logger.info("Created logger for simulator")
 
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
         """initialize a robot with given id + team at (x, y, w) position"""
@@ -40,6 +52,10 @@ class Simulator(Provider):
         # print(f"v: {self._gamestate.get_ball_velocity()}")
 
     def pre_run(self):
+        if self.logger is None:
+            self.create_logger()
+        self.logger.debug("Calling pre_run in visualization")
+        
         gs = self.data_in_q.get() 
         self._gamestate = gs
         # logger.info("\nSimulator running with initial setup: {}".format(
@@ -78,6 +94,7 @@ class Simulator(Provider):
         return self._gamestate
 
     def run(self, gs):
+        # self.logger.info("hello")
         delta_time = 0
         if self._last_step_time is not None:
             delta_time = time.time() - self._last_step_time

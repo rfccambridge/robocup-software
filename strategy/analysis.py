@@ -125,11 +125,11 @@ class Analysis(object):
     def find_legal_pos(self, robot_id: int) -> Tuple[float, float, float]:
         robot_x, robot_y, robot_w = self._gs.get_robot_position(self._team, robot_id)
         radius = self._gs.ROBOT_RADIUS
-        if self._gs.is_pos_legal([robot_x, robot_y], self._team, robot_id):
-            return [robot_x, robot_y, robot_w]
         # Buffer to make sure it fully exits illegal area - is this too much?
         buffer = 2 * radius
         # If in one of the defense areas
+        if self._gs.is_pos_legal([robot_x, robot_y], self._team, robot_id):
+            return [robot_x, robot_y, robot_w]
         elif self._gs.is_in_play([robot_x, robot_y]):
             legal_x = self._gs.FIELD_MAX_X + self._gs.DEFENSE_AREA_X_LENGTH + buffer if robot_x < 0 \
                         else self._gs.FIELD_MAX_X - self._gs.DEFENSE_AREA_X_LENGTH - buffer
@@ -169,8 +169,6 @@ class Analysis(object):
         # Check endpoint first to avoid worrying about step size in the loop
         def legal(pos):
             return self._gs.is_pos_legal(pos, self._team, robot_id) or allow_illegal
-        # print('End pos Legal? {}'.format(legal(g_pos)))
-        # print('End pos Open? {}'.format(self._gs.is_position_open(g_pos, self._team, robot_id)))
         if not self._gs.is_position_open(g_pos, self._team, robot_id) or not legal(g_pos):
             return True
         path = g_pos - s_pos

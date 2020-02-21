@@ -60,7 +60,7 @@ class GameState(Field, Analysis):
         # TODO: enum all ref box restart commands
 
         # UI Inputs - set from visualizer
-        self.visualization_UI_inputs = {
+        self.viz_inputs = {
             "user_click_position": None,
             "user_drag_vector": None,
             "user_selected_robot": None,  # (team, id) of robot

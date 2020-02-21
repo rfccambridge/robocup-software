@@ -231,6 +231,8 @@ class Visualizer(Provider):
         self._viewer.fill(FIELD_COLOR)
         self.render()
         pygame.display.flip()
+        # return modified UI input data to coordinator
+        return self._gs.viz_inputs
 
     def select_ball(self):
         self._gs.viz_inputs['user_selected_ball'] = True

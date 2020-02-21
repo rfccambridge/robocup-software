@@ -100,14 +100,14 @@ class Simulator(Provider):
             delta_time = time.time() - self._last_step_time
         self._last_step_time = time.time()
         # allow user to move the ball via UI
-        if gs.user_selected_ball:
-            new_pos = gs.user_click_position
+        if gs.viz_inputs['user_selected_ball']:
+            new_pos = gs.viz_inputs['user_click_position']
             if new_pos is not None:
-                v = gs.user_drag_vector
+                v = gs.viz_inputs['user_drag_vector']
                 v = np.array([0, 0]) if v is None else v
                 self.put_fake_ball(new_pos[:2], v)
-                gs.user_click_position = None
-                gs.user_drag_vector = None
+                gs.viz_inputs['user_click_position'] = None
+                gs.viz_inputs['user_drag_vector'] = None
 
         # move ball according to prediction
         ball_pos = gs.get_ball_position()

@@ -5,10 +5,10 @@ import numpy as np
 from typing import Iterable, Tuple, Optional
 from coordinator import Provider
 import logging
+from logging.handlers import SocketHandler
 import pygame
 import multiprocessing
 
-logger = logging.getLogger(__name__)
 
 # rendering constants (dimensions are in field - mm)
 FIELD_LINE_WIDTH = 20
@@ -60,6 +60,7 @@ class Visualizer(Provider):
         super().__init__()
         self._viewer = None
         self._clock = None
+        self.logger = None
 
         self.user_click_down = None
         self.user_click_up = None
@@ -128,24 +129,33 @@ class Visualizer(Provider):
         # shift position so that center becomes (0, 0)
         pos -= np.array([self._gs.FIELD_MAX_X, self._gs.FIELD_MAX_Y])
         return pos
+    
+    def create_logger(self):
+        self.logger = logging.getLogger('visualization')
+        self.logger.addHandler(logging.FileHandler('visualization.log', mode='a'))
+        self.logger.warning("Initializing Visualization")
+        self.logger.debug("Initialized visualizer with pygame")
+        self.logger.setLevel(1)
+        socket_handler = SocketHandler('0.0.0.0', 19996)
+        self.logger.addHandler(socket_handler)
+        self.logger.info("Created logger for visualization")
 
     def pre_run(self):
+        if self.logger is None:
+            self.create_logger()
+        self.logger.debug("Calling pre_run in visualization")
         pygame.init()
         self.init_shit() 
 
     def post_run(self):
+        self.logger.debug("Calling post_run in visualization")
         pygame.quit()
         
     def run(self, gamestate):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
-        logger = logging.getLogger('visualization')
-        logger.addHandler(logging.FileHandler('visualization.log', mode='a'))
-        logger.warning("Initializing Visualization")
-        logger.debug("Initialized visualizer with pygame")
         # wait until game begins (while other threads are initializing)
         self._gs = self.data_in_q.get()
         self._gs.wait_until_game_begins()
-        logger.debug("heyeyeyeyeyeyeyeyeyeyeyeye")
         # make sure prints from all threads get flushed to terminal
         sys.stdout.flush()
         # for event in pygame.event.get():
@@ -171,7 +181,7 @@ class Visualizer(Provider):
         self.render()
         pygame.display.flip()
         # yield to other threads
-        logger.info("Exiting Pygame Visualization")
+        self.logger.info("Exiting Pygame Visualization")
 
     def select_ball(self):
         self._gs.user_selected_ball = True

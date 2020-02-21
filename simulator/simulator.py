@@ -201,4 +201,5 @@ class Simulator(Provider):
                     self.put_fake_ball(new_pos, new_velocity)
                 robot_commands.charge_level = 0
                 robot_commands.is_kicking = False
+        self.logger.info("gamestate.robot_positions = %s", self._gamestate.get_all_robot_positions())
         return self._gamestate

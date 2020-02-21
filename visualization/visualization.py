@@ -157,7 +157,7 @@ class Visualizer(Provider):
         self._gs = gamestate
         self.logger.info("gamestate.robot_positions = %s", gamestate.get_all_robot_positions())
         # make sure prints from all threads get flushed to terminal
-        time.sleep(0.033)
+        time.sleep(0.5)
         # for event in pygame.event.get():
         #     if event.type == pygame.QUIT:
         #         self._updating = False

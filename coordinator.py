@@ -8,7 +8,7 @@ import signal
 from queue import Empty, Full
 
 # Do not make this large or bad things will happen
-MAX_Q_SIZE = 10
+MAX_Q_SIZE = 1
 
 # Warning: This file is a pain in the ass as it deals with all of the multiprocessing.
 # Only modify it as a last resort, or if you have a shittone of debugging time available.

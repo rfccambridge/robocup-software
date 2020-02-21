@@ -3,10 +3,9 @@ from multiprocessing import Process, Event
 import multiprocessing
 from gamestate import GameState
 import logging
+from logging.handlers import SocketHandler
 import signal
 from queue import Empty, Full
-
-logger = logging.getLogger(__name__)
 
 # Do not make this large or bad things will happen
 MAX_Q_SIZE = 10
@@ -156,18 +155,31 @@ class Coordinator(object):
         # Stores the processes currently in use by the coordinator
         self.processes = []
 
+        # Can call create logger from init since we run Coordinator from the
+        # main thread instead of separate process.
+        self.create_logger()
+
         # The source of truth gamestate object
         self.gamestate = GameState()
 
         # This event is used to signal to the child processes when to stop
         self.stop_event = Event()
 
+    def create_logger(self):
+        self.logger = logging.getLogger('coordinator')
+        self.logger.addHandler(logging.FileHandler('coordinator.log', mode='a'))
+        self.logger.info("Initializing Coordinator")
+        self.logger.setLevel(1)
+        socket_handler = SocketHandler('0.0.0.0', 19996)
+        self.logger.addHandler(socket_handler)
+        self.logger.info("Created logger for coordinator")
 
     def start_game(self):
         """
         Starts all of the providers in their own processes..
         This should be called from main.py once a Coordinator has been instantiated
         """
+        self.logger.info("Starting game, creating processes")
         self.processes.append(Process(target=self.vision_provider.start_providing, args=[self.stop_event], name='Vision Provider Process'))
         self.processes.append(Process(target=self.yellow_strategy.start_providing, args=[self.stop_event], name='Yellow Strategy Provider Process'))
         if self.blue_strategy:
@@ -184,9 +196,11 @@ class Coordinator(object):
         # Disable signals before fork so only parent process responds to SIGINT
         with DisableSignals():
             for proc in self.processes:
+                self.logger.info("Starting process: %s", proc.name)
                 proc.daemon = True
                 proc.start()
 
+        self.logger.info("Starting main game loop")
         # Start main game loop
         self.game_loop()
         
@@ -271,6 +285,7 @@ class Coordinator(object):
         try:
             q.put_nowait(item)
         except Full:
+            # self.logger.warning("Push to provider had full queue")
             pass
 
     def get_from_provider_ignore_exceptions(self, provider):
@@ -290,6 +305,7 @@ class Coordinator(object):
         try:
             item = q.get_nowait()
         except Empty:
+            # self.logger.warning("Get from provider had empty queue")
             return None
         return item
         

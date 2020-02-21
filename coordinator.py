@@ -24,7 +24,13 @@ class Provider(object):
         """
         self.data_in_q = Queue(MAX_Q_SIZE)
         self.commands_out_q = Queue(MAX_Q_SIZE)
-        self._hidden_provider_gamestate = None
+        self._hidden_provider_gamestate = GameState()
+
+        # This specifies the fields in the gamestate dict for which this
+        # provider is the source of truth. These fields will be stored
+        # locally, and not received from the coordinator or updated
+        # in new gamestate packets.
+        self._owned_fields = []
 
     def run(self, gamestate):
         """
@@ -45,10 +51,20 @@ class Provider(object):
         Get the latest gamestate from the coordinator. Do not call this method from
         outside the provider.
         """
+        # Save a copy of all of the fields this provider owns
+        owned_field_values = dict()
+        for field in self._owned_fields:
+            owned_field_values[field] = getattr(self._hidden_provider_gamestate, field)
+
+        # Get a new gamestate copy from the coordinator
         try:
             self._hidden_provider_gamestate = self.data_in_q.get(timeout=1)
         except Empty:
             pass
+
+        # Restore the fields that this provider owns
+        for key, value in owned_field_values.items():
+            setattr(self._hidden_provider_gamestate, key, value)
 
     def _send_result_back_to_coordinator(self, result):
         """

@@ -66,6 +66,7 @@ class Visualizer(Provider):
         self.user_click_up = None
 
         self.log_level = LOGGING_LEVELS.get(log_level, logging.INFO)
+        self._owned_fields = ['viz_inputs']
 
 
     def init_shit(self):
@@ -153,6 +154,7 @@ class Visualizer(Provider):
     def run(self, gamestate):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
         # wait until game begins (while other threads are initializing)
+        time.sleep(0.05)
         self._gs = gamestate
         self.logger.info("gamestate.robot_positions = %s", gamestate.get_all_robot_positions())
         # take user input
@@ -232,6 +234,8 @@ class Visualizer(Provider):
         self.render()
         pygame.display.flip()
         # return modified UI input data to coordinator
+        self.commands_out_q.put(self._gs.viz_inputs)
+        return None
         return self._gs.viz_inputs
 
     def select_ball(self):

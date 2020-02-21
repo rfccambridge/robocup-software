@@ -5,6 +5,7 @@ import numpy as np
 from typing import Iterable, Tuple, Optional
 from coordinator import Provider
 import logging
+import pygame
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +120,6 @@ class Visualizer(Provider):
 
     def run(self):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
-        import pygame
         logger.debug("Attempting to initialize visualizer with pygame")
         pygame.init()
         logger.debug("Attempting to initialize viz")
@@ -128,7 +128,6 @@ class Visualizer(Provider):
         # wait until game begins (while other threads are initializing)
         while True:
             self._gs = self.data_in_q.get()
-            self._gs.wait_until_game_begins()
             while self._updating:
                 # make sure prints from all threads get flushed to terminal
                 sys.stdout.flush()

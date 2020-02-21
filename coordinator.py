@@ -239,7 +239,9 @@ class Coordinator(object):
         """
         new_gamestate = self.get_from_provider_ignore_exceptions(self.vision_provider)
         if new_gamestate:
-            self.gamestate = new_gamestate
+            self.gamestate._ball_position = new_gamestate._ball_position
+            self.gamestate._blue_robot_positions = new_gamestate._blue_robot_positions
+            self.gamestate._yellow_robot_positions = new_gamestate._yellow_robot_positions
 
     def get_updated_refbox_data(self):
         """
@@ -248,7 +250,7 @@ class Coordinator(object):
         return self.get_from_provider_ignore_exceptions(self.refbox_provider)
 
     def publish_new_gamestate(self):
-        """
+        """∂
         Pushes the current gamestate to the data_in_q of the providers that need it
         """
         self.push_to_provider_ignore_exceptions(self.blue_strategy, self.gamestate)

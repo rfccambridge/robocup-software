@@ -70,7 +70,6 @@ class Visualizer(Provider):
 
     def init_shit(self):
         self._gs = self.data_in_q.get()
-        self._updating = True
 
         # derive screen dimentions from field dimensions
         self._TOTAL_SCREEN_WIDTH = int((self._gs.FIELD_X_LENGTH + 2 * WINDOW_BUFFER) * SCALE)
@@ -156,39 +155,90 @@ class Visualizer(Provider):
         # wait until game begins (while other threads are initializing)
         self._gs = gamestate
         self.logger.info("gamestate.robot_positions = %s", gamestate.get_all_robot_positions())
-        # make sure prints from all threads get flushed to terminal
-        time.sleep(0.5)
-        # for event in pygame.event.get():
-        #     if event.type == pygame.QUIT:
-        #         self._updating = False
-        #     if event.type == pygame.KEYDOWN:
-        #         logger.info("Keydown click detected")
-        #         # hotkey controls
-        #         if event.key == pygame.K_b:
-        #             self.select_ball()
-        #         elif robot_clicked:
-        #             self.select_robot(robot_clicked)
+        # take user input
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pass
+            if event.type == pygame.KEYDOWN:
+                # hotkey controls
+                if event.key == pygame.K_b:
+                    self.select_ball()
+                # toggle dribbler
+                if event.key == pygame.K_d:
+                    old = self._gs.viz_inputs['user_dribble_command']
+                    self._gs.viz_inputs['user_dribble_command'] = not old
+                # charge while key down
+                if event.key == pygame.K_c:
+                    self._gs.viz_inputs['user_charge_command'] = True
+                # kick only once
+                if event.key == pygame.K_k:
+                    self._gs.viz_inputs['user_kick_command'] = True
+                else:
+                    self._gs.viz_inputs['user_kick_command'] = False
+            if event.type == pygame.KEYUP:
+                # stop charging on release
+                if event.key == pygame.K_c:
+                    self._gs.viz_inputs['user_charge_command'] = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.user_click_up = None
+                self.user_click_down = self.screen_to_field(
+                    pygame.mouse.get_pos()
+                )
+                if self._gs.is_in_play(self.user_click_down):
+                    # trigger button clicks
+                    for label, pos in self.buttons.items():
+                        dims = (BUTTON_WIDTH, BUTTON_HEIGHT)
+                        if self.is_collision(pos, dims, pygame.mouse.get_pos()):
+                            # prints current location of mouse
+                            print('button pressed: ' + label)
+                else:
+                    self.user_click_down = None
+                # FOR DEBUGGING:
+                # print(self._gs.is_pos_valid(
+                #     self.user_click_down, 'blue', 1
+                # ))
 
-        #     # store xy of original mouse down, and drag vector
-        #     if self.user_click_down is not None:
-        #         self._gs.user_click_position = \
-        #             self.user_click_down
-        #         self._gs.user_drag_vector = \
-        #             self.user_click_up - self.user_click_down
-        #         self.user_click_down = None
+            if event.type == pygame.MOUSEBUTTONUP:
+                if self.user_click_down is not None:
+                    self.user_click_up = self.screen_to_field(
+                        pygame.mouse.get_pos()
+                    )
+                    # ball/robot selection
+                    down, up = self.user_click_down, self.user_click_up
+                    robot_clicked = \
+                        self._gs.robot_at_position(down) and \
+                        self._gs.robot_at_position(up)
+                    ball_clicked = \
+                        self._gs.ball_overlap(down).any() and \
+                        self._gs.ball_overlap(up).any()
+                    if robot_clicked or ball_clicked:
+                        self.user_click_down = None
+                        self._gs.viz_inputs['user_click_position'] = None
+                        self._gs.viz_inputs['user_drag_vector'] = None
+                        if ball_clicked:
+                            self.select_ball()
+                        elif robot_clicked:
+                            self.select_robot(robot_clicked)
+
+                    # store xy of original mouse down, and drag vector
+                    if self.user_click_down is not None:
+                        self._gs.viz_inputs['user_click_position'] = \
+                            self.user_click_down
+                        self._gs.viz_inputs['user_drag_vector'] = \
+                            self.user_click_up - self.user_click_down
+                        self.user_click_down = None
 
         self._viewer.fill(FIELD_COLOR)
         self.render()
         pygame.display.flip()
-        # yield to other threads
 
     def select_ball(self):
-        self._gs.user_selected_ball = True
-        self._gs.user_selected_robot = None
+        self._gs.viz_inputs['user_selected_ball'] = True
+        self._gs.viz_inputs['user_selected_robot'] = None
 
     def select_robot(self, robot):
-        self._gs.user_selected_robot = robot
-        self._gs.user_selected_ball = False
+        self._gs.viz_inputs['user_selected_robot'] = robot
+        self._gs.viz_inputs['user_selected_ball'] = False
 
     def render(self):
         assert(self._viewer is not None)
@@ -262,7 +312,7 @@ class Visualizer(Provider):
                 )
                 prev_waypoint = waypoint
             # highlight selected robot
-            if (team, robot_id) == self._gs.user_selected_robot:
+            if (team, robot_id) == self._gs.viz_inputs['user_selected_robot']:
                 self.draw_circle(
                     SELECTION_COLOR,
                     pos,
@@ -282,7 +332,7 @@ class Visualizer(Provider):
             # draw actual ball
             self.draw_circle(BALL_COLOR, ball_pos, self._gs.BALL_RADIUS)
             # highlight ball if selected
-            if self._gs.user_selected_ball:
+            if self._gs.viz_inputs['user_selected_ball']:
                 self.draw_circle(
                     SELECTION_COLOR,
                     ball_pos,

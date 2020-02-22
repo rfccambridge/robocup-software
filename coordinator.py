@@ -104,8 +104,8 @@ class Provider(object):
                 self.run()
                 self._update_times()
                 self._send_result_back_to_coordinator()
-        except:
-            self.logger.exception("Fatal exception in provider %s", self.__class__.__name__)
+        except Exception as e:
+            self.logger.exception(e, exc_info=True)
         self.post_run()
         self.destroy()
 

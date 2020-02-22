@@ -25,6 +25,11 @@ class SSLVisionDataProvider(Provider):
             2: sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame(),
             3: sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame(),
         }
+        self._owned_fields = [
+            '_ball_position',
+            '_blue_robot_positions',
+            '_yellow_robot_positions'
+        ]
 
     def pre_run(self):
         """Starts listening to SSL-vision and updating the gamestate with new data"""
@@ -36,10 +41,6 @@ class SSLVisionDataProvider(Provider):
         # set to daemon mode so it will be easily killed
         self._ssl_vision_thread.daemon = True
         self._ssl_vision_thread.start()
-
-        # set to daemon mode so it will be easily killed
-        self._gamestate_update_thread.daemon = True
-        self._gamestate_update_thread.start()
 
     def post_run(self):
         if self._ssl_vision_client:
@@ -62,11 +63,11 @@ class SSLVisionDataProvider(Provider):
             robot_positions = self.get_robot_positions(team)
             # print(robot_positions)
             for robot_id, pos in robot_positions.items():
-                self._gamestate.update_robot_position(team, robot_id, pos)
+                self.gs.update_robot_position(team, robot_id, pos)
         # update position of the ball
         ball_data = self._get_ball_position()
         if ball_data is not None:
-            self._gamestate.update_ball_position(ball_data)
+            self.gs.update_ball_position(ball_data)
 
     def get_robot_positions(self, team='blue'):
         robot_positions = {}

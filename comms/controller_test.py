@@ -10,7 +10,7 @@ Axis 2 and 3 are right and down respectively on RIGHT joystick
 ranges from -1 to 1
 0 is always the neutral position
 """
-# import pygame #REMOVED FOR TESTING!!!!!
+import pygame
 import time
 try:
     from radio import Radio
@@ -35,7 +35,7 @@ js = pygame.joystick.Joystick(0)
 print(js.get_name())
 
 # set up commands robot for a single robot
-ROBOT_ID = 0
+ROBOT_ID = 4
 robot_commands = RobotCommands()
 
 while True:

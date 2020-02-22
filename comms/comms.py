@@ -35,7 +35,7 @@ class Comms(Provider):
         message = RobotCommands.get_serialized_team_command(team_commands)
         self._radio.send(message)
         for robot_id, commands in team_commands.items():
-            # print(commands)
+            self.logger.info(commands)
             # simulate charge of capacitors according to commands
             if commands.is_charging:
                 commands.simulate_charge(self.delta_time)

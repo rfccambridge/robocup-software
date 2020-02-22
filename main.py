@@ -52,7 +52,7 @@ parser.add_argument('-hs', '--home_strategy',
                     default='UI',
                     help="The strategy the home team should use to play.")
 parser.add_argument('-as', '--away_strategy',
-                    default='defender_test',
+                    default='UI',
                     help="The strategy the away team should use to play.")
 parser.add_argument('-d', '--debug',
                     action="store_true",
@@ -93,6 +93,8 @@ if __name__ == '__main__':
     if IS_SIMULATION:
         NO_RADIO = True
         providers += [Simulator(SIMULATOR_SETUP)]
+    else:
+        providers += [SSLVisionDataProvider()]
 
     if not NO_REFBOX:
         providers += [RefboxDataProvider()]

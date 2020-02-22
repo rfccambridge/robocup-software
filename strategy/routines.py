@@ -21,7 +21,7 @@ class Routines:
         intercept_xy = intercept_range[0]
         # this will do gradual turn, does it make sense?
         intercept_angle = self.robot_face_ball(robot_id)
-        intercept_pos = self._gs.dribbler_to_robot_pos(
+        intercept_pos = self.gs.dribbler_to_robot_pos(
             intercept_xy,
             intercept_angle
         )
@@ -30,5 +30,5 @@ class Routines:
         # start charging up
         self.charge_up_to(robot_id, charge_during)
         # use more specific condition to check if we're done
-        return self._gs.ball_in_dribbler(self._team, robot_id)
+        return self.gs.ball_in_dribbler(self._team, robot_id)
 

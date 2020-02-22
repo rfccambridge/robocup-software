@@ -20,19 +20,6 @@ class Simulator(Provider):
         self._last_step_time = time.time()
         self._owned_fields = ['_ball_position', '_blue_robot_positions', '_yellow_robot_positions']
 
-<<<<<<< HEAD
-    def create_logger(self):
-        self.logger = logging.getLogger('simulator')
-        self.logger.addHandler(logging.FileHandler('simulator.log', mode='a'))
-        self.logger.warning("Initializing Simulator")
-        self.logger.debug("Initialized Simulator")
-        self.logger.setLevel(1)
-        socket_handler = SocketHandler('127.0.0.1', 19996)
-        self.logger.addHandler(socket_handler)
-        self.logger.info("Created logger for simulator")
-
-=======
->>>>>>> b088100dfbc755f3b246e23278219bb9114b75cd
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
         """initialize a robot with given id + team at (x, y, w) position"""
         if position[2] is None:

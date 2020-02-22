@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
     # initialize gamestate + all other modules
     simulator = Simulator(SIMULATION_SETUP) 
-    home_strategy = Strategy(HOME_TEAM)
+    home_strategy = Strategy(HOME_TEAM, HOME_STRATEGY)
     visualization_provider = Visualizer()
     c = Coordinator(home_strategy, 
                     simulator, 

@@ -127,6 +127,8 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                     self.path_find(robot_id, goal_pos)
 
     def click_teleport(self):
+        return # TODO move this somewhere else! strategy doesn't
+
         if self.gs.user_selected_robot is not None \
            and self.gs.user_click_position is not None:
             team, robot_id = self.gs.user_selected_robot

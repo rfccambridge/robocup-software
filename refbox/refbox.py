@@ -13,10 +13,10 @@ class RefboxClient:
     """
     A client class to get information from the refbox.
     """
-    def __init__(self, ip = '224.5.23.1', port=10003):
+    def __init__(self, ip='224.5.23.1', port=10003):
         """
         Creates a RefboxClient object
-        
+
         Args:
             ip (str, optional): The ip to listen to refbox messages on. Defaults to '224.5.23.1'.
             port (int, optional): The port to listen for refbox messages on. Defaults to 10003.
@@ -28,7 +28,7 @@ class RefboxClient:
     def connect(self):
         """
         Connects to the socket but doesn't start receiving packets yet
-        
+
         Raises:
             ValueError: If IP is not string
             ValueError: If port is not int type
@@ -38,7 +38,7 @@ class RefboxClient:
             raise ValueError('IP type should be string type')
         if not isinstance(self.port, int):
             raise ValueError('Port type should be int type')
-        
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, pack("=4sl", socket.inet_aton(self.ip), socket.INADDR_ANY))
         self.sock.bind((self.ip, self.port))
@@ -68,12 +68,13 @@ class RefboxDataProvider(Provider):
     def __init__(self, ip='224.5.23.1', port=10003):
         """
         Creates a RefboxDataProvider object
-        
+
         Args:
             gamestate (GameState): The gamestate object which we should update the state of
             ip (str, optional): The IP address to listen for messages on. Defaults to '224.5.23.1'.
             port (int, optional): The port to listen for messages. Defaults to 10003.
         """
+        super().__init__()
         self._client = None
         self._receive_data_thread = None
         self._ip = ip
@@ -87,8 +88,12 @@ class RefboxDataProvider(Provider):
         Start updating the gamestate with the latest info.
         """
         # Connect to client
-        self._client = RefboxClient(self._ip, self._port)
-        self._client.connect()
+        try:
+            self._client = RefboxClient(self._ip, self._port)
+            self._client.connect()
+        except Exception:
+            self.logger.exception("failed to connect to refbox")
+            raise
         # Receive data thread - TODO: is threading really needed?
         self._receive_data_thread = threading.Thread(
             target=self.receive_data_loop

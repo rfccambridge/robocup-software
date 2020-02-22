@@ -1,5 +1,7 @@
 import threading
 import time
+from coordinator import Provider
+
 try:
     from radio import Radio
     from robot_commands import RobotCommands
@@ -8,10 +10,11 @@ except (SystemError, ImportError):
     from .robot_commands import RobotCommands
 
 
-class Comms(object):
+class Comms(Provider):
     """Comms class spins a thread to repeated send the commands stored in
        gamestate to the robots via radio"""
     def __init__(self, team, is_second_comms=False):
+        super().__init__()
         assert(team in ['blue', 'yellow'])
         self._team = team
 

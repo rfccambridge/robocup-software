@@ -8,11 +8,10 @@ from collections import Counter
 from typing import Tuple
 from coordinator import Provider
 
-logger = logging.getLogger(__name__)
-
 
 class SSLVisionDataProvider(Provider):
     def __init__(self, HOST='224.5.23.2', PORT=10006):
+        super().__init__()
         self.HOST = HOST
         self.PORT = PORT
 

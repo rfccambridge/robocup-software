@@ -3,7 +3,6 @@ import numpy as np
 import time
 import logging
 from coordinator import Provider
-logger = logging.getLogger(__name__)
 
 # import lower-level strategy logic that we've separated for readability
 try:

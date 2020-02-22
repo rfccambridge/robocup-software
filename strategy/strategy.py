@@ -35,7 +35,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         self._is_controlling = False
         self._last_control_loop_time = None
         self._mode = None
-        self._simulator = simulator
+        self._simulator = None
         
         # state for reducing frequency of expensive calls
         # (this also helps reduce oscillation)
@@ -81,7 +81,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def pre_run(self):
         self._gs = self.data_in_q.get()
 
-    def run(self, gamestate):
+    def run(self):
         # wait until game begins (while other threads are initializing)
         # self._gs.wait_until_game_begins()
         try:

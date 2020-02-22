@@ -41,25 +41,19 @@ class GameState(Field, Analysis):
         self._game_loop_sleep = None
         self._last_step_time = None
 
-        # RAW POSITION DATA (updated by vision data or simulator)
-        # [most recent data is stored at the front of the queue]
+        # Raw Position Data - updated by vision provider (either vision or simulator)
         # queue of (time, pos) where positions are in the form np.array([x, y])
+        # most recent data is at the front of queue
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
         # robot positions are np.array([x, y, w]) where w = rotation
         self._blue_robot_positions = dict()  # Robot ID: queue of (time, pos)
         self._yellow_robot_positions = dict()  # Robot ID: queue of (time, pos)
 
-        # Commands data (desired robot actions)
+        # Commands Data (desired robot actions) - updated by strategy
         self._blue_robot_commands = dict()  # Robot ID: commands object
         self._yellow_robot_commands = dict()  # Robot ID: commands object
 
-        # Game status/events
-        self.game_clock = None
-        self.is_blue_defense_side_left = True
-        self.refbox_msg = None
-        # TODO: enum all ref box restart commands
-
-        # UI Inputs - set from visualizer
+        # UI Inputs - updated by visualizer
         self.viz_inputs = {
             "user_click_position": None,
             "user_drag_vector": None,
@@ -71,8 +65,13 @@ class GameState(Field, Analysis):
         }
         
         # Refbox - the latest message delivered from the refbox
+        # Contains all? relevant game status information such as time, events, goalie id, direction of play
+        # See protocol: https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto
         self.latest_refbox_message = None
-
+        # TODO - functions to get data from refbox message?
+        # Game status/events
+        self.game_clock = None
+        self.is_blue_defense_side_left = True
 
     def other_team(self, team):
         if team == 'blue':

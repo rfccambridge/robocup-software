@@ -24,19 +24,20 @@ class Provider(object):
         """
         self.data_in_q = Queue(MAX_Q_SIZE)
         self.commands_out_q = Queue(MAX_Q_SIZE)
-        self._hidden_provider_gamestate = None
+        self.gs = GameState()
 
-    def run(self, gamestate):
+        # This specifies the fields in the gamestate dict for which this
+        # provider is the source of truth. These fields will be stored
+        # locally, and not received from the coordinator or updated
+        # in new gamestate packets.
+        self._owned_fields = []
+
+    def run(self):
         """
         Handle provider specific logic. This function is continuously repeatedly called AT MINIMUM
         once every second but likely much much more frequently. 
-        It should return it's output which will be sent back to the coordinator.
+        It should modify self.gs which will be sent back to the coordinator.
         Needs to be implemented in child classes.
-        
-        Args:
-            gamestate (gamestate.GameState): The latest gamestate object delivered to this provider.
-        Raises:
-            NotImplementedError: You forgot to implement this in child classes
         """
         raise NotImplementedError("Need to implement run() in child classes.")
 
@@ -45,20 +46,37 @@ class Provider(object):
         Get the latest gamestate from the coordinator. Do not call this method from
         outside the provider.
         """
+        # Save a copy of all of the fields this provider owns
+        owned_field_values = dict()
+        for field in self._owned_fields:
+            owned_field_values[field] = getattr(self.gs, field)
+
+        # Get a new gamestate copy from the coordinator
         try:
-            self._hidden_provider_gamestate = self.data_in_q.get(timeout=1)
+            self.gs = self.data_in_q.get(timeout=1)
         except Empty:
             pass
 
-    def _send_result_back_to_coordinator(self, result):
+        # Restore the fields that this provider owns
+        for key, value in owned_field_values.items():
+            setattr(self.gs, key, value)
+
+    # function to be called from coordinator to integrate update master gamestate
+    def integrate_owned_fields(self, master_gamestate, provider_gamestate):
+        # Update only the fields this provider owns
+        for field in self._owned_fields:
+            value = getattr(provider_gamestate, field)
+            setattr(master_gamestate, field, value)
+
+    def _send_result_back_to_coordinator(self):
         """
-        Return the result from the provider back to the coordinator.
+        Send the gamestate from the provider back to the coordinator.
         Do not call this method from outside the provider.
         """
-        if not result:
+        if self._owned_fields == []:
             return
         try:
-            self.commands_out_q.put_nowait(result)
+            self.commands_out_q.put_nowait(self.gs)
         except Full:
             pass
 
@@ -67,12 +85,12 @@ class Provider(object):
         Starts the provider. Should always be run on a background process.
         Usually this is called from Coordinator.start_game()
         """
-        result = self.pre_run()
-        self._send_result_back_to_coordinator(result)
+        self.pre_run()
+        self._send_result_back_to_coordinator()
         while not stop_event.is_set():
             self._update_gamestate()
-            result = self.run(self._hidden_provider_gamestate)
-            self._send_result_back_to_coordinator(result)
+            self.run()
+            self._send_result_back_to_coordinator()
         self.post_run()
         self.destroy()
 
@@ -80,7 +98,7 @@ class Provider(object):
         """
         This function is called exactly once whenever a provider is started, and before self.run() is called. 
         Override this function to do initialization that it wouldn't be possible to to in self.run() (which gets
-        called repeatedly). Any output returned will be sent back to the coordinator
+        called repeatedly).
         """
         pass
     
@@ -219,33 +237,20 @@ class Coordinator(object):
         # Need to push in a gamestate object initially
         self.vision_provider.data_in_q.put_nowait(self.gamestate)
         while not self.stop_event.is_set():
-            self.update_vision_data()
-            self.refbox_data = self.get_updated_refbox_data()
             self.publish_new_gamestate()
-            self.update_robot_commands()
-            self.update_visualizer_data()
+            # TODO: list of providers?
+            self.integrate_provider_data(self.visualization_provider)
+            self.integrate_provider_data(self.vision_provider)
+            # self.integrate_data(self.refbox_provider)
+            # self.integrate_data(self.yellow_strategy)
 
-    def update_visualizer_data(self):
+    def integrate_provider_data(self, provider):
         """
-        Gets updated visualizer data from the visualizer
+        Gets integrates updated gamestate data from a provider's returned gamestate
         """
-        viz_data = self.get_from_provider_ignore_exceptions(self.visualization_provider)
-        if viz_data:
-            self.gamestate.viz_inputs = viz_data
-
-    def update_vision_data(self):
-        """
-        Gets updated vision data from either SSLVision or the simulator
-        """
-        new_gamestate = self.get_from_provider_ignore_exceptions(self.vision_provider)
-        if new_gamestate:
-            self.gamestate = new_gamestate
-
-    def get_updated_refbox_data(self):
-        """
-        Gets updated refbox data
-        """
-        return self.get_from_provider_ignore_exceptions(self.refbox_provider)
+        provider_gs = self.get_from_provider_ignore_exceptions(provider)
+        if provider_gs is not None:
+            provider.integrate_owned_fields(self.gamestate, provider_gs)
 
     def publish_new_gamestate(self):
         """
@@ -257,18 +262,6 @@ class Coordinator(object):
         self.push_to_provider_ignore_exceptions(self.visualization_provider, self.gamestate)
         self.push_to_provider_ignore_exceptions(self.blue_radio_provider, self.gamestate)
         self.push_to_provider_ignore_exceptions(self.yellow_radio_provider, self.gamestate)
-
-    def update_robot_commands(self):
-        """
-        Retrieves new robot commands dict from the strategy providers, and updates global gamestate
-        """
-        new_blue_robot_commands = self.get_from_provider_ignore_exceptions(self.blue_strategy)
-        if new_blue_robot_commands:
-            self.gamestate._blue_robot_commands = new_blue_robot_commands
-
-        new_yellow_robot_commands = self.get_from_provider_ignore_exceptions(self.yellow_strategy)
-        if new_yellow_robot_commands:
-            self.gamestate._yellow_robot_commands = new_yellow_robot_commands
 
     def push_to_provider_ignore_exceptions(self, provider, item):
         """

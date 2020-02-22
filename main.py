@@ -38,6 +38,9 @@ parser.add_argument('-nra', '--no_radio',
 parser.add_argument('-nre', '--no_refbox',
                     action="store_true",
                     help='ignores commands from the refbox.')
+parser.add_argument('-cbt', '--control_both_teams',
+                    action="store_true",
+                    help='indicates that we are playing against ourselves and so we should play as both teams.')
 parser.add_argument('-d', '--debug',
                     action="store_true",
                     help='Uses more verbose logging for debugging.')
@@ -47,7 +50,7 @@ command_line_args = parser.parse_args()
 IS_SIMULATION = command_line_args.simulate
 NO_RADIO = command_line_args.no_radio  # turns off command sending if real
 NO_REFBOX = command_line_args.no_refbox # turns off refbox data provider
-CONTROL_BOTH_TEAMS = False
+CONTROL_BOTH_TEAMS = command_line_args.control_both_teams
 # we will control home team in a real match
 HOME_TEAM = 'blue'
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
@@ -56,15 +59,6 @@ SIMULATION_SETUP = 'full_teams'
 # which strategies each team is running (see strategy module)
 HOME_STRATEGY = 'defender_test'
 AWAY_STRATEGY = None
-
-# loop wait times for each thread - how much to sleep between loops
-VISION_LOOP_SLEEP = .02
-COMMS_SEND_LOOP_SLEEP = .1
-COMMS_RECEIVE_LOOP_SLEEP = .1
-CONTROL_LOOP_SLEEP = .1
-SIMULATION_LOOP_SLEEP = .05
-VISUALIZATION_LOOP_SLEEP = .05
-GAME_LOOP_SLEEP = .1
 
 if __name__ == '__main__':
     VERBOSE = False
@@ -75,20 +69,41 @@ if __name__ == '__main__':
     # Welcome message
     print('RFC Cambridge Robocup Software')
     print('------------------------------')
-    print('Running in simulator mode: {}'.format(IS_SIMULATION))
-    if not IS_SIMULATION:
-        print(f'Running in no radio mode: {NO_RADIO}')
+    print(f'Running in simulator mode: {IS_SIMULATION}')
+    print(f'Running in no radio mode: {NO_RADIO}')
     print(f'Running in no refbox mode: {NO_REFBOX}')
 
-    # initialize gamestate + all other modules
-    simulator = Simulator(SIMULATION_SETUP) 
-    home_strategy = Strategy(HOME_TEAM)
-    visualization_provider = Visualizer()
-    c = Coordinator([home_strategy, 
-                    simulator, 
-                    visualization_provider])
+    # Initialize providers and pass to coordinator
+    providers = []
+    
+    if IS_SIMULATION:
+        NO_RADIO = True
+        providers += [Simulator(SIMULATION_SETUP)] 
+
+    if not NO_REFBOX:
+        providers += [RefboxDataProvider()]
+
+    if not NO_RADIO:
+        providers += [Comms(HOME_TEAM)]
+        providers += [Comms(AWAY_TEAM, True)]
+
+    providers += [Strategy(HOME_TEAM)]
+
+    if CONTROL_BOTH_TEAMS:
+        providers += [Strategy(AWAY_TEAM)]
+    
+    providers += [Visualizer()]
+
+    # Pass the providers to the coordinator
+    c = Coordinator(providers)
+
+    # Setup the exit handler
     def stop_it(signum, frame):
         c.stop_game()
     signal.signal(signal.SIGINT, stop_it)
+    
+    # Start the game
     c.start_game()
+
+    # Exit once game is over
     sys.exit()

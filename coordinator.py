@@ -1,12 +1,13 @@
 from multiprocessing import Queue
 from multiprocessing import Process, Event
 import multiprocessing
-from gamestate import GameState
 import logging
 from logging.handlers import SocketHandler
 import signal
 import time
 from queue import Empty, Full
+from gamestate import GameState
+
 
 # Do not make this large or bad things will happen
 MAX_Q_SIZE = 1

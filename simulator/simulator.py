@@ -38,8 +38,6 @@ class Simulator(Provider):
         prev_pos = position - velocity * dt
         self.gs.update_ball_position(prev_pos, time.time() - dt)
         self.gs.update_ball_position(position, time.time())
-        # print(f"{self.gs._ball_position}")
-        # print(f"v: {self.gs.get_ball_velocity()}")
 
     def pre_run(self):
         if self.logger is None:
@@ -76,7 +74,8 @@ class Simulator(Provider):
             self.put_fake_robot('yellow', 3, np.array([3500, 500, 0]) * SCALE)
             self.put_fake_robot('yellow', 4, np.array([3500, -500, 0]) * SCALE)
         else:
-            print('(initial_setup not recognized, empty field)')
+            logger.error("(initial_setup not recognized, empty field). "
+                         "initial_setup: %s", self._initial_setup)
 
     def run(self):
         delta_time = 0
@@ -97,12 +96,10 @@ class Simulator(Provider):
         ball_pos = self.gs.get_ball_position()
         if ball_pos is not None:
             new_ball_pos = self.gs.predict_ball_pos(delta_time)
-            # print("dt: {}, new_pos: {}".format(delta_time, new_ball_pos))
-            # print(time.time())
-            # print("v: {}".format(gs.get_ball_velocity()))
-            # print(gs.predict_ball_pos(0))
-
-            # print(gs.get_ball_velocity())
+            self.logger.debug("dt: {}, new_pos: {}".format(delta_time, new_ball_pos))
+            self.logger.debug("v: {}".format(gs.get_ball_velocity()))
+            self.logger.debug("Predicted Ball Location: %s", gs.predict_ball_pos(0))
+            self.logger.debug("Ball velocity: %s", gs.get_ball_velocity())
             self.gs.update_ball_position(new_ball_pos)
 
         for (team, robot_id), pos in \
@@ -126,7 +123,7 @@ class Simulator(Provider):
             ball_pos = self.gs.get_ball_position()
             ball_overlap = self.gs.robot_ball_overlap(pos)
             if ball_overlap.any():
-                # print(ball_overlap)
+                self.logger.info("Ball overlap with robot: %s", ball_overlap)
                 # find where ball collided with robot
                 collision_pos = ball_pos + ball_overlap
                 ball_v = self.gs.get_ball_velocity()

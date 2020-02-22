@@ -78,10 +78,6 @@ class GameState(Field, Analysis):
             return 'yellow'
         else:
             return 'blue'
-    
-    # GAME STATUS/EVENT FUNCTIONS
-    def wait_until_game_begins(self):
-        pass
 
     # RAW DATA GET/SET FUNCTIONS
     # returns position ball was last seen at, or (0, 0) if unseen

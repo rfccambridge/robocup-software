@@ -3,7 +3,6 @@ import numpy as np
 from collections import deque
 from typing import Tuple
 import logging
-from logging.handlers import SocketHandler
 from coordinator import Provider
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ class Simulator(Provider):
     def put_fake_ball(self, position, velocity=None):
         "initialize ball position data to reflect desired position + velocity"
         if velocity is None:
-            velocity = np.array([0, 0])  
+            velocity = np.array([0, 0])
         self.gs.clear_ball_position()
         # use small dt to minimize deceleration correction
         dt = .05

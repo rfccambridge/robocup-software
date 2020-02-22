@@ -86,6 +86,7 @@ class Provider(object):
         Starts the provider. Should always be run on a background process.
         Usually this is called from Coordinator.start_game()
         """
+        self.logger = self.create_logger() 
         self.pre_run()
         self._send_result_back_to_coordinator()
         while not stop_event.is_set():

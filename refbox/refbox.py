@@ -4,6 +4,7 @@ import binascii
 from ipaddress import ip_address
 import threading
 import time
+from coordinator import Provider
 
 # from referee_pb2 import SSL_Referee_Game_Event
 from .referee_pb2 import SSL_Referee
@@ -45,7 +46,7 @@ class RefboxClient:
     def receive(self):
         """
         Receive a single packet from the refbox
-        
+
         Returns:
             SSL_Referee: The protobuf message from the refbox
         """
@@ -60,11 +61,11 @@ class RefboxClient:
         if self.sock:
             self.sock.close()
 
-class RefboxDataProvider:
+class RefboxDataProvider(Provider):
     """
     A wrapper around a RefboxClient to help update a gamestate object
     """
-    def __init__(self, gamestate, ip = '224.5.23.1', port=10003):
+    def __init__(self, ip='224.5.23.1', port=10003):
         """
         Creates a RefboxDataProvider object
         
@@ -73,83 +74,49 @@ class RefboxDataProvider:
             ip (str, optional): The IP address to listen for messages on. Defaults to '224.5.23.1'.
             port (int, optional): The port to listen for messages. Defaults to 10003.
         """
-        self._is_running = False
         self._client = None
         self._receive_data_thread = None
-        self._update_gamestate_thread = None
-        self._gamestate = gamestate
         self._ip = ip
         self._port = port
         self._latest_packet = None
-        self._last_update_time = None
-        self._vision_loop_sleep = None
 
-    def start_updating(self, loop_sleep):
+        self._owned_fields = ['latest_refbox_message']
+
+    def pre_run(self):
         """
         Start updating the gamestate with the latest info.
-        
-        Args:
-            loop_sleep ([type]): The time to wait between each update.
         """
-        if self._is_running:
-            raise Exception('RefboxDataProvider is always running')
-        self._is_running = True
         # Connect to client
         self._client = RefboxClient(self._ip, self._port)
         self._client.connect()
-        # Receive data thread
+        # Receive data thread - TODO: is threading really needed?
         self._receive_data_thread = threading.Thread(
             target=self.receive_data_loop
         )
         self._receive_data_thread.daemon = True
         self._receive_data_thread.start()
-        # Update gamestate thread
-        self._update_gamestate_thread = threading.Thread(
-            target=self.gamestate_update_loop
-        )
-        self._update_gamestate_thread.daemon = True
-        self._update_gamestate_thread.start()
 
-        self._vision_loop_sleep = loop_sleep
-
-    def stop_updating(self):
+    def post_run(self):
         """
         Stop updating the gamestate and close the client
         """
         if self._client:
             self._client.disconnect()
+        self._client = None
 
-        if self._is_running:
-            self._is_running = False
-            self._update_gamestate_thread.join()
-            self._update_gamestate_thread = None
-            self._receive_data_thread.join()
-            self._receive_data_thread = None
-
+        self._receive_data_thread.join()
+        self._receive_data_thread = None
         self._latest_packet = None
-        
 
     def receive_data_loop(self):
         """
         A loop to receive the latest packets.
         """
-        while self._is_running:
+        while self._client is not None:
             self._latest_packet = self._client.receive()
 
     def gamestate_update_loop(self):
         """
         A loop to update the gamestate with the latest packets
         """
-        self._gamestate.wait_until_game_begins()
-        while self._is_running:
-            self._gamestate.latest_refbox_message = self._latest_packet
-
-            if self._last_update_time is not None:
-                delta = time.time() - self._last_update_time
-                # print(delta)
-                if delta > self._vision_loop_sleep * 3:
-                    print("SSL-vision data loop large delay: " + str(delta))
-            self._last_update_time = time.time()
-
-            # yield to other threads
-            time.sleep(self._vision_loop_sleep)
+        self.gs.latest_refbox_message = self._latest_packet

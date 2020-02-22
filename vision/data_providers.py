@@ -2,17 +2,17 @@
 '''A class to provide robot position data from the cameras'''
 import sslclient
 import threading
-import time
 import logging
 import numpy as np
 from collections import Counter
 from typing import Tuple
+from coordinator import Provider
 
 logger = logging.getLogger(__name__)
 
 
-class SSLVisionDataProvider(object):
-    def __init__(self, gamestate, HOST='224.5.23.2', PORT=10006):
+class SSLVisionDataProvider(Provider):
+    def __init__(self, HOST='224.5.23.2', PORT=10006):
         self.HOST = HOST
         self.PORT = PORT
 
@@ -27,15 +27,8 @@ class SSLVisionDataProvider(object):
             3: sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame(),
         }
 
-        self._gamestate = gamestate
-        self._gamestate_update_thread = None
-        self._is_running = False
-        self._vision_loop_sleep = None
-        self._last_update_time = None
-
-    def start_updating(self, loop_sleep):
+    def pre_run(self):
         """Starts listening to SSL-vision and updating the gamestate with new data"""
-        self._is_running = True
         self._ssl_vision_client = sslclient.client()
         self._ssl_vision_client.connect()
         self._ssl_vision_thread = threading.Thread(
@@ -45,56 +38,36 @@ class SSLVisionDataProvider(object):
         self._ssl_vision_thread.daemon = True
         self._ssl_vision_thread.start()
 
-        self._vision_loop_sleep = loop_sleep
-        self._gamestate_update_thread = threading.Thread(
-            target=self.gamestate_update_loop
-        )
         # set to daemon mode so it will be easily killed
         self._gamestate_update_thread.daemon = True
         self._gamestate_update_thread.start()
 
-    def stop_updating(self):
-        if self._is_running:
-            self._is_running = False
-            self._gamestate_update_thread.join()
-            self._gamestate_update_thread = None
-            self._is_receiving = False
+    def post_run(self):
+        if self._ssl_vision_client:
             self._ssl_vision_thread.join()
             self._ssl_vision_thread = None
+            self._ssl_vision_client = None
 
     # loop for reading messages from ssl vision, otherwise they pile up
     def receive_data_loop(self):
-        while self._is_running:
+        while self._ssl_vision_client:
             data = self._ssl_vision_client.receive()
             # print(data)
             # get a detection packet from any camera, and store it
             if data.HasField('detection'):
                 self._raw_camera_data[data.detection.camera_id] = data.detection
 
-    def gamestate_update_loop(self):
-        # wait until game begins (while other threads are initializing)
-        self._gamestate.wait_until_game_begins()
-        while self._is_running:
-            # update positions of all robots seen by data feed
-            for team in ['blue', 'yellow']:
-                robot_positions = self.get_robot_positions(team)
-                # print(robot_positions)
-                for robot_id, pos in robot_positions.items():
-                    self._gamestate.update_robot_position(team, robot_id, pos)
-            # update position of the ball
-            ball_data = self._get_ball_position()
-            if ball_data is not None:
-                self._gamestate.update_ball_position(ball_data)
-
-            if self._last_update_time is not None:
-                delta = time.time() - self._last_update_time
-                # print(delta)
-                if delta > self._vision_loop_sleep * 3:
-                    print("SSL-vision data loop large delay: " + str(delta))
-            self._last_update_time = time.time()
-
-            # yield to other threads
-            time.sleep(self._vision_loop_sleep)
+    def run(self):
+        # update positions of all robots seen by data feed
+        for team in ['blue', 'yellow']:
+            robot_positions = self.get_robot_positions(team)
+            # print(robot_positions)
+            for robot_id, pos in robot_positions.items():
+                self._gamestate.update_robot_position(team, robot_id, pos)
+        # update position of the ball
+        ball_data = self._get_ball_position()
+        if ball_data is not None:
+            self._gamestate.update_ball_position(ball_data)
 
     def get_robot_positions(self, team='blue'):
         robot_positions = {}

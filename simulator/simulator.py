@@ -26,7 +26,7 @@ class Simulator(Provider):
         self.logger.warning("Initializing Simulator")
         self.logger.debug("Initialized Simulator")
         self.logger.setLevel(1)
-        socket_handler = SocketHandler('0.0.0.0', 19996)
+        socket_handler = SocketHandler('127.0.0.1', 19996)
         self.logger.addHandler(socket_handler)
         self.logger.info("Created logger for simulator")
 

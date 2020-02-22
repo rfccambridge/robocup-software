@@ -33,6 +33,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         self._team = team
         self._mode = mode
         self._simulator = None
+        self._owned_fields = ['_blue_robot_commands', '_yellow_robot_commands']
 
         # state for reducing frequency of expensive calls
         # (this also helps reduce oscillation)

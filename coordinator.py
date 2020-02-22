@@ -127,6 +127,17 @@ class Provider(object):
         except:
             pass
         q.join_thread()
+
+    def create_logger(self, logger_name=None):
+        if logger_name is None:
+            logger_name = self.__class__.__name__
+        self.logger = logging.getLogger(logger_name)
+        self.logger.addHandler(logging.FileHandler('%s.log' % logger_name, mode='a'))
+        self.logger.setLevel(1)
+        socket_handler = SocketHandler('127.0.0.1', 19996)
+        self.logger.addHandler(socket_handler)
+        self.logger.info("Created logger: %s" % logger_name)
+
     
 class DisableSignals(object):
     """

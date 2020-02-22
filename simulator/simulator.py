@@ -18,7 +18,11 @@ class Simulator(Provider):
         self.logger = None
         self._initial_setup = initial_setup
         self._last_step_time = time.time()
-        self._owned_fields = ['_ball_position', '_blue_robot_positions', '_yellow_robot_positions']
+        self._owned_fields = [
+            '_ball_position',
+            '_blue_robot_positions',
+            '_yellow_robot_positions'
+        ]
 
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
         """initialize a robot with given id + team at (x, y, w) position"""
@@ -38,8 +42,6 @@ class Simulator(Provider):
         prev_pos = position - velocity * dt
         self.gs.update_ball_position(prev_pos, time.time() - dt)
         self.gs.update_ball_position(position, time.time())
-        # print(f"{self.gs._ball_position}")
-        # print(f"v: {self.gs.get_ball_velocity()}")
 
     def pre_run(self):
         if self.logger is None:
@@ -76,7 +78,8 @@ class Simulator(Provider):
             self.put_fake_robot('yellow', 3, np.array([3500, 500, 0]) * SCALE)
             self.put_fake_robot('yellow', 4, np.array([3500, -500, 0]) * SCALE)
         else:
-            print('(initial_setup not recognized, empty field)')
+            logger.error("(initial_setup not recognized, empty field). "
+                         "initial_setup: %s", self._initial_setup)
 
     def run(self):
         delta_time = 0
@@ -97,12 +100,10 @@ class Simulator(Provider):
         ball_pos = self.gs.get_ball_position()
         if ball_pos is not None:
             new_ball_pos = self.gs.predict_ball_pos(delta_time)
-            # print("dt: {}, new_pos: {}".format(delta_time, new_ball_pos))
-            # print(time.time())
-            # print("v: {}".format(gs.get_ball_velocity()))
-            # print(gs.predict_ball_pos(0))
-
-            # print(gs.get_ball_velocity())
+            self.logger.debug("dt: {}, new_pos: {}".format(delta_time, new_ball_pos))
+            self.logger.debug("v: {}".format(self.gs.get_ball_velocity()))
+            self.logger.debug("Predicted Ball Location: %s", self.gs.predict_ball_pos(0))
+            self.logger.debug("Ball velocity: %s", self.gs.get_ball_velocity())
             self.gs.update_ball_position(new_ball_pos)
 
         for (team, robot_id), pos in \
@@ -126,7 +127,7 @@ class Simulator(Provider):
             ball_pos = self.gs.get_ball_position()
             ball_overlap = self.gs.robot_ball_overlap(pos)
             if ball_overlap.any():
-                # print(ball_overlap)
+                self.logger.info("Ball overlap with robot: %s", ball_overlap)
                 # find where ball collided with robot
                 collision_pos = ball_pos + ball_overlap
                 ball_v = self.gs.get_ball_velocity()
@@ -185,4 +186,3 @@ class Simulator(Provider):
                     self.put_fake_ball(new_pos, new_velocity)
                 robot_commands.charge_level = 0
                 robot_commands.is_kicking = False
-        self.logger.info("gamestate.robot_positions = %s", self.gs.get_all_robot_positions())

@@ -129,20 +129,7 @@ class Visualizer(Provider):
         pos -= np.array([self.gs.FIELD_MAX_X, self.gs.FIELD_MAX_Y])
         return pos
     
-    def create_logger(self):
-        self.logger = logging.getLogger('visualization')
-        self.logger.addHandler(logging.FileHandler('visualization.log', mode='a'))
-        self.logger.warning("Initializing Visualization")
-        self.logger.debug("Initialized visualizer with pygame")
-        self.logger.setLevel(1)
-        socket_handler = SocketHandler('0.0.0.0', 19996)
-        self.logger.addHandler(socket_handler)
-        self.logger.info("Created logger for visualization")
-
     def pre_run(self):
-        if self.logger is None:
-            self.create_logger()
-        self.logger.debug("Calling pre_run in visualization")
         pygame.init()
         self.init_shit() 
 
@@ -154,7 +141,7 @@ class Visualizer(Provider):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
         # wait until game begins (while other threads are initializing)
         time.sleep(0.05)
-        self.logger.info("gamestate.robot_positions = %s", self.gs.get_all_robot_positions())
+        
         # take user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -190,13 +177,13 @@ class Visualizer(Provider):
                         dims = (BUTTON_WIDTH, BUTTON_HEIGHT)
                         if self.is_collision(pos, dims, pygame.mouse.get_pos()):
                             # prints current location of mouse
-                            print('button pressed: ' + label)
+                            self.logger.info('button pressed: ' + label)
                 else:
                     self.user_click_down = None
                 # FOR DEBUGGING:
-                # print(self.gs.is_pos_valid(
-                #     self.user_click_down, 'blue', 1
-                # ))
+                self.logger.debug(self.gs.is_pos_valid(
+                    self.user_click_down, 'blue', 1
+                ))
 
             if event.type == pygame.MOUSEBUTTONUP:
                 if self.user_click_down is not None:

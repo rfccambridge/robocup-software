@@ -152,23 +152,12 @@ class Coordinator(object):
     strategy processes.
     """
     def __init__(self, 
-                 yellow_strategy: Provider,
-                 vision_provider : Provider,
-                 yellow_radio_provider: Provider = None,
-                 refbox_provider: Provider = None,
-                 blue_strategy: Provider = None,
-                 blue_radio_provider: Provider = None,
-                 visualization_provider: Provider = None):
+                 providers):
         """
         Collects the objects to coordinate
         """
-        self.vision_provider = vision_provider
-        self.yellow_radio_provider = yellow_radio_provider
-        self.refbox_provider = refbox_provider
-        self.yellow_strategy = yellow_strategy
-        self.blue_strategy = blue_strategy
-        self.blue_radio_provider = blue_radio_provider
-        self.visualization_provider = visualization_provider
+        # A list of all of the provider that need to be synchronised
+        self.providers = providers
 
         # Stores the processes currently in use by the coordinator
         self.processes = []
@@ -197,20 +186,9 @@ class Coordinator(object):
         Starts all of the providers in their own processes..
         This should be called from main.py once a Coordinator has been instantiated
         """
-        self.logger.info("Starting game, creating processes")
-        self.processes.append(Process(target=self.vision_provider.start_providing, args=[self.stop_event], name='Vision Provider Process'))
-        self.processes.append(Process(target=self.yellow_strategy.start_providing, args=[self.stop_event], name='Yellow Strategy Provider Process'))
-        if self.blue_strategy:
-            self.processes.append(Process(target=self.blue_strategy.start_providing, args=[self.stop_event], name='Blue Strategy Provider Process'))
-        if self.blue_radio_provider:
-            self.processes.append(Process(target=self.blue_radio_provider.start_providing, args=[self.stop_event], name='Blue Radio Provider Process'))
-        if self.refbox_provider:
-            self.processes.append(Process(target=self.refbox_provider.start_providing, args=[self.stop_event], name='Refbox Provider Process'))        
-        if self.yellow_radio_provider:
-            self.processes.append(Process(target=self.yellow_radio_provider.start_providing, args=[self.stop_event], name='Yellow Radio Provider Process'))
-        if self.visualization_provider:
-            self.processes.append(Process(target=self.visualization_provider.start_providing, args=[self.stop_event], name='Visualization Provider Process'))
-        
+        for provider in self.providers:
+            self.processes.append(Process(target=provider.start_providing, args=[self.stop_event], name=str(type(provider))))
+            
         # Disable signals before fork so only parent process responds to SIGINT
         with DisableSignals():
             for proc in self.processes:
@@ -218,8 +196,8 @@ class Coordinator(object):
                 proc.daemon = True
                 proc.start()
 
-        self.logger.info("Starting main game loop")
         # Start main game loop
+        self.logger.info("Starting main game loop")
         self.game_loop()
         
     def stop_game(self):
@@ -234,34 +212,26 @@ class Coordinator(object):
         This is the main loop of the game that runs continuously in the main process.
         This should only be called from self.start_game()
         """
-        # Need to push in a gamestate object initially
-        self.vision_provider.data_in_q.put_nowait(self.gamestate)
         while not self.stop_event.is_set():
             self.publish_new_gamestate()
-            # TODO: list of providers?
-            self.integrate_provider_data(self.visualization_provider)
-            self.integrate_provider_data(self.vision_provider)
-            # self.integrate_data(self.refbox_provider)
-            # self.integrate_data(self.yellow_strategy)
+            for provider in self.providers:
+                self.get_data_from_provider(provider)
 
-    def integrate_provider_data(self, provider):
+    def get_data_from_provider(self, provider):
         """
-        Gets integrates updated gamestate data from a provider's returned gamestate
+        Gets and integrates updated gamestate data from a provider's returned gamestate
         """
         provider_gs = self.get_from_provider_ignore_exceptions(provider)
-        if provider_gs is not None:
-            provider.integrate_owned_fields(self.gamestate, provider_gs)
+        if provider_gs:
+            for field in provider._owned_fields:
+                setattr(self.gamestate, field, getattr(provider_gs, field))
 
     def publish_new_gamestate(self):
         """
         Pushes the current gamestate to the data_in_q of the providers that need it
         """
-        self.push_to_provider_ignore_exceptions(self.blue_strategy, self.gamestate)
-        self.push_to_provider_ignore_exceptions(self.yellow_strategy, self.gamestate)
-        self.push_to_provider_ignore_exceptions(self.vision_provider, self.gamestate)
-        self.push_to_provider_ignore_exceptions(self.visualization_provider, self.gamestate)
-        self.push_to_provider_ignore_exceptions(self.blue_radio_provider, self.gamestate)
-        self.push_to_provider_ignore_exceptions(self.yellow_radio_provider, self.gamestate)
+        for provider in self.providers:
+            self.push_to_provider_ignore_exceptions(provider, self.gamestate)
 
     def push_to_provider_ignore_exceptions(self, provider, item):
         """

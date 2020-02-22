@@ -84,9 +84,9 @@ if __name__ == '__main__':
     simulator = Simulator(SIMULATION_SETUP) 
     home_strategy = Strategy(HOME_TEAM)
     visualization_provider = Visualizer()
-    c = Coordinator(home_strategy, 
+    c = Coordinator([home_strategy, 
                     simulator, 
-                    visualization_provider=visualization_provider)
+                    visualization_provider])
     def stop_it(signum, frame):
         c.stop_game()
     signal.signal(signal.SIGINT, stop_it)

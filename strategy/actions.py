@@ -56,7 +56,7 @@ class Actions:
             self.move_straight(robot_id, self.find_legal_pos(robot_id), True)
             return self.is_done_moving(robot_id)
         if not self.gs.is_position_open(goal_pos, self._team, robot_id):
-            print("cannot path find to blocked goal")
+            self.logger.debug("cannot path find to blocked goal")
             return False
         start_pos = self.gs.get_robot_position(self._team, robot_id)
         # always check if we can just go straight

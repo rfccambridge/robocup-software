@@ -109,7 +109,7 @@ class Analysis(object):
         goal_to_ball = ball_pos - goal_center
         if not goal_to_ball.any():
             # should never happen, but good to prevent crash, and for debugging
-            print('ball is exactly on goal center w0t')
+            self.logger.exception('ball is exactly on goal center w0t')
             return np.array([*goal_center, 0])
         angle_to_ball = np.arctan2(goal_to_ball[1], goal_to_ball[0])
         norm_to_ball = goal_to_ball / np.linalg.norm(goal_to_ball)
@@ -169,8 +169,8 @@ class Analysis(object):
         # Check endpoint first to avoid worrying about step size in the loop
         def legal(pos):
             return self.gs.is_pos_legal(pos, self._team, robot_id) or allow_illegal
-        # print('End pos Legal? {}'.format(legal(g_pos)))
-        # print('End pos Open? {}'.format(self.gs.is_position_open(g_pos, self._team, robot_id)))
+        # self.logger.info('End pos Legal? {}'.format(legal(g_pos)))
+        # self.logger.info('End pos Open? {}'.format(self.gs.is_position_open(g_pos, self._team, robot_id)))
         if not self.gs.is_position_open(g_pos, self._team, robot_id) or not legal(g_pos):
             return True
         path = g_pos - s_pos
@@ -178,14 +178,14 @@ class Analysis(object):
         STEP_SIZE = self.gs.ROBOT_RADIUS
 
         # step along the path and check if any points are blocked
-        #print(s_pos)
-        #print(g_pos)
-        #print(path)
+        # self.logger.info(s_pos)
+        # self.logger.info(g_pos)
+        # self.logger.info(path)
         steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            # print('Legal? {}'.format(legal(intermediate_pos)))
+            # self.logger.info('Legal? {}'.format(legal(intermediate_pos)))
             if not self.gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
                 return True
         return False

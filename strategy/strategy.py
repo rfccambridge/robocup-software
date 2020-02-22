@@ -41,11 +41,11 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
 
     def pre_run(self):
         # print info + initial state for the mode that is running
-        print("\nRunning strategy for {} team, mode: {}".format(
+        self.logger.info("\nRunning strategy for {} team, mode: {}".format(
             self._team, self._mode
         ))
         if self._mode == "UI":
-            print("""
+            self.logger.info("""
             Using UI Controls!
             Robots:
             - Click to select
@@ -57,7 +57,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             - Click to place (drag for speed)
             """)
         if self._mode == "entry_video":
-            print("2020 Registration Video Procedure!")
+            self.logger.info("2020 Registration Video Procedure!")
             self.video_phase = 1
         if self._mode == "goalie_test":
             self._goalie_id = None
@@ -66,7 +66,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         if self._mode == "defender_test":
             self._defender_id = None
         if self._mode == "full_game":
-            print("default strategy for playing a full game")
+            self.logger.info("default strategy for playing a full game")
 
     def run(self):
         try:
@@ -194,20 +194,20 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             # transition once robot 0 has ball (robot 1 can keep moving)
             if got_ball:
                 self.video_phase += 1
-                print("Moving to video phase {}".format(self.video_phase))
+                self.logger.info("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 2:
             self.path_find(robot_id_1, reception_pos)
             # robot 0 makes the pass towards reception pos
             kicked = self.prepare_and_kick(robot_id_0, reception_pos, pass_velocity)
             if kicked:
                 self.video_phase += 1
-                print("Moving to video phase {}".format(self.video_phase))
+                self.logger.info("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 3:
             # robot 1 receives ball
             got_ball = self.get_ball(robot_id_1, charge_during=shoot_velocity)
             if got_ball:
                 self.video_phase += 1
-                print("Moving to video phase {}".format(self.video_phase))
+                self.logger.info("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 4:
             # robot 1 moves to best kick pos to shoot
             goal = self.gs.get_attack_goal(self._team)
@@ -215,16 +215,16 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             shot = self.prepare_and_kick(robot_id_1, center_of_goal, shoot_velocity)
             if shot:
                 self.video_phase += 1
-                print("Moving to video phase {}".format(self.video_phase))
+                self.logger.info("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 5:
             self.set_dribbler(robot_id_1, False)
             self.kick_ball(robot_id_1)
             self.video_phase += 1
-            print("Moving to video phase {}".format(self.video_phase))
+            self.logger.info("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 6:
             # Set robot 1 to be goalie, have them go to the goal (see top of loop)
             self.video_phase += 1
-            print("Moving to video phase {}".format(self.video_phase))
+            self.logger.info("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 7:
             if self.gs.get_ball_position()[0] > 3000:
                 return
@@ -232,7 +232,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             got_ball = self.get_ball(robot_id_0, charge_during=shoot_velocity)
             if got_ball:
                 self.video_phase += 1
-                print("Moving to video phase {}".format(self.video_phase))
+                self.logger.info("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 8:
             # Robot 1 moves to best kick pos to shoot
             goal = self.gs.get_attack_goal(self._team)
@@ -240,17 +240,17 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             shot = self.prepare_and_kick(robot_id_0, center_of_goal, shoot_velocity)
             if shot:
                 self.video_phase += 1
-                print("Moving to video phase {}".format(self.video_phase))
+                self.logger.info("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 9:
             self.set_dribbler(robot_id_0, False)
             self.kick_ball(robot_id_0)
             # Loop back to placing the ball
             self.video_phase += 1
-            print("Moving to video phase {}".format(self.video_phase))
+            self.logger.info("Moving to video phase {}".format(self.video_phase))
         elif self.video_phase == 10:
             if self.gs.get_ball_position()[0] > 3000:
                 self.video_phase = 7
-                print("Moving back to video phase {}".format(self.video_phase))
+                self.logger.info("Moving back to video phase {}".format(self.video_phase))
         else:
             pass
 

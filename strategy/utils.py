@@ -16,9 +16,7 @@ class Utils:
         """format + insert list of waypoints into robot commands"""
         current_pos = self.gs.get_robot_position(self._team, robot_id)
         commands = self.gs.get_robot_commands(self._team, robot_id)
-        # print(waypoints)
         for i, p in enumerate(waypoints):
-            print(p)
             assert(len(p) == 2 or len(p) == 3)
             if len(p) == 2:
                 waypoints[i] = np.array([p[0], p[1], None])
@@ -53,8 +51,8 @@ class Utils:
                 abs(delta[2]) < ANGLE_THRESHOLD
         return True
 
-    def face_pos(self, 
-        facing_from_pos: Tuple[float, float], 
+    def face_pos(self,
+        facing_from_pos: Tuple[float, float],
         facing_towards_pos: Tuple[float, float]
     ) -> float:
         """Return angle (relative to the x axis) betweeen two positions"""

@@ -96,13 +96,16 @@ class Provider(object):
         Usually this is called from Coordinator.start_game()
         """
         self.create_logger()
-        self.pre_run()
-        self._send_result_back_to_coordinator()
-        while not stop_event.is_set():
-            self._update_gamestate()
-            self.run()
-            self._update_times()
+        try:
+            self.pre_run()
             self._send_result_back_to_coordinator()
+            while not stop_event.is_set():
+                self._update_gamestate()
+                self.run()
+                self._update_times()
+                self._send_result_back_to_coordinator()
+        except:
+            self.logger.exception("Fatal exception in provider %s", self.__class__.__name__)
         self.post_run()
         self.destroy()
 

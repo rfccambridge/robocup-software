@@ -134,7 +134,7 @@ class Provider(object):
         if logger_name is None:
             logger_name = self.__class__.__name__
         self.logger = logging.getLogger(logger_name)
-        self.logger.addHandler(logging.FileHandler('%s.log' % logger_name, mode='a'))
+        self.logger.addHandler(logging.FileHandler('logs/%s.log' % logger_name, mode='a'))
         self.logger.setLevel(1)
         socket_handler = SocketHandler('127.0.0.1', 19996)
         self.logger.addHandler(socket_handler)

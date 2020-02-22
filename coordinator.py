@@ -5,6 +5,7 @@ from gamestate import GameState
 import logging
 from logging.handlers import SocketHandler
 import signal
+import time
 from queue import Empty, Full
 
 # Do not make this large or bad things will happen
@@ -26,6 +27,10 @@ class Provider(object):
         self.commands_out_q = Queue(MAX_Q_SIZE)
         self.gs = GameState()
         self.logger = None
+
+        # Convenience variables for assess the performance of the provider
+        self.last_run_time = None
+        self.delta_time = None
 
         # This specifies the fields in the gamestate dict for which this
         # provider is the source of truth. These fields will be stored
@@ -74,6 +79,16 @@ class Provider(object):
         except Full:
             pass
 
+    def _update_times(self):
+        """
+        Called every time run() completes. We record stuff here
+        to monitor how our providers are performing.
+        """
+        t = time.time()
+        if self.last_run_time:
+            self.delta_time = self.last_run_time - t
+        self.last_run_time = t
+
     def start_providing(self, stop_event):
         """
         Starts the provider. Should always be run on a background process.
@@ -85,6 +100,7 @@ class Provider(object):
         while not stop_event.is_set():
             self._update_gamestate()
             self.run()
+            self._update_times()
             self._send_result_back_to_coordinator()
         self.post_run()
         self.destroy()

@@ -97,9 +97,9 @@ class Simulator(Provider):
         if ball_pos is not None:
             new_ball_pos = self.gs.predict_ball_pos(delta_time)
             self.logger.debug("dt: {}, new_pos: {}".format(delta_time, new_ball_pos))
-            self.logger.debug("v: {}".format(gs.get_ball_velocity()))
-            self.logger.debug("Predicted Ball Location: %s", gs.predict_ball_pos(0))
-            self.logger.debug("Ball velocity: %s", gs.get_ball_velocity())
+            self.logger.debug("v: {}".format(self.gs.get_ball_velocity()))
+            self.logger.debug("Predicted Ball Location: %s", self.gs.predict_ball_pos(0))
+            self.logger.debug("Ball velocity: %s", self.gs.get_ball_velocity())
             self.gs.update_ball_position(new_ball_pos)
 
         for (team, robot_id), pos in \

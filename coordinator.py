@@ -79,7 +79,7 @@ class Provider(object):
         Starts the provider. Should always be run on a background process.
         Usually this is called from Coordinator.start_game()
         """
-        self.logger = self.create_logger() 
+        self.create_logger()
         self.pre_run()
         self._send_result_back_to_coordinator()
         while not stop_event.is_set():
@@ -132,8 +132,8 @@ class Provider(object):
         socket_handler = SocketHandler('127.0.0.1', 19996)
         self.logger.addHandler(socket_handler)
         self.logger.info("Created logger: %s" % logger_name)
+        
 
-    
 class DisableSignals(object):
     """
     An object for disabling signals (SIGINT).

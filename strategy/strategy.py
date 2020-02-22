@@ -68,57 +68,53 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             self.logger.info("default strategy for playing a full game")
 
     def run(self):
-        try:
-            # run the strategy corresponding to the given mode
-            if self._mode == "UI":
-                self.UI()
-            elif self._mode == "goalie_test":
-                self.goalie_test()
-            elif self._mode == "attacker_test":
-                self.attacker_test()
-            elif self._mode == "defender_test":
-                self.defender_test()
-            elif self._mode == "entry_video":
-                self.entry_video()
-            elif self._mode == "random_robot":
-                self.random_robot_test() 
-            elif self._mode == "full_game":
-                self.full_game()
-            else:
-                # logger.error('(unrecognized mode, doing nothing)')
-                pass
+        # run the strategy corresponding to the given mode
+        if self._mode == "UI":
+            self.UI()
+        elif self._mode == "goalie_test":
+            self.goalie_test()
+        elif self._mode == "attacker_test":
+            self.attacker_test()
+        elif self._mode == "defender_test":
+            self.defender_test()
+        elif self._mode == "entry_video":
+            self.entry_video()
+        elif self._mode == "random_robot":
+            self.random_robot_test()
+        elif self._mode == "full_game":
+            self.full_game()
+        else:
+            # self.logger.exception('(unrecognized mode, doing nothing)')
+            pass
 
-            # tell all robots to refresh their speeds based on waypoints
-            team_commands = self.gs.get_team_commands(self._team)
-            team_commands = list(team_commands.items())
-            for robot_id, robot_commands in team_commands:
-                # stop the robot if we've lost track of it
-                if self.gs.is_robot_lost(self._team, robot_id):
-                    robot_commands.set_speeds(0, 0, 0)
-                else:
-                    # recalculate the speed the robot should be commanded at
-                    pos = self.gs.get_robot_position(self._team, robot_id)
-                    robot_commands.derive_speeds(pos)
-        except Exception:
-            logger.exception('Unexpected Error!')
-            logger.exception(traceback.format_exc())
+        # tell all robots to refresh their speeds based on waypoints
+        team_commands = self.gs.get_team_commands(self._team)
+        team_commands = list(team_commands.items())
+        for robot_id, robot_commands in team_commands:
+            # stop the robot if we've lost track of it
+            if self.gs.is_robot_lost(self._team, robot_id):
+                robot_commands.set_speeds(0, 0, 0)
+            else:
+                # recalculate the speed the robot should be commanded at
+                pos = self.gs.get_robot_position(self._team, robot_id)
+                robot_commands.derive_speeds(pos)
 
     # follow the user-input commands through visualizer
     def UI(self):
-        if self.gs.user_selected_robot is not None:
-            team, robot_id = self.gs.user_selected_robot
+        if self.gs.viz_inputs['user_selected_robot'] is not None:
+            team, robot_id = self.gs.viz_inputs['user_selected_robot']
             if team == self._team:
                 commands = self.gs.get_robot_commands(self._team, robot_id)
                 # apply simple commands
-                commands.is_charging = self.gs.user_charge_command
-                commands.is_kicking = self.gs.user_kick_command
-                commands.is_dribbling = self.gs.user_dribble_command
+                commands.is_charging = self.gs.viz_inputs['user_charge_command']
+                commands.is_kicking = self.gs.viz_inputs['user_kick_command']
+                commands.is_dribbling = self.gs.viz_inputs['user_dribble_command']
                 # set goal pos to click location on visualization window
-                if self.gs.user_click_position is not None:
-                    x, y = self.gs.user_click_position
-                    if self.gs.user_drag_vector.any():
+                if self.gs.viz_inputs['user_click_position'] is not None:
+                    x, y = self.gs.viz_inputs['user_click_position']
+                    if self.gs.viz_inputs['user_drag_vector'].any():
                         # face the dragged direction
-                        dx, dy = self.gs.user_drag_vector
+                        dx, dy = self.gs.viz_inputs['user_drag_vector']
                         w = np.arctan2(dy, dx)
                     else:
                         w = None
@@ -126,6 +122,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                     # Use pathfinding
                     #self.move_straight(robot_id, goal_pos, is_urgent=True)
                     self.path_find(robot_id, goal_pos)
+                    # self.logger.info("UI CLICK!")
 
     def click_teleport(self):
         return # TODO move this somewhere else! strategy doesn't

@@ -56,7 +56,7 @@ class Field(object):
 
     def is_pos_valid(self, pos, team, robot_id):
         return self.is_position_open(pos, team, robot_id) and \
-            self.is_pos_in_bounds(pos, team, robot_id)
+            self.is_pos_legal(pos, team, robot_id)
 
     # returns the top and bottom goalposts for a team
     def get_defense_goal(self, team):

@@ -49,7 +49,7 @@ parser.add_argument('-htc', '--home_team_color',
                     default='blue',
                     help="The color of the home team.")
 parser.add_argument('-hs', '--home_strategy',
-                    default='defender_test',
+                    default='UI',
                     help="The strategy the home team should use to play.")
 parser.add_argument('-as', '--away_strategy',
                     default='defender_test',
@@ -89,10 +89,10 @@ if __name__ == '__main__':
 
     # Initialize providers and pass to coordinator
     providers = []
-    
+
     if IS_SIMULATION:
         NO_RADIO = True
-        providers += [Simulator(SIMULATOR_SETUP)] 
+        providers += [Simulator(SIMULATOR_SETUP)]
 
     if not NO_REFBOX:
         providers += [RefboxDataProvider()]
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     if CONTROL_BOTH_TEAMS:
         providers += [Strategy(AWAY_TEAM, AWAY_STRATEGY)]
-    
+
     providers += [Visualizer()]
 
     # Pass the providers to the coordinator
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     def stop_it(signum, frame):
         c.stop_game()
     signal.signal(signal.SIGINT, stop_it)
-    
+
     # Start the game
     c.start_game()
 

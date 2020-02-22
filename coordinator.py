@@ -6,7 +6,6 @@ from logging.handlers import SocketHandler
 import signal
 import time
 from queue import Empty, Full
-from gamestate import GameState
 
 
 # Do not make this large or bad things will happen
@@ -24,6 +23,7 @@ class Provider(object):
         """
         Sets up queues for reading data in and out of this provider
         """
+        from gamestate import GameState
         self.data_in_q = Queue(MAX_Q_SIZE)
         self.commands_out_q = Queue(MAX_Q_SIZE)
         self.gs = GameState()
@@ -179,6 +179,7 @@ class Coordinator(object):
         """
         Collects the objects to coordinate
         """
+        from gamestate import GameState
         # A list of all of the provider that need to be synchronised
         self.providers = providers
 

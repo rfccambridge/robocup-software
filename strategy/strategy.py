@@ -81,6 +81,8 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                 self.defender_test()
             elif self._mode == "entry_video":
                 self.entry_video()
+            elif self._mode == "random_robot":
+                self.random_robot_test() 
             elif self._mode == "full_game":
                 self.full_game()
             else:
@@ -149,6 +151,10 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                 self._goalie_id = robot_id
         if self._goalie_id is not None:
             self.goalie(self._goalie_id)
+
+    def random_robot_test(self):
+        for robot_id in self.gs.get_robot_ids(self._team):
+            self.random_robot(robot_id)
 
     def attacker_test(self):
         if self.gs.user_selected_robot is not None:

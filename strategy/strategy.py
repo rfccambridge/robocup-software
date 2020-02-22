@@ -175,8 +175,8 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         self.click_teleport()
 
     def entry_video(self):
-        robot_id_0 = 0
-        robot_id_1 = 8
+        robot_id_0 = 4
+        robot_id_1 = 11
         # where the initial pass will be received
         reception_pos = np.array([3200., 0., self.robot_face_ball(robot_id_1)])
         pass_velocity = 800

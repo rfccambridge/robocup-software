@@ -14,8 +14,8 @@ class Utils:
         is_urgent: bool = False
     ) -> None:
         """format + insert list of waypoints into robot commands"""
-        current_pos = self._gs.get_robot_position(self._team, robot_id)
-        commands = self._gs.get_robot_commands(self._team, robot_id)
+        current_pos = self.gs.get_robot_position(self._team, robot_id)
+        commands = self.gs.get_robot_commands(self._team, robot_id)
         # print(waypoints)
         for i, p in enumerate(waypoints):
             print(p)
@@ -26,22 +26,22 @@ class Utils:
 
     def append_waypoint(self, robot_id: int, goal_pos: Tuple[float, float], is_urgent=False) -> None:
         """format + single waypoint into robot commands"""
-        current_pos = self._gs.get_robot_position(self._team, robot_id)
-        commands = self._gs.get_robot_commands(self._team, robot_id)
+        current_pos = self.gs.get_robot_position(self._team, robot_id)
+        commands = self.gs.get_robot_commands(self._team, robot_id)
         commands.append_waypoint(goal_pos, current_pos, is_urgent=False)
 
     # TODO: move to gamestate?
     def get_goal_pos(self, robot_id: int) -> Tuple[float, float, float]:
         """Return a robot's final waypoint"""
-        commands = self._gs.get_robot_commands(self._team, robot_id)
+        commands = self.gs.get_robot_commands(self._team, robot_id)
         if not commands.waypoints:
             return None
         return commands.waypoints[-1]
 
     def is_done_moving(self, robot_id: int) -> bool:
         """Check if robot has arrived at final waypoint, angle included"""
-        robot_pos = self._gs.get_robot_position(self._team, robot_id)
-        commands = self._gs.get_robot_commands(self._team, robot_id)
+        robot_pos = self.gs.get_robot_position(self._team, robot_id)
+        commands = self.gs.get_robot_commands(self._team, robot_id)
         waypoints = commands.waypoints
         if waypoints:
             destination = waypoints[-1]
@@ -66,9 +66,9 @@ class Utils:
 
     def robot_face_pos(self, robot_id: int, pos: Tuple[float, float]):
         """Return angle from robot to position"""
-        robot_pos = self._gs.get_robot_position(self._team, robot_id)
+        robot_pos = self.gs.get_robot_position(self._team, robot_id)
         return self.face_pos(robot_pos, pos)
 
     def robot_face_ball(self, robot_id: int) -> float:
         """Return angle from robot to ball"""
-        return self.robot_face_pos(robot_id, self._gs.get_ball_position())
+        return self.robot_face_pos(robot_id, self.gs.get_ball_position())

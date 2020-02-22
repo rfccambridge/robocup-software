@@ -25,6 +25,7 @@ class Provider(object):
         self.data_in_q = Queue(MAX_Q_SIZE)
         self.commands_out_q = Queue(MAX_Q_SIZE)
         self.gs = GameState()
+        self.logger = None
 
         # This specifies the fields in the gamestate dict for which this
         # provider is the source of truth. These fields will be stored
@@ -85,6 +86,7 @@ class Provider(object):
         Starts the provider. Should always be run on a background process.
         Usually this is called from Coordinator.start_game()
         """
+        self.logger = self.create_logger() 
         self.pre_run()
         self._send_result_back_to_coordinator()
         while not stop_event.is_set():

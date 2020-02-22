@@ -193,7 +193,7 @@ class Coordinator(object):
         This should be called from main.py once a Coordinator has been instantiated
         """
         for provider in self.providers:
-            self.processes.append(Process(target=provider.start_providing, args=[self.stop_event], name=str(type(provider))))
+            self.processes.append(Process(target=provider.start_providing, args=[self.stop_event], name=provider.__class__.__name__))
             
         # Disable signals before fork so only parent process responds to SIGINT
         with DisableSignals():

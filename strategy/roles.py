@@ -1,5 +1,5 @@
 import numpy as np
-
+from random import random
 
 class Roles:
     """High level strategic roles and analysis"""
@@ -7,6 +7,16 @@ class Roles:
     def get_behind_ball(self):
         ball_pos = self.gs.get_ball_position()
         # TODO, and move to routines!
+    
+    def random_robot(self, robot_id):
+        if self.is_done_moving(robot_id): 
+            pos = self.gs.get_robot_position(self._team, robot_id)
+            stepsize = 1000
+            random_movement = np.array([(random() - 0.5) * stepsize,
+                                        (random() - 0.5) * stepsize,
+                                        0])
+            self.move_straight(robot_id, pos + random_movement)
+        
 
     def goalie(self, robot_id, is_opposite_goal=False):
         """Commands a given robot id to play as goalie"""

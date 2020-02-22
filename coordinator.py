@@ -62,13 +62,6 @@ class Provider(object):
         for key, value in owned_field_values.items():
             setattr(self.gs, key, value)
 
-    # function to be called from coordinator to integrate update master gamestate
-    def integrate_owned_fields(self, master_gamestate, provider_gamestate):
-        # Update only the fields this provider owns
-        for field in self._owned_fields:
-            value = getattr(provider_gamestate, field)
-            setattr(master_gamestate, field, value)
-
     def _send_result_back_to_coordinator(self):
         """
         Send the gamestate from the provider back to the coordinator.

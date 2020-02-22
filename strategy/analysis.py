@@ -159,6 +159,54 @@ class Analysis(object):
         else:
             return [0, 0, None]
 
+    # Function that scores how good a position is for the attacker to get open for a pass
+    # Higher ratings should indicate better positions
+    def rate_attacker_pos(self, pos: Tuple[float, float, float], robot_id: int) -> float:
+        ball_pos = self._gs.get_ball_position()
+        if not self._gs.is_pos_legal(pos, self._team, robot_id) \
+            or not self._gs.is_position_open(pos, self._team, robot_id):
+            return np.NINF
+        # TODO: Handle cases where path is blocked
+        if self.is_path_blocked(ball_pos, pos, robot_id):
+            return np.NINF
+        # Calculate the passing distance
+        pass_dist = np.linalg.norm(ball_pos - pos[:2])
+        # Calculate the distance to the center of the goal
+        goal = self._gs.get_attack_goal(self._team)
+        center_of_goal = (goal[0] + goal[1]) / 2
+        goal_dist = np.linalg.norm(center_of_goal - pos[:2])
+        # Calculate the proximity to opposing robots
+        nearest_opponent_dist: float = self._gs.FIELD_X_LENGTH + self._gs.FIELD_Y_LENGTH
+        for opponent in self._gs.get_robot_ids(self._gs.other_team(self._team)):
+            opponent_pos = self._gs.get_robot_position(self._gs.other_team(self._team), opponent)
+            opponent_dist: float = np.linalg.norm(opponent_pos[:2] - pos[:2])
+            nearest_opponent_dist = min(nearest_opponent_dist, opponent_dist)
+        # Rate the position based on these three metrics
+        # TODO: come up with a good metric to use
+        pass_wt = 0
+        goal_wt = -3
+        oppt_wt = 2
+        return (pass_wt * pass_dist + goal_wt * goal_dist + oppt_wt * nearest_opponent_dist)
+    
+    def find_attacker_pos(self, robot_id: int) -> Tuple[float, float, float]:
+        best_pos = self._gs.get_robot_position(self._team, robot_id)
+        best_rating = self.rate_attacker_pos(best_pos, robot_id)
+        ball_x, ball_y = self._gs.get_ball_position()
+        RANGE = 1500
+        STEP_SIZE = 300
+        x = ball_x - RANGE
+        while x <= ball_x + RANGE:
+            y = ball_y - RANGE
+            while y <= ball_y + RANGE:
+                new_pos = [x, y, None]
+                new_rating = self.rate_attacker_pos(new_pos, robot_id)
+                if new_rating > best_rating:
+                    best_pos = new_pos
+                    best_rating = new_rating
+                y += STEP_SIZE
+            x += STEP_SIZE
+        return best_pos
+
     def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=False):
         "incrementally check a linear path for obstacles"
         s_pos = np.array(s_pos)[:2]

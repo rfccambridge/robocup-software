@@ -141,7 +141,7 @@ class Visualizer(Provider):
         """Loop that powers the pygame visualization. Must be called from the main thread."""
         # wait until game begins (while other threads are initializing)
         time.sleep(0.05)
-        self.logger.info("gamestate.robot_positions = %s", self.gs.get_all_robot_positions())
+        
         # take user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

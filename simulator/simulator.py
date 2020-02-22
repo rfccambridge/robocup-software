@@ -18,7 +18,11 @@ class Simulator(Provider):
         self.logger = None
         self._initial_setup = initial_setup
         self._last_step_time = time.time()
-        self._owned_fields = ['_ball_position', '_blue_robot_positions', '_yellow_robot_positions']
+        self._owned_fields = [
+            '_ball_position',
+            '_blue_robot_positions',
+            '_yellow_robot_positions'
+        ]
 
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
         """initialize a robot with given id + team at (x, y, w) position"""
@@ -182,4 +186,3 @@ class Simulator(Provider):
                     self.put_fake_ball(new_pos, new_velocity)
                 robot_commands.charge_level = 0
                 robot_commands.is_kicking = False
-        self.logger.info("gamestate.robot_positions = %s", self.gs.get_all_robot_positions())

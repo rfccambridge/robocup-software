@@ -167,7 +167,7 @@ class Analysis(object):
             or not self._gs.is_position_open(pos, self._team, robot_id):
             return np.NINF
         # TODO: Handle cases where path is blocked
-        if self.is_path_blocked(ball_pos, pos, robot_id):
+        if not self.is_straight_path_open(ball_pos, pos):
             return np.NINF
         # Calculate the passing distance
         pass_dist = np.linalg.norm(ball_pos - pos[:2])
@@ -187,7 +187,7 @@ class Analysis(object):
         goal_wt = -3
         oppt_wt = 2
         return (pass_wt * pass_dist + goal_wt * goal_dist + oppt_wt * nearest_opponent_dist)
-    
+
     def find_attacker_pos(self, robot_id: int) -> Tuple[float, float, float]:
         best_pos = self._gs.get_robot_position(self._team, robot_id)
         best_rating = self.rate_attacker_pos(best_pos, robot_id)
@@ -235,6 +235,24 @@ class Analysis(object):
             if not self._gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
                 return True
         return False
+
+    def is_straight_path_open(self, s_pos, g_pos):
+        robot_positions = self._gs.get_all_robot_positions()
+        s_pos = s_pos[:2]
+        g_pos = g_pos[:2]
+        x1, y1 = s_pos[:2]
+        x2, y2 = g_pos[:2]
+        line_unit_vector = (s_pos - g_pos) / np.linalg.norm(s_pos - g_pos)
+        for pos in robot_positions:
+            pos = pos[1][:2]
+            print(f"{pos}")
+            x3, y3 = pos[:2]
+            if np.dot(line_unit_vector, (s_pos - pos)) > 0 and \
+            np.dot(line_unit_vector, (pos - g_pos)) > -1 * self._gs.ROBOT_RADIUS:
+                distance_from_line = abs((-(y2-y1)*x3 + (x2-x1)*y3 - y1*(x2-x1) + x1*(y2-y1))/np.linalg.norm(g_pos-s_pos))
+                if distance_from_line < 2 * self._gs.ROBOT_RADIUS:
+                    return False
+        return True
 
     def within_shooting_range(self, team, robot_id):
         # shooting range

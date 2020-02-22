@@ -32,40 +32,54 @@ parser = argparse.ArgumentParser(description='Runs our main codebase')
 parser.add_argument('-s', '--simulate',
                     action="store_true",
                     help='run the codebase using the simulator rather than real vision data or robots')
+parser.add_argument('-ss', '--simulator_setup',
+                    default='full_teams',
+                    help='The setup to use for the simulator.')
 parser.add_argument('-nra', '--no_radio',
                     action="store_true",
-                    help='turns off command sending. no commands go over the radio')
+                    help='Turns off command sending. No commands go over the radio.')
 parser.add_argument('-nre', '--no_refbox',
                     action="store_true",
-                    help='ignores commands from the refbox.')
+                    help='Ignores commands from the refbox.')
 parser.add_argument('-cbt', '--control_both_teams',
                     action="store_true",
-                    help='indicates that we are playing against ourselves and so we should play as both teams.')
+                    help='Indicates that we are playing against ourselves and so we should play as both teams.')
+parser.add_argument('-htc', '--home_team_color',
+                    choices=['yellow', 'blue'],
+                    default='blue',
+                    help="The color of the home team.")
+parser.add_argument('-hs', '--home_strategy',
+                    default='defender_test',
+                    help="The strategy the home team should use to play.")
+parser.add_argument('-as', '--away_strategy',
+                    default='defender_test',
+                    help="The strategy the away team should use to play.")
 parser.add_argument('-d', '--debug',
                     action="store_true",
                     help='Uses more verbose logging for debugging.')
 command_line_args = parser.parse_args()
 
-# whether or not we are running with real field and robots
+# Create globals
 IS_SIMULATION = command_line_args.simulate
-NO_RADIO = command_line_args.no_radio  # turns off command sending if real
-NO_REFBOX = command_line_args.no_refbox # turns off refbox data provider
+NO_RADIO = command_line_args.no_radio
+NO_REFBOX = command_line_args.no_refbox
 CONTROL_BOTH_TEAMS = command_line_args.control_both_teams
-# we will control home team in a real match
-HOME_TEAM = 'blue'
+HOME_TEAM = command_line_args.home_team_color
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
-# which simulator initial setup to use (if simulating)
-SIMULATION_SETUP = 'full_teams'
-# which strategies each team is running (see strategy module)
-HOME_STRATEGY = 'defender_test'
-AWAY_STRATEGY = None
+SIMULATOR_SETUP = command_line_args.simulator_setup
+HOME_STRATEGY = command_line_args.home_strategy
+AWAY_STRATEGY = command_line_args.away_strategy
 
-if __name__ == '__main__':
+def setup_logging():
     VERBOSE = False
     logging_level = logging.INFO
     if command_line_args.debug:
         logging_level = logging.DEBUG
     logging.basicConfig(level=logging_level, filename='robocup.log')
+
+if __name__ == '__main__':
+    setup_logging()
+
     # Welcome message
     print('RFC Cambridge Robocup Software')
     print('------------------------------')
@@ -78,19 +92,20 @@ if __name__ == '__main__':
     
     if IS_SIMULATION:
         NO_RADIO = True
-        providers += [Simulator(SIMULATION_SETUP)] 
+        providers += [Simulator(SIMULATOR_SETUP)] 
 
     if not NO_REFBOX:
         providers += [RefboxDataProvider()]
 
     if not NO_RADIO:
         providers += [Comms(HOME_TEAM)]
-        providers += [Comms(AWAY_TEAM, True)]
+        if CONTROL_BOTH_TEAMS:
+            providers += [Comms(AWAY_TEAM, True)]
 
-    providers += [Strategy(HOME_TEAM)]
+    providers += [Strategy(HOME_TEAM, HOME_STRATEGY)]
 
     if CONTROL_BOTH_TEAMS:
-        providers += [Strategy(AWAY_TEAM)]
+        providers += [Strategy(AWAY_TEAM, AWAY_STRATEGY)]
     
     providers += [Visualizer()]
 

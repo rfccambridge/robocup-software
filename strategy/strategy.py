@@ -126,7 +126,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                     #self.move_straight(robot_id, goal_pos, is_urgent=True)
                     #self.path_find(robot_id, goal_pos)
                     # self.logger.info("UI CLICK!")
-                    self.pivot_with_ball_speeds(robot_id, goal_pos)
+                    self.pivot_with_ball(robot_id, goal_pos)
 
     def click_teleport(self):
         return # TODO move this somewhere else! strategy doesn't

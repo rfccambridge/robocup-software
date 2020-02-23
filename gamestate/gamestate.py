@@ -9,15 +9,15 @@ from comms import RobotCommands
 # import parts of gamestate that we've separated out for readability
 # (they are actually just part of the same class)
 try:
-    from field import Field
-    from analysis import Analysis
+    from gamestate_field import Field
+    from gamestate_analysis import Analysis
 except (SystemError, ImportError):
-    from .field import Field
-    from .analysis import Analysis
+    from .gamestate_field import Field
+    from .gamestate_analysis import Analysis
 
 # RAW DATA PROCESSING CONSTANTS
-BALL_POS_HISTORY_LENGTH = 100
-BALL_LOST_TIME = .1
+BALL_POS_HISTORY_LENGTH = 200
+BALL_LOST_TIME = .2
 ROBOT_POS_HISTORY_LENGTH = 20
 # time after which robot is considered lost by gamestate
 ROBOT_LOST_TIME = .2

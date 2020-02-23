@@ -309,6 +309,9 @@ class Visualizer(Provider):
 
         # Draw ball
         ball_pos = self.gs.get_ball_position()
+        # self.logger.info(self.gs.is_ball_lost())
+        # self.logger.info(ball_pos)
+        self.logger.info("last update time: {}".format(time.time() - self.gs.get_ball_last_update_time()))
         if not self.gs.is_ball_lost():
             # draw where the best position is to kick towards the mouse.
             # mouse_pos = self.screen_to_field(pygame.mouse.get_pos())

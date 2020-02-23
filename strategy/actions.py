@@ -33,7 +33,7 @@ class Actions:
         turn_increment += min_turn_increment / (dw / abs(dw))
         angle = robot_pos[2] + turn_increment
         waypoint = self.gs.dribbler_to_robot_pos(ball_pos, angle)
-        self.set_waypoints(robot_id, [waypoint], is_urgent=True)
+        self.set_waypoints(robot_id, [waypoint], is_urgent=False)
         remaining_error = abs(self.wrap_pi(robot_pos[2] - kick_pos[2]))
         if remaining_error < min_turn_increment and \
            self.gs.ball_in_dribbler(self._team, robot_id):

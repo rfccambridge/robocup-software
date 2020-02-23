@@ -1,6 +1,7 @@
 from multiprocessing import Queue
 from multiprocessing import Process, Event
 import multiprocessing
+import traceback
 import logging
 from logging.handlers import SocketHandler
 import signal
@@ -31,7 +32,7 @@ class Provider(object):
 
         # Convenience variables for assess the performance of the provider
         self.last_run_time = None
-        self.delta_time = None
+        self.delta_time = 0
 
         # This specifies the fields in the gamestate dict for which this
         # provider is the source of truth. These fields will be stored
@@ -104,8 +105,10 @@ class Provider(object):
                 self.run()
                 self._update_times()
                 self._send_result_back_to_coordinator()
-        except:
-            self.logger.exception("Fatal exception in provider %s", self.__class__.__name__)
+        except Exception as e:
+            traceback.print_exc()
+            self.logger.error(e, exc_info=True)
+
         self.post_run()
         self.destroy()
 

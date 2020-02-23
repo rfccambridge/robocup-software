@@ -13,11 +13,12 @@ class Actions:
         robot_pos = self.gs.get_robot_position(self._team, robot_id)
         angle = self.wrap_pi(kick_pos[2] - robot_pos[2])
 
-        step = 0.1
-        astep = 0.1
+        step = 10
+        astep = 1
 
-        vel = np.sign(angle) * np.normalize(np.cross((ball_pos - robot_pos)[0:2], [0,0,1])) * step
-        self.set_speeds(vel[0], vel[1], -np.sign(angle) * astep)
+        vel = np.cross(ball_pos - robot_pos[0:2], [0,0,1])
+        vel = step * vel * np.sign(angle) / np.linalg.norm(vel)
+        self.set_speeds(robot_id, vel[0], vel[1], -np.sign(angle) * astep)
 
     def pivot_with_ball(self, robot_id, face_pos: Tuple[float, float]) -> bool:
         """Move robot around ball without losing possession"""

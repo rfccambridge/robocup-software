@@ -230,7 +230,7 @@ class RobotCommands:
     # use the waypoints to calculate desired speeds from robot perspective
     def derive_speeds(self, current_position):
         if not self.waypoints:
-            self.set_speeds(0, 0, 0)
+            #self.set_speeds(0, 0, 0)
             return
         og_x, og_y, og_w = current_position
         if self._prev_waypoint is None:

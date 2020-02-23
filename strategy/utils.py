@@ -8,6 +8,10 @@ class Utils:
         """convert angle to between -pi and pi"""
         return (angle + np.pi) % (np.pi * 2) - np.pi
 
+    def set_speeds(self, robot_id, x, y, w):
+        commands = self.gs.get_robot_commands(self._team, robot_id)
+        commands.set_speeds(x, y, w)
+
     def set_waypoints(self, 
         robot_id: int, 
         waypoints: List[Tuple[float, float]], 

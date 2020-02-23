@@ -6,6 +6,19 @@ from typing import Iterable, Optional, List, Tuple
 # Definitions + supporting logic for simple robot actions
 # (have a single step/end condition, return True when done)
 class Actions:
+    def pivot_with_ball_speeds(self, robot_id, face_pos: Tuple[float, float]) -> bool:
+        """Move robot around ball without losing possession"""
+        ball_pos = self.gs.get_ball_position()
+        kick_pos = self.best_kick_pos(ball_pos, face_pos)
+        robot_pos = self.gs.get_robot_position(self._team, robot_id)
+        angle = self.wrap_pi(kick_pos[2] - robot_pos[2])
+
+        step = 0.1
+        astep = 0.1
+
+        vel = np.sign(angle) * np.normalize(np.cross((ball_pos - robot_pos)[0:2], [0,0,1])) * step
+        self.set_speeds(vel[0], vel[1], -np.sign(angle) * astep)
+
     def pivot_with_ball(self, robot_id, face_pos: Tuple[float, float]) -> bool:
         """Move robot around ball without losing possession"""
         ball_pos = self.gs.get_ball_position()

@@ -280,8 +280,18 @@ class Coordinator(object):
         try:
             q.put_nowait(item)
         except Full:
-            # self.logger.warning("Push to provider had full queue")
-            pass
+            # If the queue is full we try to remove the current item
+            # in the queue and replace it with our new item.
+            # There are race conditions here, so if the final put ends up 
+            # failing we just ignore the failure and move on.
+            try:
+                q.get_nowait()
+            except Empty:
+                pass
+            try:
+                q.put_nowait(item)
+            except Full:
+                pass
 
     def get_from_provider_ignore_exceptions(self, provider):
         """

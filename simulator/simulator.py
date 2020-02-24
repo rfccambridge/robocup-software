@@ -16,7 +16,7 @@ class Simulator(Provider):
         super().__init__()
         self.logger = None
         self._initial_setup = initial_setup
-        self._last_step_time = time.time()
+        self._viz_events_handled = 0
         self._owned_fields = [
             '_ball_position',
             '_blue_robot_positions',
@@ -81,28 +81,25 @@ class Simulator(Provider):
                          "initial_setup: %s", self._initial_setup)
 
     def run(self):
-        delta_time = 0
-        if self._last_step_time is not None:
-            delta_time = time.time() - self._last_step_time
-        self._last_step_time = time.time()
         # allow user to move the ball via UI
-        if self.gs.viz_inputs['user_selected_ball']:
-            new_pos = self.gs.viz_inputs['user_click_position']
-            if new_pos is not None:
-                v = self.gs.viz_inputs['user_drag_vector']
-                v = np.array([0, 0]) if v is None else v
-                self.put_fake_ball(new_pos[:2], v)
-                self.gs.viz_inputs['user_click_position'] = None
-                self.gs.viz_inputs['user_drag_vector'] = None
+        if self._viz_events_handled < self.gs.viz_inputs['simulator_events_count']:
+            self._viz_events_handled += 1
+            if self.gs.viz_inputs['user_selected_ball']:
+                new_pos = self.gs.viz_inputs['user_click_position']
+                if new_pos is not None:
+                    v = self.gs.viz_inputs['user_drag_vector']
+                    v = np.array([0, 0]) if v is None else v
+                    self.put_fake_ball(new_pos[:2], v)
 
         # move ball according to prediction
         ball_pos = self.gs.get_ball_position()
         if ball_pos is not None:
-            new_ball_pos = self.gs.predict_ball_pos(delta_time)
-            self.logger.debug("dt: {}, new_pos: {}".format(delta_time, new_ball_pos))
-            self.logger.debug("v: {}".format(self.gs.get_ball_velocity()))
-            self.logger.debug("Predicted Ball Location: %s", self.gs.predict_ball_pos(0))
-            self.logger.debug("Ball velocity: %s", self.gs.get_ball_velocity())
+            new_ball_pos = self.gs.predict_ball_pos(self.delta_time)
+            self.logger.debug("pos: {}".format(ball_pos))
+            self.logger.debug("dt: {}, new_pos: {}".format(self.delta_time, new_ball_pos))
+            # self.logger.debug("v: {}".format(self.gs.get_ball_velocity()))
+            # self.logger.debug("Predicted Ball Location: %s", self.gs.predict_ball_pos(0))
+            # self.logger.debug("Ball velocity: %s", self.gs.get_ball_velocity())
             self.gs.update_ball_position(new_ball_pos)
 
         for (team, robot_id), pos in \
@@ -152,13 +149,13 @@ class Simulator(Provider):
                 self.gs.get_all_robot_commands():
             # move robots according to commands
             pos = self.gs.get_robot_position(team, robot_id)
-            new_pos = robot_commands.predict_pos(pos, delta_time)
+            new_pos = robot_commands.predict_pos(pos, self.delta_time)
             self.gs.update_robot_position(
                 team, robot_id, new_pos
             )
             # charge capacitors according to commands
             if robot_commands.is_charging:
-                robot_commands.simulate_charge(delta_time)
+                robot_commands.simulate_charge(self.delta_time)
             # simulate dribbling as gravity zone
             if robot_commands.is_dribbling:
                 ball_pos = self.gs.get_ball_position()
@@ -172,7 +169,7 @@ class Simulator(Provider):
                     pullback_velocity = (robot_pos[:2] - ball_pos) * 2
                     centering_velocity = (dribbler_center - ball_pos) * 1
                     total_velocity = pullback_velocity + centering_velocity
-                    new_pos = ball_pos + total_velocity * delta_time
+                    new_pos = ball_pos + total_velocity * self.delta_time
                     new_pos -= self.gs.robot_ball_overlap(robot_pos, new_pos)
                     self.put_fake_ball(new_pos)
             # kick according to commands
@@ -181,7 +178,7 @@ class Simulator(Provider):
                     ball_pos = self.gs.get_ball_position()
                     new_velocity = robot_commands.kick_velocity() * \
                         self.gs.get_robot_direction(team, robot_id)
-                    new_pos = ball_pos + new_velocity * delta_time
+                    new_pos = ball_pos + new_velocity * self.delta_time
                     self.put_fake_ball(new_pos, new_velocity)
                 robot_commands.charge_level = 0
                 robot_commands.is_kicking = False

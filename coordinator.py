@@ -88,7 +88,7 @@ class Provider(object):
         """
         t = time.time()
         if self.last_run_time:
-            self.delta_time = self.last_run_time - t
+            self.delta_time = t - self.last_run_time
         self.last_run_time = t
 
     def start_providing(self, stop_event):

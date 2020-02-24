@@ -102,7 +102,9 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     # follow the user-input commands through visualizer
     def UI(self):
         #self.logger.info("ball_position: {}".format(self.gs.get_ball_position()))
-        #self.logger.info("last update time: {}".format(time.time() - self.gs.get_ball_last_update_time()))
+        t = self.gs.get_ball_last_update_time()
+        self.logger.debug("dt ball: {}".format(time.time() - t if t is not None else 0))
+                          
         if self.gs.viz_inputs['user_selected_robot'] is not None:
             team, robot_id = self.gs.viz_inputs['user_selected_robot']
             self.logger.info(self.gs.ball_in_dribbler(team, robot_id))

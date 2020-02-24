@@ -17,7 +17,7 @@ except (SystemError, ImportError):
 
 # RAW DATA PROCESSING CONSTANTS
 BALL_POS_HISTORY_LENGTH = 200
-BALL_LOST_TIME = .2
+BALL_LOST_TIME = .15
 ROBOT_POS_HISTORY_LENGTH = 20
 # time after which robot is considered lost by gamestate
 ROBOT_LOST_TIME = .2
@@ -55,15 +55,18 @@ class GameState(Field, Analysis):
 
         # UI Inputs - updated by visualizer
         self.viz_inputs = {
+            "simulator_events_count": 0,  # flag for simulator to handle
             "user_click_position": None,
             "user_drag_vector": None,
-            "user_selected_robot": None,  # (team, id) of robot
+            # either ball or a robot can be selected
             "user_selected_ball": False,
+            "user_selected_robot": None,  # (team, id) of robot
+            # independent booleans, relevant if robot selected
             "user_charge_command": False,
             "user_kick_command": False,
             "user_dribble_command": False
         }
-        
+
         # Refbox - the latest message delivered from the refbox
         # Contains all? relevant game status information such as time, events, goalie id, direction of play
         # See protocol: https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto

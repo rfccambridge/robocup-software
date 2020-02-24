@@ -214,6 +214,7 @@ class Visualizer(Provider):
                         self.gs.viz_inputs['user_drag_vector'] = \
                             self.user_click_up - self.user_click_down
                         self.user_click_down = None
+                        self.gs.viz_inputs['simulator_events_count'] += 1
 
         self._viewer.fill(FIELD_COLOR)
         self.render()
@@ -309,9 +310,9 @@ class Visualizer(Provider):
 
         # Draw ball
         ball_pos = self.gs.get_ball_position()
-        # self.logger.info(self.gs.is_ball_lost())
-        # self.logger.info(ball_pos)
-        self.logger.info("last update time: {}".format(time.time() - self.gs.get_ball_last_update_time()))
+        t = self.gs.get_ball_last_update_time()
+        # self.logger.debug("dt ball: {}".format(time.time() - t if t is not None else 0))
+        
         if not self.gs.is_ball_lost():
             # draw where the best position is to kick towards the mouse.
             # mouse_pos = self.screen_to_field(pygame.mouse.get_pos())

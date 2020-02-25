@@ -45,12 +45,6 @@ BUTTON_TEXT_COLOR = (255, 255, 255)
 # how much space to include outside the field
 WINDOW_BUFFER = 70
 
-LOGGING_LEVELS = {
-    'debug': logging.DEBUG,
-    'info': logging.INFO,
-    'warning': logging.WARNING,
-    'error': logging.ERROR,
-}
 
 class Visualizer(Provider):
     """Robocup homegrown visualization library that essentially does the same
@@ -60,12 +54,10 @@ class Visualizer(Provider):
         super().__init__()
         self._viewer = None
         self._clock = None
-        self.logger = None
 
         self.user_click_down = None
         self.user_click_up = None
 
-        self.log_level = LOGGING_LEVELS.get(log_level, logging.INFO)
         self._owned_fields = ['viz_inputs']
 
     def init_shit(self):
@@ -162,10 +154,16 @@ class Visualizer(Provider):
                     self.gs.viz_inputs['user_kick_command'] = True
                 else:
                     self.gs.viz_inputs['user_kick_command'] = False
+                # teleport while key down
+                if event.key == pygame.K_t:
+                    self.gs.viz_inputs['teleport_selected_robot'] = True
             if event.type == pygame.KEYUP:
                 # stop charging on release
                 if event.key == pygame.K_c:
                     self.gs.viz_inputs['user_charge_command'] = False
+                # stop teleporting on release
+                if event.key == pygame.K_t:
+                    self.gs.viz_inputs['teleport_selected_robot'] = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.user_click_up = None
                 self.user_click_down = self.screen_to_field(
@@ -181,9 +179,9 @@ class Visualizer(Provider):
                 else:
                     self.user_click_down = None
                 # FOR DEBUGGING:
-                self.logger.debug(self.gs.is_pos_valid(
-                    self.user_click_down, 'blue', 1
-                ))
+                # self.logger.debug(self.gs.is_pos_valid(
+                #     self.user_click_down, 'blue', 1
+                # ))
 
             if event.type == pygame.MOUSEBUTTONUP:
                 if self.user_click_down is not None:
@@ -278,7 +276,7 @@ class Visualizer(Provider):
             self.draw_line(ROBOT_FRONT_COLOR, corner1, corner2, ROBOT_FRONT_LINE_WIDTH)
             robot_commands = self.gs.get_robot_commands(team, robot_id)
             # draw charge level
-            charge = robot_commands.charge_level / robot_commands.MAX_CHARGE_LEVEL
+            charge = float(robot_commands.charge_level) / robot_commands.MAX_CHARGE_LEVEL
             charge_end = np.array([pos[0], pos[1] + charge * self.gs.ROBOT_RADIUS])
             self.draw_line((255, 255, 255), pos, charge_end, 15)
             # draw dribbler zone if on
@@ -311,7 +309,7 @@ class Visualizer(Provider):
         # Draw ball
         ball_pos = self.gs.get_ball_position()
         t = self.gs.get_ball_last_update_time()
-        # self.logger.debug("dt ball: {}".format(time.time() - t if t is not None else 0))
+        self.logger.debug("dt ball: {}".format(time.time() - t if t is not None else 0))
         
         if not self.gs.is_ball_lost():
             # draw where the best position is to kick towards the mouse.

@@ -31,7 +31,6 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         assert(team in ['blue', 'yellow'])
         self._team = team
         self._mode = mode
-        self._simulator = None
         self._owned_fields = ['_blue_robot_commands', '_yellow_robot_commands']
 
         # state for reducing frequency of expensive calls
@@ -107,11 +106,15 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                           
         if self.gs.viz_inputs['user_selected_robot'] is not None:
             team, robot_id = self.gs.viz_inputs['user_selected_robot']
-            self.logger.info(self.gs.ball_in_dribbler(team, robot_id))
+            # self.logger.info(self.gs.ball_in_dribbler(team, robot_id))
             if team == self._team:
                 commands = self.gs.get_robot_commands(self._team, robot_id)
                 # apply simple commands
                 commands.is_charging = self.gs.viz_inputs['user_charge_command']
+                # estimate charging capacitor level according to commands
+                # TODO: replace this with firmware charge levels/feedback!
+                if commands.is_charging:
+                    commands.simulate_charge(self.delta_time)
                 commands.is_kicking = self.gs.viz_inputs['user_kick_command']
                 commands.is_dribbling = self.gs.viz_inputs['user_dribble_command']
                 # set goal pos to click location on visualization window
@@ -131,25 +134,9 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                     #self.set_dribbler(robot_id, True)
                     #self.pivot_with_ball(robot_id, goal_pos)
 
-    def click_teleport(self):
-        return # TODO move this somewhere else! strategy doesn't
-
-        if self.gs.user_selected_robot is not None \
-           and self.gs.user_click_position is not None:
-            team, robot_id = self.gs.user_selected_robot
-            x, y = self.gs.user_click_position
-            if self.gs.user_drag_vector.any():
-                # face the dragged direction
-                dx, dy = self.gs.user_drag_vector
-                w = np.arctan2(dy, dx)
-            else:
-                w = None
-            goal_pos = np.array([x, y, w])
-            self._simulator.put_fake_robot(team, robot_id, goal_pos)
-
     def goalie_test(self):
         if self.gs.user_selected_robot is not None:
-            team, robot_id = self.gs.user_selected_robot
+            team, robot_id = self.gs.viz_inputs['user_selected_robot']
             if team == self._team:
                 self._goalie_id = robot_id
         if self._goalie_id is not None:
@@ -161,12 +148,11 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
 
     def attacker_test(self):
         if self.gs.user_selected_robot is not None:
-            team, robot_id = self.gs.user_selected_robot
+            team, robot_id = self.gs.viz_inputs['user_selected_robot']
             if team == self._team:
                 self._attacker_id = robot_id
         if self._attacker_id is not None:
             self.attacker(self._attacker_id)
-        self.click_teleport()
 
     def defender_test(self):
         """
@@ -179,7 +165,6 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         """
         for robot_id in self.gs.get_robot_ids(self._team):
             self.defender(robot_id)
-        self.click_teleport()
 
     def entry_video(self):
         robot_id_0 = 4

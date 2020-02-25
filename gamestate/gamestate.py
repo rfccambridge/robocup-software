@@ -64,7 +64,9 @@ class GameState(Field, Analysis):
             # independent booleans, relevant if robot selected
             "user_charge_command": False,
             "user_kick_command": False,
-            "user_dribble_command": False
+            "user_dribble_command": False,
+            # tell simulator to move selected robot instantly
+            "teleport_selected_robot": False
         }
 
         # Refbox - the latest message delivered from the refbox

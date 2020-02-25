@@ -90,13 +90,21 @@ class Simulator(Provider):
                     v = self.gs.viz_inputs['user_drag_vector']
                     v = np.array([0, 0]) if v is None else v
                     self.put_fake_ball(new_pos[:2], v)
+        # teleport selected robot if desired
+        if self.gs.viz_inputs['teleport_selected_robot'] and \
+           self.gs.viz_inputs['user_selected_robot'] is not None:
+            team, robot_id = self.gs.viz_inputs['user_selected_robot']
+            commands = self.gs.get_robot_commands(team, robot_id)
+            if len(commands.waypoints) > 0:
+                destination = commands.waypoints[-1]
+                self.gs.update_robot_position(team, robot_id, destination)
 
         # move ball according to prediction
         ball_pos = self.gs.get_ball_position()
         if ball_pos is not None:
             new_ball_pos = self.gs.predict_ball_pos(self.delta_time)
-            self.logger.debug("pos: {}".format(ball_pos))
-            self.logger.debug("dt: {}, new_pos: {}".format(self.delta_time, new_ball_pos))
+            # self.logger.debug("pos: {}".format(ball_pos))
+            # self.logger.debug("dt: {}, new_pos: {}".format(self.delta_time, new_ball_pos))
             # self.logger.debug("v: {}".format(self.gs.get_ball_velocity()))
             # self.logger.debug("Predicted Ball Location: %s", self.gs.predict_ball_pos(0))
             # self.logger.debug("Ball velocity: %s", self.gs.get_ball_velocity())
@@ -153,9 +161,6 @@ class Simulator(Provider):
             self.gs.update_robot_position(
                 team, robot_id, new_pos
             )
-            # charge capacitors according to commands
-            if robot_commands.is_charging:
-                robot_commands.simulate_charge(self.delta_time)
             # simulate dribbling as gravity zone
             if robot_commands.is_dribbling:
                 ball_pos = self.gs.get_ball_position()
@@ -180,5 +185,3 @@ class Simulator(Provider):
                         self.gs.get_robot_direction(team, robot_id)
                     new_pos = ball_pos + new_velocity * self.delta_time
                     self.put_fake_ball(new_pos, new_velocity)
-                robot_commands.charge_level = 0
-                robot_commands.is_kicking = False

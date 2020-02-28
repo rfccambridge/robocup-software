@@ -77,6 +77,8 @@ class GameState(Field, Analysis):
         # Refbox - the latest message delivered from the refbox
         # Contains all? relevant game status information such as time, events, goalie id, direction of play
         # See protocol: https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto
+
+        # DO NOT ACCESS THIS DIRECTLY ----- CALL self.get_latest_refbox_message()
         self.latest_refbox_message_string = None
         # TODO - functions to get data from refbox message?
         # Game status/events

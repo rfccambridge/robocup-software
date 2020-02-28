@@ -1,10 +1,9 @@
 import time
-import threading
 import numpy as np
 from collections import deque
 # import RobotCommands from the comms folder
 # (expected to run from root directory, use try/except if run from here)
-from comms import RobotCommands
+from comms import RobotCommands, RobotStatus
 
 # import parts of gamestate that we've separated out for readability
 # (they are actually just part of the same class)
@@ -52,6 +51,10 @@ class GameState(Field, Analysis):
         # Commands Data (desired robot actions) - updated by strategy
         self._blue_robot_commands = dict()  # Robot ID: commands object
         self._yellow_robot_commands = dict()  # Robot ID: commands object
+
+        # Status Info (robot sensory feedback) - update by comms/sim?
+        self._blue_robot_status = dict()  # Robot ID: status object
+        self._yellow_robot_status = dict()  # Robot ID: status object
 
         # UI Inputs - updated by visualizer
         self.viz_inputs = {
@@ -174,8 +177,11 @@ class GameState(Field, Analysis):
         team_positions = self.get_team_positions(team)
         del team_positions[robot_id]
         team_commands = self.get_team_commands(team)
-        if team_commands[robot_id]:
+        if robot_id in team_commands:
             del team_commands[robot_id]
+        team_status = self.get_team_status(team)
+        if robot_id in team_status:
+            del team_status[robot_id]
 
     def get_robot_last_update_time(self, team, robot_id):
         robot_positions = self.get_team_positions(team)
@@ -202,11 +208,24 @@ class GameState(Field, Analysis):
             assert(team == 'yellow')
             return self._yellow_robot_commands
 
+    def get_team_status(self, team):
+        if team == 'blue':
+            return self._blue_robot_status
+        else:
+            assert(team == 'yellow')
+            return self._yellow_robot_status
+
     def get_robot_commands(self, team, robot_id):
         team_commands = self.get_team_commands(team)
         if robot_id not in team_commands:
             team_commands[robot_id] = RobotCommands()
         return team_commands[robot_id]
+
+    def get_robot_status(self, team, robot_id):
+        team_status = self.get_team_status(team)
+        if robot_id not in team_status:
+            team_status[robot_id] = RobotStatus()
+        return team_status[robot_id]
 
     def robot_max_speed(self, team, robot_id):
         # in the future this could vary between teams/robots?

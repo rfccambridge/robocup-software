@@ -111,10 +111,6 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                 commands = self.gs.get_robot_commands(self._team, robot_id)
                 # apply simple commands
                 commands.is_charging = self.gs.viz_inputs['user_charge_command']
-                # estimate charging capacitor level according to commands
-                # TODO: replace this with firmware charge levels/feedback!
-                if commands.is_charging:
-                    commands.simulate_charge(self.delta_time)
                 commands.is_kicking = self.gs.viz_inputs['user_kick_command']
                 commands.is_dribbling = self.gs.viz_inputs['user_dribble_command']
                 # set goal pos to click location on visualization window

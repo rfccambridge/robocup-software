@@ -130,10 +130,7 @@ class Visualizer(Provider):
         pygame.quit()
         
     def run(self):
-        """Loop that powers the pygame visualization. Must be called from the main thread."""
-        # wait until game begins (while other threads are initializing)
-        time.sleep(0.05)
-        
+        """Loop that runs the pygame visualization."""
         # take user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -149,11 +146,9 @@ class Visualizer(Provider):
                 # charge while key down
                 if event.key == pygame.K_c:
                     self.gs.viz_inputs['user_charge_command'] = True
-                # kick only once
+                # kick while key down
                 if event.key == pygame.K_k:
                     self.gs.viz_inputs['user_kick_command'] = True
-                else:
-                    self.gs.viz_inputs['user_kick_command'] = False
                 # teleport while key down
                 if event.key == pygame.K_t:
                     self.gs.viz_inputs['teleport_selected_robot'] = True
@@ -161,6 +156,8 @@ class Visualizer(Provider):
                 # stop charging on release
                 if event.key == pygame.K_c:
                     self.gs.viz_inputs['user_charge_command'] = False
+                if event.key == pygame.K_k:
+                    self.gs.viz_inputs['user_kick_command'] = False
                 # stop teleporting on release
                 if event.key == pygame.K_t:
                     self.gs.viz_inputs['teleport_selected_robot'] = False
@@ -217,6 +214,7 @@ class Visualizer(Provider):
         self._viewer.fill(FIELD_COLOR)
         self.render()
         pygame.display.flip()
+        time.sleep(0.05)
 
     def select_ball(self):
         self.gs.viz_inputs['user_selected_ball'] = True
@@ -275,8 +273,9 @@ class Visualizer(Provider):
             ]) + pos[:2]
             self.draw_line(ROBOT_FRONT_COLOR, corner1, corner2, ROBOT_FRONT_LINE_WIDTH)
             robot_commands = self.gs.get_robot_commands(team, robot_id)
+            robot_status = self.gs.get_robot_status(team, robot_id)
             # draw charge level
-            charge = float(robot_commands.charge_level) / robot_commands.MAX_CHARGE_LEVEL
+            charge = float(robot_status.charge_level) / robot_status.MAX_CHARGE_LEVEL
             charge_end = np.array([pos[0], pos[1] + charge * self.gs.ROBOT_RADIUS])
             self.draw_line((255, 255, 255), pos, charge_end, 15)
             # draw dribbler zone if on

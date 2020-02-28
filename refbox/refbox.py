@@ -40,6 +40,7 @@ class RefboxClient:
             raise ValueError('Port type should be int type')
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.sock.settimeout(0.1)
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, pack("=4sl", socket.inet_aton(self.ip), socket.INADDR_ANY))
         self.sock.bind((self.ip, self.port))
 
@@ -49,6 +50,9 @@ class RefboxClient:
 
         Returns:
             SSL_Referee: The protobuf message from the refbox
+        
+        Raises:
+            socket.timeout exception if no packets are received
         """
         data, _ = self.sock.recvfrom(1024)
         decoded_data = SSL_Referee.FromString(data)
@@ -79,8 +83,6 @@ class RefboxDataProvider(Provider):
         self._receive_data_thread = None
         self._ip = ip
         self._port = port
-        self._latest_packet = None
-
         self._owned_fields = ['latest_refbox_message']
 
     def pre_run(self):
@@ -94,12 +96,6 @@ class RefboxDataProvider(Provider):
         except Exception:
             self.logger.exception("failed to connect to refbox")
             raise
-        # Receive data thread - TODO: is threading really needed?
-        self._receive_data_thread = threading.Thread(
-            target=self.receive_data_loop
-        )
-        self._receive_data_thread.daemon = True
-        self._receive_data_thread.start()
 
     def post_run(self):
         """
@@ -109,20 +105,11 @@ class RefboxDataProvider(Provider):
             self._client.disconnect()
         self._client = None
 
-        if self._receive_data_thread:
-            self._receive_data_thread.join()
-        self._receive_data_thread = None
-        self._latest_packet = None
-
-    def receive_data_loop(self):
+    def run(self):
         """
         A loop to receive the latest packets.
         """
-        while self._client is not None:
-            self._latest_packet = self._client.receive()
-
-    def gamestate_update_loop(self):
-        """
-        A loop to update the gamestate with the latest packets
-        """
-        self.gs.latest_refbox_message = self._latest_packet
+        try:
+            self.gs.latest_refbox_message = self._client.receive()
+        except socket.timeout:
+            pass

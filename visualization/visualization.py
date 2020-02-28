@@ -308,7 +308,6 @@ class Visualizer(Provider):
         # Draw ball
         ball_pos = self.gs.get_ball_position()
         t = self.gs.get_ball_last_update_time()
-        self.logger.debug("dt ball: {}".format(time.time() - t if t is not None else 0))
         
         if not self.gs.is_ball_lost():
             # draw where the best position is to kick towards the mouse.

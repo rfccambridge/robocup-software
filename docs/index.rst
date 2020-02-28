@@ -85,6 +85,11 @@ Visualization Module
    :maxdepth: 2
    :caption: Contents:
 
+Coach Module
+===================
+
+.. automodule:: strategy.coaches.coach.Coach
+   :members:
 
 
 Indices and tables

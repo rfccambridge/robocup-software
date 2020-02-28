@@ -1,6 +1,9 @@
 # Refbox
 ssl-refbox
 
+# Emacs stuff
+\#*
+
 # MAC
 *.DS_Store
 *.log

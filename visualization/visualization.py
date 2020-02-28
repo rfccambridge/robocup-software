@@ -130,10 +130,7 @@ class Visualizer(Provider):
         pygame.quit()
         
     def run(self):
-        """Loop that powers the pygame visualization. Must be called from the main thread."""
-        # wait until game begins (while other threads are initializing)
-        time.sleep(0.05)
-        
+        """Loop that runs the pygame visualization."""
         # take user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -217,6 +214,7 @@ class Visualizer(Provider):
         self._viewer.fill(FIELD_COLOR)
         self.render()
         pygame.display.flip()
+        time.sleep(0.05)
 
     def select_ball(self):
         self.gs.viz_inputs['user_selected_ball'] = True

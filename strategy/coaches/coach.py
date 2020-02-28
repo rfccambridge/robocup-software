@@ -44,9 +44,9 @@ class Coach(object):
         return self._strategy._team == 'yellow'
 		
     def play(self):
-        if self._gs.latest_refbox_message_string is None:
-            return
-        self._command_dict[self._gs.latest_refbox_message.command]
+        latest_refbox_message = self.gs.get_latest_refbox_message()
+        if latest_refbox_message:
+            self._command_dict[latest_refbox_message.command]
 
     def halt(self):
         self.logger.info("HALT CALLED")

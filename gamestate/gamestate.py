@@ -87,6 +87,24 @@ class GameState(Field, Analysis):
         else:
             return 'blue'
 
+    # helper for parsing info stored in refbox message
+    def get_team_info(self, team):
+        if team == 'blue':
+            return self.latest_refbox_message.blue
+        else:
+            return self.latest_refbox_message.yellow
+
+    def get_goalie_id(self, team):
+        return self.get_team_info(team).goalie
+
+    def is_goalie(self, team, robot_id):
+        return True
+        # return robot_id == self.get_goalie_id(team)
+
+    def is_blue_defense_side_left(self):
+        return self.is_blue_defense_side_left
+        # return not self.latest_refbox_message.blueTeamOnPositiveHalf
+
     # RAW DATA GET/SET FUNCTIONS
     # returns position ball was last seen at, or (0, 0) if unseen
     def get_ball_position(self):
@@ -129,11 +147,6 @@ class GameState(Field, Analysis):
     def get_robot_ids(self, team):
         robot_positions = self.get_team_positions(team)
         return tuple(robot_positions.keys())
-
-    # TODO write a "is_goalie(self, team, robot_id)" function to determine
-    # whether the robot of interest is a goalie.
-    def is_goalie(self, team, robot_id):
-        return False
 
     # returns position robot was last seen at
     def get_robot_position(self, team, robot_id):

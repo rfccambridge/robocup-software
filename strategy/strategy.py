@@ -67,6 +67,9 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             self.logger.info("default strategy for playing a full game")
 
     def run(self):
+        ref = self.gs.get_latest_refbox_message()
+        if ref is not None:
+            self.logger.info(f"Stage: {ref.stage} Command: {ref.command}")
         # run the strategy corresponding to the given mode
         if self._mode == "UI":
             self.UI()

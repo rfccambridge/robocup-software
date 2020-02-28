@@ -79,7 +79,8 @@ class GameState(Field, Analysis):
         # See protocol: https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto
 
         # DO NOT ACCESS THIS DIRECTLY ----- CALL self.get_latest_refbox_message()
-        self.latest_refbox_message_string = None
+        # Initialize to a default message for when we do not care about the refbox
+        self._latest_refbox_message_string = b'\x08\x8f\xbb\xb7\x83\x86\xf5\xe7\x02\x10\r \x00(\x010\x9e\xb6\xe3\x9b\x82\xf5\xe7\x02:\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00B\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00P\x00'
         # TODO - functions to get data from refbox message?
         # Game status/events
         self.game_clock = None
@@ -93,22 +94,32 @@ class GameState(Field, Analysis):
     # helper for parsing info stored in refbox message
     def get_team_info(self, team):
         if team == 'blue':
-            return self.latest_refbox_message.blue
+            return self.get_latest_refbox_message().blue
         else:
-            return self.latest_refbox_message.yellow
+            return self.get_latest_refbox_message().yellow
 
     def get_goalie_id(self, team):
         return self.get_team_info(team).goalie
 
     def is_goalie(self, team, robot_id):
-        return True
-        # return robot_id == self.get_goalie_id(team)
+        return robot_id == self.get_goalie_id(team)
 
     def is_blue_defense_side_left(self):
-        return True
-        # return not self.latest_refbox_message.blueTeamOnPositiveHalf
+        return not self.get_latest_refbox_message().blueTeamOnPositiveHalf
 
     # RAW DATA GET/SET FUNCTIONS
+    # returns latest refbox message
+    def get_latest_refbox_message(self):
+        if self._latest_refbox_message_string is None:
+            raise Exception("Refbox message must be populated")
+        refbox_message = SSL_Referee()
+        refbox_message.ParseFromString(self._latest_refbox_message_string)
+        # print(f"{self._latest_refbox_message_string}\n")
+        return refbox_message
+
+    def set_latest_refbox_message(self, message):
+        self._latest_refbox_message_string = message
+
     # returns position ball was last seen at, or (0, 0) if unseen
     def get_ball_position(self):
         if len(self._ball_position) == 0:
@@ -116,13 +127,6 @@ class GameState(Field, Analysis):
             return np.array([0, 0])
         timestamp, pos = self._ball_position[0]
         return pos
-
-    def get_latest_refbox_message(self):
-        if self.latest_refbox_message_string is None:
-            return None
-        refbox_mesasge = SSL_Referee()
-        refbox_mesasge.ParseFromString(self.latest_refbox_message_string)
-        return refbox_mesasge
 
     def clear_ball_position(self):
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)

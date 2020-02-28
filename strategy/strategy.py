@@ -102,7 +102,6 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def UI(self):
         #self.logger.info("ball_position: {}".format(self.gs.get_ball_position()))
         t = self.gs.get_ball_last_update_time()
-        self.logger.debug("dt ball: {}".format(time.time() - t if t is not None else 0))
                           
         if self.gs.viz_inputs['user_selected_robot'] is not None:
             team, robot_id = self.gs.viz_inputs['user_selected_robot']

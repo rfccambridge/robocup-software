@@ -109,7 +109,8 @@ class RefboxDataProvider(Provider):
             self._client.disconnect()
         self._client = None
 
-        self._receive_data_thread.join()
+        if self._receive_data_thread:
+            self._receive_data_thread.join()
         self._receive_data_thread = None
         self._latest_packet = None
 

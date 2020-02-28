@@ -18,9 +18,13 @@ class Simulator(Provider):
         self._initial_setup = initial_setup
         self._viz_events_handled = 0
         self._owned_fields = [
+            # act as vision provider
             '_ball_position',
             '_blue_robot_positions',
-            '_yellow_robot_positions'
+            '_yellow_robot_positions',
+            # also act as robot feedback
+            '_blue_robot_status',
+            '_yellow_robot_status',
         ]
 
     def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
@@ -155,6 +159,7 @@ class Simulator(Provider):
 
         for (team, robot_id), robot_commands in \
                 self.gs.get_all_robot_commands():
+            robot_status = self.gs.get_robot_status(team, robot_id)
             # move robots according to commands
             pos = self.gs.get_robot_position(team, robot_id)
             new_pos = robot_commands.predict_pos(pos, self.delta_time)
@@ -177,11 +182,18 @@ class Simulator(Provider):
                     new_pos = ball_pos + total_velocity * self.delta_time
                     new_pos -= self.gs.robot_ball_overlap(robot_pos, new_pos)
                     self.put_fake_ball(new_pos)
+            # simulate charging
+            if robot_commands.is_charging:
+                robot_status.simulate_charge(self.delta_time)
             # kick according to commands
             if robot_commands.is_kicking:
                 if self.gs.ball_in_dribbler(team, robot_id):
                     ball_pos = self.gs.get_ball_position()
-                    new_velocity = robot_commands.kick_velocity() * \
+                    # (hacky) offset it outside the robot radius
+                    kick_direction = self.gs.get_robot_direction(team, robot_id)
+                    ball_pos += kick_direction * 40
+                    new_velocity = robot_status.kick_velocity() * \
                         self.gs.get_robot_direction(team, robot_id)
                     new_pos = ball_pos + new_velocity * self.delta_time
                     self.put_fake_ball(new_pos, new_velocity)
+                robot_status.simulate_kick()

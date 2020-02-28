@@ -49,31 +49,32 @@ class Coach(object):
         self._command_dict[self._gs.latest_refbox_message.command]
 
     def halt(self):
-        raise NotImplementedError
+        self.logger.info("HALT CALLED")
 
     def stop(self):
-        raise NotImplementedError
+        self.logger.info("STOP CALLED")
 
     def force_start(self):
-        raise NotImplementedError
+        self.logger.info("FORCE START CALLED")
 
     def kickoff(self):
+        self.logger.info("KICKOFF CALLED")
         self._strategy.kickoff()
 
     def defend_kickoff(self):
-        raise NotImplementedError
+        self.logger.info("DEFEND KICKOFF CALLED")
 
     def penalty(self):
-        raise NotImplementedError
+        self.logger.info("PK CALLED")
 
     def defend_penalty(self):
-        raise NotImplementedError
+        self.logger.info("DEFEND PK CALLED")
 
     def direct_free(self):
-        raise NotImplementedError
+        self.logger.info("FREE KICK CALLED")
 
     def defend_direct_free(self):
-        raise NotImplementedError
+        self.logger.info("DEFEND FREE KICK CALLED")
 
     def indirect_free(self):
         raise NotImplementedError
@@ -82,7 +83,7 @@ class Coach(object):
         raise NotImplementedError
 
     def timeout(self):
-        raise NotImplementedError
+        self.logger.info("TIMEOUT CALLED")
 
     def goal(self):
         self.logger.warning('GOOOOOOOOOOOOOOOOOAAAAAAAAAAALLLLLLLLLLLLLLL')

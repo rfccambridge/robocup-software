@@ -5,6 +5,8 @@ from collections import deque
 # (expected to run from root directory, use try/except if run from here)
 from comms import RobotCommands, RobotStatus
 
+
+from refbox import SSL_Referee
 # import parts of gamestate that we've separated out for readability
 # (they are actually just part of the same class)
 try:
@@ -75,7 +77,7 @@ class GameState(Field, Analysis):
         # Refbox - the latest message delivered from the refbox
         # Contains all? relevant game status information such as time, events, goalie id, direction of play
         # See protocol: https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto
-        self.latest_refbox_message = None
+        self.latest_refbox_message_string = None
         # TODO - functions to get data from refbox message?
         # Game status/events
         self.game_clock = None
@@ -95,6 +97,9 @@ class GameState(Field, Analysis):
             return np.array([0, 0])
         timestamp, pos = self._ball_position[0]
         return pos
+
+    def get_latest_refbox_message(self):
+        return SSL_Referee.ParseFromString(self.latest_refbox_message_string)
 
     def clear_ball_position(self):
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)

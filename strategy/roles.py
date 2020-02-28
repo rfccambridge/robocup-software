@@ -52,18 +52,21 @@ class Roles:
         team = self._team
         # Shooting velocity
         shoot_velocity = 1200
+        goal = self._gs.get_attack_goal(team)
+        center_of_goal = (goal[0] + goal[1]) / 2
         # TODO: Movement and receive ball
         # Shoots if has the ball
         if self.gs.ball_in_dribbler(team, robot_id):
             if self.within_shooting_range(team, robot_id):
-                goal = self.gs.get_attack_goal(team)
-                center_of_goal = (goal[0] + goal[1]) / 2
                 self.prepare_and_kick(robot_id, center_of_goal, shoot_velocity)
             else:
                 pass
         else:
-            if self.gs.is_pos_legal(self.gs.get_ball_position(), team, robot_id):
+            ball_pos = self._gs.get_ball_position()
+            if self._gs.is_pos_legal(ball_pos, team, robot_id) and np.linalg.norm(ball_pos - center_of_goal) < 2000:
                 self.get_ball(robot_id, charge_during=shoot_velocity)
+            else:
+                self.path_find(robot_id, self.find_attacker_pos(robot_id))
 
     def defender(self, robot_id):
         currPos = self.gs.get_robot_position(self._team, robot_id)[0:2]

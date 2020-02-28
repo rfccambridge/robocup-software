@@ -13,7 +13,7 @@ try:
     from roles import Roles
     from plays import Plays
     from coaches import *
-except (SystemError, ImportError):
+except (SystemError, ImportError, ModuleNotFoundError):
     from .utils import Utils
     from .actions import Actions
     from .routines import Routines

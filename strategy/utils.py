@@ -21,6 +21,7 @@ class Utils:
         current_pos = self.gs.get_robot_position(self._team, robot_id)
         commands = self.gs.get_robot_commands(self._team, robot_id)
         for i, p in enumerate(waypoints):
+            # print(p)
             assert(len(p) == 2 or len(p) == 3)
             if len(p) == 2:
                 waypoints[i] = np.array([p[0], p[1], None])

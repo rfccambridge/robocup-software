@@ -12,7 +12,7 @@ class Coach(object):
         
         Args:
             strategy (strategy.Strategy): Strategy object that the Coach should
-            run
+            run, 
         """
         self._strategy = strategy
         self.logger = strategy.logger

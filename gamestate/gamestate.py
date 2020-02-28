@@ -174,7 +174,8 @@ class GameState(Field, Analysis):
         team_positions = self.get_team_positions(team)
         del team_positions[robot_id]
         team_commands = self.get_team_commands(team)
-        del team_commands[robot_id]
+        if team_commands[robot_id]:
+            del team_commands[robot_id]
 
     def get_robot_last_update_time(self, team, robot_id):
         robot_positions = self.get_team_positions(team)

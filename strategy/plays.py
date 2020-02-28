@@ -6,6 +6,9 @@ class Plays:
         # we tell robot 0 to follow our goalie function from roles.py
         self.goalie(1)
         # TODO: tell other robots to go to starting lineup
+    
+    def reset_game(self):
+        raise NotImplementedError
 
 
     def timeout(self) -> None:

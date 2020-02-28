@@ -110,6 +110,6 @@ class RefboxDataProvider(Provider):
         A loop to receive the latest packets.
         """
         try:
-            self.gs.set_latest_refbox_message(self._client.receive().SerializeToString())
+            self.gs.update_latest_refbox_message(self._client.receive().SerializeToString())
         except socket.timeout:
             pass

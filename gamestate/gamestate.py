@@ -117,7 +117,7 @@ class GameState(Field, Analysis):
         # print(f"{self._latest_refbox_message_string}\n")
         return refbox_message
 
-    def set_latest_refbox_message(self, message):
+    def update_latest_refbox_message(self, message):
         self._latest_refbox_message_string = message
 
     # returns position ball was last seen at, or (0, 0) if unseen

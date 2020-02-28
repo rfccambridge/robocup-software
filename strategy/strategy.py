@@ -54,6 +54,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             - Click or 'b' to select
             - Click to place (drag for speed)
             """)
+            self.logger.info("NOT RUNNING SYSTEMANICALLY")
         if self._mode == "entry_video":
             self.logger.info("2020 Registration Video Procedure!")
             self.video_phase = 1
@@ -69,7 +70,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def run(self):
         ref = self.gs.get_latest_refbox_message()
         if ref is not None:
-            self.logger.info(f"Stage: {ref.stage} Command: {ref.command}")
+            self.logger.debug(f"Stage: {ref.stage} Command: {ref.command}")
         # run the strategy corresponding to the given mode
         if self._mode == "UI":
             self.UI()

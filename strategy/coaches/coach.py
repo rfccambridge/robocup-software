@@ -5,7 +5,9 @@ from refbox import SSL_Referee
 
 class Coach(object):
     """Coach class that takes in the Strategy class and assembles together high
-    level commands."""
+    level commands. 
+    See https://robocup-ssl.github.io/ssl-rules/sslrules.html#_referee_commands """
+
     def __init__(self, strategy) -> None:
         """Coach class initialization with a strategy that the coach should
         oversee. 
@@ -16,7 +18,7 @@ class Coach(object):
         """
         self._strategy = strategy
         self.logger = strategy.logger
-        self._gs = strategy._gs
+        self.gs = strategy.gs
         self._command_dict = {
             SSL_Referee.HALT: self.halt,
             SSL_Referee.STOP: self.stop,
@@ -44,12 +46,14 @@ class Coach(object):
         return self._strategy._team == 'yellow'
 		
     def play(self):
+        self.logger.debug("Play was called")
         latest_refbox_message = self.gs.get_latest_refbox_message()
         if latest_refbox_message:
-            self._command_dict[latest_refbox_message.command]
+            self._command_dict[latest_refbox_message.command]()
 
     def halt(self):
         self.logger.info("HALT CALLED")
+        self._strategy.halt()
 
     def stop(self):
         self.logger.info("STOP CALLED")
@@ -63,6 +67,7 @@ class Coach(object):
 
     def defend_kickoff(self):
         self.logger.info("DEFEND KICKOFF CALLED")
+        self._strategy.move_randomly()
 
     def penalty(self):
         self.logger.info("PK CALLED")

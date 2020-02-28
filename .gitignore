@@ -1,5 +1,9 @@
+# Refbox
+ssl-refbox
+
 # MAC
 *.DS_Store
+*.log
 
 # Python
 *.pyc

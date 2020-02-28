@@ -159,7 +159,7 @@ class RobotCommands:
         if not direction.any():
             return
         epsilon = 1
-        waypoint = pos[:2] - direction / np.linalg.norm(direction) * epsilon
+        waypoint = pos[:2] - (direction / np.linalg.norm(direction)) * epsilon
         waypoint = np.array([waypoint[0], waypoint[1], pos[2]])
         self.append_waypoint(waypoint, current_position)
         self.append_waypoint(pos, current_position)
@@ -230,7 +230,7 @@ class RobotCommands:
     # use the waypoints to calculate desired speeds from robot perspective
     def derive_speeds(self, current_position):
         if not self.waypoints:
-            self.set_speeds(0, 0, 0)
+            #self.set_speeds(0, 0, 0)
             return
         og_x, og_y, og_w = current_position
         if self._prev_waypoint is None:

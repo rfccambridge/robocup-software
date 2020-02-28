@@ -8,6 +8,7 @@ class Coach(object):
     level commands."""
     def __init__(self, strategy) -> None:
         self._strategy = strategy
+        self.logger = strategy.logger
         self._gs = strategy._gs
         self._command_dict = {
             SSL_Referee.HALT: self.halt,
@@ -36,9 +37,9 @@ class Coach(object):
         return self._strategy._team == 'yellow'
 		
     def play(self):
-        if self._gs.refbox_msg is None:
+        if self._gs.latest_refbox_message is None:
             return
-        self._command_dict[self._gs.refbox_msg.command]
+        self._command_dict[self._gs.latest_refbox_message.command]
 
     def halt(self):
         raise NotImplementedError
@@ -77,10 +78,10 @@ class Coach(object):
         raise NotImplementedError
 
     def goal(self):
-        print('wooohooo')
+        self.logger.warning('GOOOOOOOOOOOOOOOOOAAAAAAAAAAALLLLLLLLLLLLLLL')
     
     def defend_goal(self):
-        print('8(')
+        self.logger.warning('RIP')
 
     def ball_placement(self):
         raise NotImplementedError

@@ -28,7 +28,7 @@ python3 main.py --help
 
 If you are just getting started with developing our software, likely you will want to run:
 ```bash
-python3 main.py --simulate --no_refbox
+python3 main.py --simulate --no_refbox --debug
 ```
 If running with vision (i.e not using the simulator), ssl-vision must be running
 https://docs.google.com/document/d/1i-Pybv2wBhN23FT94PiGMyX6yAJglqeaCds62TX8-7o/edit

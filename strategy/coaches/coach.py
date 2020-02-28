@@ -7,6 +7,13 @@ class Coach(object):
     """Coach class that takes in the Strategy class and assembles together high
     level commands."""
     def __init__(self, strategy) -> None:
+        """Coach class initialization with a strategy that the coach should
+        oversee. 
+        
+        Args:
+            strategy (strategy.Strategy): Strategy object that the Coach should
+            run
+        """
         self._strategy = strategy
         self.logger = strategy.logger
         self._gs = strategy._gs

@@ -83,7 +83,6 @@ class GameState(Field, Analysis):
         # TODO - functions to get data from refbox message?
         # Game status/events
         self.game_clock = None
-        self.is_blue_defense_side_left = True
 
     def other_team(self, team):
         if team == 'blue':
@@ -106,7 +105,7 @@ class GameState(Field, Analysis):
         # return robot_id == self.get_goalie_id(team)
 
     def is_blue_defense_side_left(self):
-        return self.is_blue_defense_side_left
+        return True
         # return not self.latest_refbox_message.blueTeamOnPositiveHalf
 
     # RAW DATA GET/SET FUNCTIONS

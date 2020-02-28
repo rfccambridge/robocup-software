@@ -101,7 +101,9 @@ class GameState(Field, Analysis):
     def get_latest_refbox_message(self):
         if self.latest_refbox_message_string is None:
             return None
-        return SSL_Referee.ParseFromString(self.latest_refbox_message_string)
+        refbox_mesasge = SSL_Referee()
+        refbox_mesasge.ParseFromString(self.latest_refbox_message_string)
+        return refbox_mesasge
 
     def clear_ball_position(self):
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)

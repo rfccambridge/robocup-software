@@ -26,11 +26,11 @@ except (SystemError, ImportError, ModuleNotFoundError):
 class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     """Control loop for playing the game. Calculate desired robot actions,
        and enters commands into gamestate to be sent by comms"""
-    def __init__(self, team, mode):
+    def __init__(self, team, strategy_name):
         super().__init__()
         assert(team in ['blue', 'yellow'])
         self._team = team
-        self._mode = mode
+        self._strategy_name = strategy_name
         self._owned_fields = ['_blue_robot_commands', '_yellow_robot_commands']
 
         # state for reducing frequency of expensive calls
@@ -40,9 +40,9 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def pre_run(self):
         # print info + initial state for the mode that is running
         self.logger.info("\nRunning strategy for {} team, mode: {}".format(
-            self._team, self._mode
+            self._team, self._strategy_name
         ))
-        if self._mode == "UI":
+        if self._strategy_name == "UI":
             self.logger.info("""
             Using UI Controls!
             Robots:
@@ -54,33 +54,37 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             - Click or 'b' to select
             - Click to place (drag for speed)
             """)
-        if self._mode == "entry_video":
+            self.logger.info("NOT RUNNING SYSTEMANICALLY")
+        if self._strategy_name == "entry_video":
             self.logger.info("2020 Registration Video Procedure!")
             self.video_phase = 1
-        if self._mode == "goalie_test":
+        if self._strategy_name == "goalie_test":
             self._goalie_id = None
-        if self._mode == "attacker_test":
+        if self._strategy_name == "attacker_test":
             self._attacker_id = None
-        if self._mode == "defender_test":
+        if self._strategy_name == "defender_test":
             self._defender_id = None
-        if self._mode == "full_game":
+        if self._strategy_name == "full_game":
             self.logger.info("default strategy for playing a full game")
 
     def run(self):
+        ref = self.gs.get_latest_refbox_message()
+        if ref is not None:
+            self.logger.debug(f"Stage: {ref.stage} Command: {ref.command}")
         # run the strategy corresponding to the given mode
-        if self._mode == "UI":
+        if self._strategy_name == "UI":
             self.UI()
-        elif self._mode == "goalie_test":
+        elif self._strategy_name == "goalie_test":
             self.goalie_test()
-        elif self._mode == "attacker_test":
+        elif self._strategy_name == "attacker_test":
             self.attacker_test()
-        elif self._mode == "defender_test":
+        elif self._strategy_name == "defender_test":
             self.defender_test()
-        elif self._mode == "entry_video":
+        elif self._strategy_name == "entry_video":
             self.entry_video()
-        elif self._mode == "random_robot":
+        elif self._strategy_name == "random_robot":
             self.random_robot_test()
-        elif self._mode == "full_game":
+        elif self._strategy_name == "full_game":
             self.full_game()
         else:
             # self.logger.exception('(unrecognized mode, doing nothing)')
@@ -102,7 +106,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def UI(self):
         #self.logger.info("ball_position: {}".format(self.gs.get_ball_position()))
         t = self.gs.get_ball_last_update_time()
-                          
+
         if self.gs.viz_inputs['user_selected_robot'] is not None:
             team, robot_id = self.gs.viz_inputs['user_selected_robot']
             # self.logger.info(self.gs.ball_in_dribbler(team, robot_id))

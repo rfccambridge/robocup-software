@@ -58,7 +58,7 @@ class Simulator(Provider):
             for i in range(1, 7):
                 left_pos = np.array([-3000, 200 * (i - 3.5), 0])
                 right_pos = np.array([3000, 200 * (i - 3.5), 3.14])
-                if self.gs.is_blue_defense_side_left:
+                if self.gs.is_blue_defense_side_left():
                     blue_pos = left_pos
                     yellow_pos = right_pos
                 else:

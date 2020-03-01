@@ -7,16 +7,15 @@ class Roles:
     def get_behind_ball(self):
         ball_pos = self.gs.get_ball_position()
         # TODO, and move to routines!
-    
+
     def random_robot(self, robot_id):
-        if self.is_done_moving(robot_id): 
+        if self.is_done_moving(robot_id):
             pos = self.gs.get_robot_position(self._team, robot_id)
             stepsize = 1000
             random_movement = np.array([(random() - 0.5) * stepsize,
                                         (random() - 0.5) * stepsize,
                                         0])
             self.move_straight(robot_id, pos + random_movement)
-        
 
     def goalie(self, robot_id, is_opposite_goal=False):
         """Commands a given robot id to play as goalie"""
@@ -52,7 +51,7 @@ class Roles:
         team = self._team
         # Shooting velocity
         shoot_velocity = 1200
-        goal = self._gs.get_attack_goal(team)
+        goal = self.gs.get_attack_goal(team)
         center_of_goal = (goal[0] + goal[1]) / 2
         # TODO: Movement and receive ball
         # Shoots if has the ball
@@ -62,17 +61,21 @@ class Roles:
             else:
                 pass
         else:
-            ball_pos = self._gs.get_ball_position()
-            if self._gs.is_pos_legal(ball_pos, team, robot_id) and np.linalg.norm(ball_pos - center_of_goal) < 2000:
+            ball_pos = self.gs.get_ball_position()
+            if self.gs.is_pos_legal(ball_pos, team, robot_id) and np.linalg.norm(ball_pos - center_of_goal) < 2000:
                 self.get_ball(robot_id, charge_during=shoot_velocity)
             else:
                 self.path_find(robot_id, self.find_attacker_pos(robot_id))
 
     def defender(self, robot_id):
+        ball_pos = self.gs.get_ball_position()
         currPos = self.gs.get_robot_position(self._team, robot_id)[0:2]
         goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
         goal_center = (goal_top + goal_bottom) / 2
         maxDistance = np.linalg.norm(currPos - goal_center)
-        interceptPos = self.block_goal_center_pos(maxDistance, ball_pos=None, team=self._team)
+        interceptPos = self.block_goal_center_pos(maxDistance, ball_pos, team=self._team)
         if len(interceptPos) != 0:
+            print(f"{goal_center}, {ball_pos}, {currPos}")
+            distance = self.distance_from_line(goal_center, ball_pos)
+            self.logger.debug(f"{distance}")
             self.move_straight(robot_id, interceptPos)

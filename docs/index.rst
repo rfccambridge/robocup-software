@@ -23,10 +23,10 @@ Gamestate Module
 .. automodule:: gamestate.gamestate
    :members:
 
-.. automodule:: gamestate.field
+.. automodule:: gamestate.gamestate_field
    :members:
 
-.. automodule:: gamestate.analysis
+.. automodule:: gamestate.gamestate_analysis
    :members:
 
 Refbox Module

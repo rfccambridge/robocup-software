@@ -86,6 +86,7 @@ if __name__ == '__main__':
     print(f'Running in simulator mode: {IS_SIMULATION}')
     print(f'Running in no radio mode: {NO_RADIO}')
     print(f'Running in no refbox mode: {NO_REFBOX}')
+    print(f'Open cutelog separately to see logging!')
 
     # Initialize providers and pass to coordinator
     providers = []

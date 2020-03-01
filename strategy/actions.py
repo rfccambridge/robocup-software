@@ -63,6 +63,11 @@ class Actions:
         commands = self.gs.get_robot_commands(self._team, robot_id)
         commands.is_dribbling = is_dribbling
 
+    def stop(self, robot_id: int):
+         commands = self.gs.get_robot_commands(self._team, robot_id)
+         commands.set_speeds(0, 0, 0)
+         commands.clear_waypoints()
+
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id: int, goal_pos: Tuple[float, float, float], is_urgent=False):
         self.set_waypoints(robot_id, [goal_pos], is_urgent)

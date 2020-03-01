@@ -5,6 +5,7 @@ import traceback
 import logging
 from logging.handlers import SocketHandler
 import signal
+import sys
 import time
 from queue import Empty, Full
 
@@ -108,6 +109,7 @@ class Provider(object):
         except Exception as e:
             traceback.print_exc()
             self.logger.error(e, exc_info=True)
+            print("(See Logger for more info)")
 
         self.post_run()
         self.destroy()
@@ -243,6 +245,7 @@ class Coordinator(object):
         This should only be called from self.start_game()
         """
         while not self.stop_event.is_set():
+            sys.stdout.flush()
             self.publish_new_gamestate()
             for provider in self.providers:
                 self.get_data_from_provider(provider)

@@ -83,7 +83,7 @@ class RefboxDataProvider(Provider):
         self._receive_data_thread = None
         self._ip = ip
         self._port = port
-        self._owned_fields = ['latest_refbox_message_string']
+        self._owned_fields = ['_latest_refbox_message_string']
 
     def pre_run(self):
         """
@@ -110,6 +110,6 @@ class RefboxDataProvider(Provider):
         A loop to receive the latest packets.
         """
         try:
-            self.gs.latest_refbox_message_string = self._client.receive().SerializeToString()
+            self.gs.update_latest_refbox_message(self._client.receive().SerializeToString())
         except socket.timeout:
             pass

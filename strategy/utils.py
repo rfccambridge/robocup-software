@@ -12,9 +12,9 @@ class Utils:
         commands = self.gs.get_robot_commands(self._team, robot_id)
         commands.set_speeds(x, y, w)
 
-    def set_waypoints(self, 
-        robot_id: int, 
-        waypoints: List[Tuple[float, float]], 
+    def set_waypoints(self,
+        robot_id: int,
+        waypoints: List[Tuple[float, float]],
         is_urgent: bool = False
     ) -> None:
         """format + insert list of waypoints into robot commands"""
@@ -75,3 +75,11 @@ class Utils:
     def robot_face_ball(self, robot_id: int) -> float:
         """Return angle from robot to ball"""
         return self.robot_face_pos(robot_id, self.gs.get_ball_position())
+
+    def distance_from_line(start: Tuple[float, float], end: Tuple[float, float], point: Tuple[float, float]):
+        start_x, start_y = start
+        end_x, end_y = end
+        p_x, p_y = point
+        dx, dy = end - start
+        distance = abs((-dy * p_x + dx * p_y - start_y * dx + start_x * dy)/np.linalg.norm(end-start))
+        return distance

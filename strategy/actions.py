@@ -3,9 +3,11 @@ import time
 from typing import Iterable, Optional, List, Tuple
 
 
-# Definitions + supporting logic for simple robot actions
-# (have a single step/end condition, return True when done)
 class Actions:
+    """
+    Definitions + supporting logic for simple robot actions
+    (have a single step/end condition, return True when done)
+    """
     def pivot_with_ball_speeds(self, robot_id, face_pos: Tuple[float, float]) -> bool:
         """Move robot around ball without losing possession"""
         ball_pos = self.gs.get_ball_position()

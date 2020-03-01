@@ -22,6 +22,7 @@ class Coach(object):
         self._command_dict = {
             SSL_Referee.HALT: self.halt,
             SSL_Referee.STOP: self.stop,
+            SSL_Referee.NORMAL_START: self.force_start,
             SSL_Referee.FORCE_START: self.force_start,
             SSL_Referee.PREPARE_KICKOFF_YELLOW: self.kickoff if self.is_yellow() else self.defend_kickoff,
             SSL_Referee.PREPARE_KICKOFF_BLUE: self.kickoff if self.is_blue() else self.defend_kickoff,
@@ -78,8 +79,10 @@ class Coach(object):
     def direct_free(self):
         self.logger.info("FREE KICK CALLED")
 
+
     def defend_direct_free(self):
         self.logger.info("DEFEND FREE KICK CALLED")
+        self._strategy.form_wall(3)
 
     def indirect_free(self):
         raise NotImplementedError

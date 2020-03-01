@@ -6,22 +6,37 @@ from typing import Iterable, Optional, List, Tuple
 # Definitions + supporting logic for simple robot actions
 # (have a single step/end condition, return True when done)
 class Actions:
+    def pivot_with_ball_speeds(self, robot_id, face_pos: Tuple[float, float]) -> bool:
+        """Move robot around ball without losing possession"""
+        ball_pos = self.gs.get_ball_position()
+        kick_pos = self.best_kick_pos(ball_pos, face_pos)
+        robot_pos = self.gs.get_robot_position(self._team, robot_id)
+        angle = self.wrap_pi(kick_pos[2] - robot_pos[2])
+
+        step = 100
+        astep = 1
+
+        vel = np.cross(ball_pos - robot_pos[0:2], [0,0,1])
+        vel = step * vel * np.sign(angle) / np.linalg.norm(vel)
+        print(vel)
+        self.set_speeds(robot_id, vel[0], vel[1], np.sign(angle) * astep)
+
     def pivot_with_ball(self, robot_id, face_pos: Tuple[float, float]) -> bool:
         """Move robot around ball without losing possession"""
-        ball_pos = self._gs.get_ball_position()
+        ball_pos = self.gs.get_ball_position()
         kick_pos = self.best_kick_pos(ball_pos, face_pos)
-        robot_pos = self._gs.get_robot_position(self._team, robot_id)
+        robot_pos = self.gs.get_robot_position(self._team, robot_id)
         # pivot gradually towards kicking position
         dw = self.wrap_pi(kick_pos[2] - robot_pos[2])
         turn_increment = dw / 3
         min_turn_increment = .05
         turn_increment += min_turn_increment / (dw / abs(dw))
         angle = robot_pos[2] + turn_increment
-        waypoint = self._gs.dribbler_to_robot_pos(ball_pos, angle)
-        self.set_waypoints(robot_id, [waypoint])
+        waypoint = self.gs.dribbler_to_robot_pos(ball_pos, angle)
+        self.set_waypoints(robot_id, [waypoint], is_urgent=False)
         remaining_error = abs(self.wrap_pi(robot_pos[2] - kick_pos[2]))
         if remaining_error < min_turn_increment and \
-           self._gs.ball_in_dribbler(self._team, robot_id):
+           self.gs.ball_in_dribbler(self._team, robot_id):
             return True
         else:
             return False
@@ -29,7 +44,7 @@ class Actions:
     def charge_up_to(self, robot_id, kick_speed: float) -> bool:
         """Charge kicker up to a power level that attains a specific kick_speed.
         Definition of kick speed is specified in the robot commands API/lib."""
-        commands = self._gs.get_robot_commands(self._team, robot_id)
+        commands = self.gs.get_robot_commands(self._team, robot_id)
         if commands.kick_velocity() < kick_speed:
             commands.is_charging = True
         else:
@@ -37,12 +52,17 @@ class Actions:
         return not commands.is_charging  # return whether we are done charging
 
     def kick_ball(self, robot_id: int):
-        commands = self._gs.get_robot_commands(self._team, robot_id)
+        commands = self.gs.get_robot_commands(self._team, robot_id)
         commands.is_kicking = True
 
     def set_dribbler(self, robot_id: int, is_dribbling: bool) -> bool:
-        commands = self._gs.get_robot_commands(self._team, robot_id)
+        commands = self.gs.get_robot_commands(self._team, robot_id)
         commands.is_dribbling = is_dribbling
+
+    def stop(self, robot_id: int):
+         commands = self.gs.get_robot_commands(self._team, robot_id)
+         commands.set_speeds(0, 0, 0)
+         commands.clear_waypoints()
 
     # tell specific robot to move straight towards given location
     def move_straight(self, robot_id: int, goal_pos: Tuple[float, float, float], is_urgent=False):
@@ -52,13 +72,13 @@ class Actions:
     # find a legal path for robot to go to position, returns whether arrived
     # TODO: still goes through defense area - need to fix see is_path_blocked
     def path_find(self, robot_id: int, goal_pos: Tuple[float, float, float]) -> bool:
-        if not self._gs.is_pos_legal(self._gs.get_robot_position(self._team, robot_id), self._team, robot_id):
-            self.move_straight(robot_id, [0, 0, None])
+        if not self.gs.is_pos_legal(self.gs.get_robot_position(self._team, robot_id), self._team, robot_id):
+            self.move_straight(robot_id, self.find_legal_pos(robot_id), True)
             return self.is_done_moving(robot_id)
-        if not self._gs.is_position_open(goal_pos, self._team, robot_id):
-            print("cannot path find to blocked goal")
+        if not self.gs.is_position_open(goal_pos, self._team, robot_id):
+            self.logger.debug("cannot path find to blocked goal")
             return False
-        start_pos = self._gs.get_robot_position(self._team, robot_id)
+        start_pos = self.gs.get_robot_position(self._team, robot_id)
         # always check if we can just go straight
         if not self.is_path_blocked(start_pos, goal_pos, robot_id, buffer_dist=150):
             self.move_straight(robot_id, np.array(goal_pos))
@@ -69,7 +89,7 @@ class Actions:
         is_same_goal = current_goal is not None and \
             np.linalg.norm(goal_pos[:2] - current_goal[:2]) < SAME_GOAL_THRESHOLD
             # np.array_equal(goal_pos[:2], current_goal[:2])
-        commands = self._gs.get_robot_commands(self._team, robot_id)
+        commands = self.gs.get_robot_commands(self._team, robot_id)
         current_waypoints = [start_pos] + commands.waypoints
         current_path_collides = False
         for i in range(len(current_waypoints) - 1):

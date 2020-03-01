@@ -21,8 +21,8 @@ class Field(object):
         """
         returns bottom left corner of defense area
         """
-        if team == "blue" and self.is_blue_defense_side_left or \
-           team == "yellow" and not self.is_blue_defense_side_left:
+        if team == "blue" and self.is_blue_defense_side_left() or \
+           team == "yellow" and not self.is_blue_defense_side_left():
             min_x = self.FIELD_MIN_X
         else:
             min_x = self.FIELD_MAX_X - self.DEFENSE_AREA_X_LENGTH
@@ -56,12 +56,12 @@ class Field(object):
 
     def is_pos_valid(self, pos, team, robot_id):
         return self.is_position_open(pos, team, robot_id) and \
-            self.is_pos_in_bounds(pos, team, robot_id)
+            self.is_pos_legal(pos, team, robot_id)
 
     # returns the top and bottom goalposts for a team
     def get_defense_goal(self, team):
-        if (self.is_blue_defense_side_left and team == 'blue') or \
-           (not self.is_blue_defense_side_left and team == 'yellow'):
+        if (self.is_blue_defense_side_left() and team == 'blue') or \
+           (not self.is_blue_defense_side_left() and team == 'yellow'):
             top_post = np.array([self.FIELD_MIN_X, self.GOAL_WIDTH/2])
             bottom_post = np.array([self.FIELD_MIN_X, -self.GOAL_WIDTH/2])
             return (top_post, bottom_post)

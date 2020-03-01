@@ -2,7 +2,7 @@ import numpy as np
 
 class Analysis(object):
     """
-    Fundamental analysis functions for gamestate that are shared between 
+    Fundamental analysis functions for gamestate that are shared between
     simulator and strategy - think physics stuff.
     """
     BALL_RADIUS = 21 * 1.5
@@ -225,5 +225,11 @@ class Analysis(object):
                 return np.array([x_pos_of_goal, y_intercept])
         return None
 
-    def is_ball_behind_goalie(self):
+    def is_ball_behind_goalie(self, team):
+        ball_pos = self.get_ball_position()
+        goal_posts_pos = self.get_defense_goal(team)
+        center_of_goal = np.array([goal_posts_pos[0][0], (goal_posts_pos[0][1] + goal_posts_pos[1][1])/2])
+        ball_distance_from_goal_center = np.linalg.norm(ball_pos - center_of_goal)
+        if ball_distance_from_goal_center <= 600:
             return True
+        return False

@@ -1,14 +1,24 @@
 """Role analysis class for strategy."""
 import sys
 # sys.path.append("../..")
-from refbox.referee_pb2 import SSL_Referee
+from refbox import SSL_Referee
 
 class Coach(object):
     """Coach class that takes in the Strategy class and assembles together high
-    level commands."""
+    level commands. 
+    See https://robocup-ssl.github.io/ssl-rules/sslrules.html#_referee_commands """
+
     def __init__(self, strategy) -> None:
+        """Coach class initialization with a strategy that the coach should
+        oversee. 
+        
+        Args:
+            strategy (strategy.Strategy): Strategy object that the Coach should
+            run, 
+        """
         self._strategy = strategy
-        self._gs = strategy._gs
+        self.logger = strategy.logger
+        self.gs = strategy.gs
         self._command_dict = {
             SSL_Referee.HALT: self.halt,
             SSL_Referee.STOP: self.stop,
@@ -36,36 +46,40 @@ class Coach(object):
         return self._strategy._team == 'yellow'
 		
     def play(self):
-        if self._gs.refbox_msg is None:
-            return
-        self._command_dict[self._gs.refbox_msg.command]
+        self.logger.debug("Play was called")
+        latest_refbox_message = self.gs.get_latest_refbox_message()
+        if latest_refbox_message:
+            self._command_dict[latest_refbox_message.command]()
 
     def halt(self):
-        raise NotImplementedError
+        self.logger.info("HALT CALLED")
+        self._strategy.halt()
 
     def stop(self):
-        raise NotImplementedError
+        self.logger.info("STOP CALLED")
 
     def force_start(self):
-        raise NotImplementedError
+        self.logger.info("FORCE START CALLED")
 
     def kickoff(self):
+        self.logger.info("KICKOFF CALLED")
         self._strategy.kickoff()
 
     def defend_kickoff(self):
-        raise NotImplementedError
+        self.logger.info("DEFEND KICKOFF CALLED")
+        self._strategy.move_randomly()
 
     def penalty(self):
-        raise NotImplementedError
+        self.logger.info("PK CALLED")
 
     def defend_penalty(self):
-        raise NotImplementedError
+        self.logger.info("DEFEND PK CALLED")
 
     def direct_free(self):
-        raise NotImplementedError
+        self.logger.info("FREE KICK CALLED")
 
     def defend_direct_free(self):
-        raise NotImplementedError
+        self.logger.info("DEFEND FREE KICK CALLED")
 
     def indirect_free(self):
         raise NotImplementedError
@@ -74,13 +88,13 @@ class Coach(object):
         raise NotImplementedError
 
     def timeout(self):
-        raise NotImplementedError
+        self.logger.info("TIMEOUT CALLED")
 
     def goal(self):
-        print('wooohooo')
+        self.logger.warning('GOOOOOOOOOOOOOOOOOAAAAAAAAAAALLLLLLLLLLLLLLL')
     
     def defend_goal(self):
-        print('8(')
+        self.logger.warning('RIP')
 
     def ball_placement(self):
         raise NotImplementedError

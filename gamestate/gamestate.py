@@ -1,23 +1,24 @@
 import time
-import threading
 import numpy as np
 from collections import deque
 # import RobotCommands from the comms folder
 # (expected to run from root directory, use try/except if run from here)
-from comms import RobotCommands
+from comms import RobotCommands, RobotStatus
 
+
+from refbox import SSL_Referee
 # import parts of gamestate that we've separated out for readability
 # (they are actually just part of the same class)
 try:
-    from field import Field
-    from analysis import Analysis
+    from gamestate_field import Field
+    from gamestate_analysis import Analysis
 except (SystemError, ImportError):
-    from .field import Field
-    from .analysis import Analysis
+    from .gamestate_field import Field
+    from .gamestate_analysis import Analysis
 
 # RAW DATA PROCESSING CONSTANTS
-BALL_POS_HISTORY_LENGTH = 100
-BALL_LOST_TIME = .1
+BALL_POS_HISTORY_LENGTH = 200
+BALL_LOST_TIME = .15
 ROBOT_POS_HISTORY_LENGTH = 20
 # time after which robot is considered lost by gamestate
 ROBOT_LOST_TIME = .2
@@ -41,78 +42,84 @@ class GameState(Field, Analysis):
         self._game_loop_sleep = None
         self._last_step_time = None
 
-        # RAW POSITION DATA (updated by vision data or simulator)
-        # [most recent data is stored at the front of the queue]
+        # Raw Position Data - updated by vision provider (either vision or simulator)
         # queue of (time, pos) where positions are in the form np.array([x, y])
+        # most recent data is at the front of queue
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
         # robot positions are np.array([x, y, w]) where w = rotation
         self._blue_robot_positions = dict()  # Robot ID: queue of (time, pos)
         self._yellow_robot_positions = dict()  # Robot ID: queue of (time, pos)
 
-        # Commands data (desired robot actions)
+        # Commands Data (desired robot actions) - updated by strategy
         self._blue_robot_commands = dict()  # Robot ID: commands object
         self._yellow_robot_commands = dict()  # Robot ID: commands object
 
-        # Game status/events
-        self.game_clock = None
-        self.is_blue_defense_side_left = True
-        self.refbox_msg = None
-        # TODO: enum all ref box restart commands
+        # Status Info (robot sensory feedback) - update by comms/sim?
+        self._blue_robot_status = dict()  # Robot ID: status object
+        self._yellow_robot_status = dict()  # Robot ID: status object
 
-        # UI Inputs - set from visualizer
-        self.user_click_position = None
-        self.user_drag_vector = None
-        self.user_selected_robot = None  # (team, id) of robot
-        self.user_selected_ball = False
-        self.user_charge_command = False
-        self.user_kick_command = False
-        self.user_dribble_command = False
+        # UI Inputs - updated by visualizer
+        self.viz_inputs = {
+            "simulator_events_count": 0,  # flag for simulator to handle
+            "user_click_position": None,
+            "user_drag_vector": None,
+            # either ball or a robot can be selected
+            "user_selected_ball": False,
+            "user_selected_robot": None,  # (team, id) of robot
+            # independent booleans, relevant if robot selected
+            "user_charge_command": False,
+            "user_kick_command": False,
+            "user_dribble_command": False,
+            # tell simulator to move selected robot instantly
+            "teleport_selected_robot": False
+        }
 
         # Refbox - the latest message delivered from the refbox
-        self.latest_refbox_message = None
+        # Contains all? relevant game status information such as time, events, goalie id, direction of play
+        # See protocol: https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto
 
-    def start_game(self, loop_sleep):
-        self._game_loop_sleep = loop_sleep
-        self._is_playing = True
-        self._game_thread = threading.Thread(target=self.game_loop)
-        # set to daemon mode so it will be easily killed
-        self._game_thread.daemon = True
-        self._game_thread.start()
-
-    def end_game(self):
-        if self._is_playing:
-            self._is_playing = False
-            self._game_thread.join()
-            self._game_thread = None
-
-    def game_loop(self):
-        # set up game status
-        self.game_clock = 0
-        while self._is_playing:
-            delta_time = 0
-            if self._last_step_time is not None:
-                delta_time = time.time() - self._last_step_time
-                if delta_time > self._game_loop_sleep * 3:
-                    print("Game loop large delay: " + str(delta_time))
-            self._last_step_time = time.time()
-
-            self.game_clock += delta_time
-
-            # yield to other threads
-            time.sleep(self._game_loop_sleep)
+        # DO NOT ACCESS THIS DIRECTLY ----- CALL self.get_latest_refbox_message()
+        # Initialize to a default message for when we do not care about the refbox
+        self._latest_refbox_message_string = b'\x08\x8f\xbb\xb7\x83\x86\xf5\xe7\x02\x10\r \x00(\x010\x9e\xb6\xe3\x9b\x82\xf5\xe7\x02:\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00B\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00P\x00'
+        # TODO - functions to get data from refbox message?
+        # Game status/events
+        self.game_clock = None
 
     def other_team(self, team):
         if team == 'blue':
             return 'yellow'
         else:
             return 'blue'
-    
-    # GAME STATUS/EVENT FUNCTIONS
-    def wait_until_game_begins(self):
-        while self.game_clock is None:
-            time.sleep(.01)
+
+    # helper for parsing info stored in refbox message
+    def get_team_info(self, team):
+        if team == 'blue':
+            return self.get_latest_refbox_message().blue
+        else:
+            return self.get_latest_refbox_message().yellow
+
+    def get_goalie_id(self, team):
+        return self.get_team_info(team).goalie
+
+    def is_goalie(self, team, robot_id):
+        return robot_id == self.get_goalie_id(team)
+
+    def is_blue_defense_side_left(self):
+        return not self.get_latest_refbox_message().blueTeamOnPositiveHalf
 
     # RAW DATA GET/SET FUNCTIONS
+    # returns latest refbox message
+    def get_latest_refbox_message(self):
+        if self._latest_refbox_message_string is None:
+            raise Exception("Refbox message must be populated")
+        refbox_message = SSL_Referee()
+        refbox_message.ParseFromString(self._latest_refbox_message_string)
+        # print(f"{self._latest_refbox_message_string}\n")
+        return refbox_message
+
+    def update_latest_refbox_message(self, message):
+        self._latest_refbox_message_string = message
+
     # returns position ball was last seen at, or (0, 0) if unseen
     def get_ball_position(self):
         if len(self._ball_position) == 0:
@@ -154,11 +161,6 @@ class GameState(Field, Analysis):
     def get_robot_ids(self, team):
         robot_positions = self.get_team_positions(team)
         return tuple(robot_positions.keys())
-
-    # TODO write a "is_goalie(self, team, robot_id)" function to determine
-    # whether the robot of interest is a goalie.
-    def is_goalie(self, team, robot_id):
-        return False
 
     # returns position robot was last seen at
     def get_robot_position(self, team, robot_id):
@@ -202,7 +204,11 @@ class GameState(Field, Analysis):
         team_positions = self.get_team_positions(team)
         del team_positions[robot_id]
         team_commands = self.get_team_commands(team)
-        del team_commands[robot_id]
+        if robot_id in team_commands:
+            del team_commands[robot_id]
+        team_status = self.get_team_status(team)
+        if robot_id in team_status:
+            del team_status[robot_id]
 
     def get_robot_last_update_time(self, team, robot_id):
         robot_positions = self.get_team_positions(team)
@@ -229,11 +235,24 @@ class GameState(Field, Analysis):
             assert(team == 'yellow')
             return self._yellow_robot_commands
 
+    def get_team_status(self, team):
+        if team == 'blue':
+            return self._blue_robot_status
+        else:
+            assert(team == 'yellow')
+            return self._yellow_robot_status
+
     def get_robot_commands(self, team, robot_id):
         team_commands = self.get_team_commands(team)
         if robot_id not in team_commands:
             team_commands[robot_id] = RobotCommands()
         return team_commands[robot_id]
+
+    def get_robot_status(self, team, robot_id):
+        team_status = self.get_team_status(team)
+        if robot_id not in team_status:
+            team_status[robot_id] = RobotStatus()
+        return team_status[robot_id]
 
     def robot_max_speed(self, team, robot_id):
         # in the future this could vary between teams/robots?

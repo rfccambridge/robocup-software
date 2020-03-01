@@ -3,8 +3,6 @@ import time
 from typing import Iterable, Optional, List, Tuple
 
 
-# Definitions + supporting logic for simple robot actions
-# (have a single step/end condition, return True when done)
 class Actions:
     """
     Definitions + supporting logic for simple robot actions

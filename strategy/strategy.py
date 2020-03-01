@@ -146,7 +146,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             self.random_robot(robot_id)
 
     def attacker_test(self):
-        if self.gs.user_selected_robot is not None:
+        if self.gs.viz_inputs['user_selected_robot'] is not None:
             team, robot_id = self.gs.viz_inputs['user_selected_robot']
             if team == self._team:
                 self._attacker_id = robot_id
@@ -154,16 +154,16 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             self.attacker(self._attacker_id)
 
     def defender_test(self):
-        """
-        if self.gs.user_selected_robot is not None:
-            team, robot_id = self.gs.user_selected_robot
+
+        if self.gs.viz_inputs['user_selected_robot'] is not None:
+            team, robot_id = self.gs.viz_inputs['user_selected_robot']
             if team == self._team:
                 self._defender_id = robot_id
         if self._defender_id is not None:
             self.defender(self._defender_id)
-        """
-        for robot_id in self.gs.get_robot_ids(self._team):
-            self.defender(robot_id)
+
+        # for robot_id in self.gs.get_robot_ids(self._team):
+        #     self.defender(robot_id)
 
     def entry_video(self):
         robot_id_0 = 4

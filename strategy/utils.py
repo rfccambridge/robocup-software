@@ -76,7 +76,7 @@ class Utils:
         """Return angle from robot to ball"""
         return self.robot_face_pos(robot_id, self.gs.get_ball_position())
 
-    def distance_from_line(start: Tuple[float, float], end: Tuple[float, float], point: Tuple[float, float]):
+    def distance_from_line(self, start: Tuple[float, float], end: Tuple[float, float], point: Tuple[float, float]):
         start_x, start_y = start
         end_x, end_y = end
         p_x, p_y = point

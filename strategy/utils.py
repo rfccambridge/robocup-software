@@ -4,6 +4,13 @@ import numpy as np
 from typing import Tuple, List
 
 class Utils:
+    def perpendicular(self, vector: Tuple[float, float]) -> Tuple[float, float]:
+        x, y = vector
+        if x == 0 and y == 0:
+            return np.array([0, 0])
+        perpendicular = np.array([-y, x])
+        return perpendicular / np.linalg.norm(perpendicular)
+
     def wrap_pi(self, angle: float) -> float:
         """convert angle to between -pi and pi"""
         return (angle + np.pi) % (np.pi * 2) - np.pi

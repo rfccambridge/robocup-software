@@ -159,7 +159,7 @@ class RobotCommands:
         waypoint = pos[:2] - (direction / np.linalg.norm(direction)) * epsilon
         waypoint = np.array([waypoint[0], waypoint[1], pos[2]])
         self.append_waypoint(waypoint, current_position)
-        self.append_waypoint(pos, current_position)
+        self.append_waypoint(pos, current_position) 
 
     def append_waypoint(self, waypoint, current_position):
         if self.waypoints:

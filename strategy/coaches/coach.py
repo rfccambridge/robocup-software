@@ -82,7 +82,7 @@ class Coach(object):
 
     def defend_direct_free(self):
         self.logger.info("DEFEND FREE KICK CALLED")
-        self._strategy.form_wall(3)
+        self._strategy.form_wall([1,2,3])
 
     def indirect_free(self):
         raise NotImplementedError

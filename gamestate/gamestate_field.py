@@ -1,4 +1,5 @@
 import numpy as np
+from refbox import SSL_Referee
 
 class Field(object):
     """
@@ -31,17 +32,25 @@ class Field(object):
 
     def is_in_defense_area(self, pos, team):
         min_x, min_y = self.defense_area_corner(team)
+        # account for buffer of robot radius
+        radius = self.ROBOT_RADIUS
         # defense area is a box centered at y = 0
-        return ((min_x <= pos[0] <= min_x + self.DEFENSE_AREA_X_LENGTH) and
-                min_y <= pos[1] <= min_y + self.DEFENSE_AREA_Y_LENGTH)
+        return ((min_x - radius <= pos[0] <= min_x + self.DEFENSE_AREA_X_LENGTH + radius) and
+                min_y - radius <= pos[1] <= min_y + self.DEFENSE_AREA_Y_LENGTH + radius)
 
     def is_in_play(self, pos):
         return ((self.FIELD_MIN_X <= pos[0] <= self.FIELD_MAX_X) and
                 (self.FIELD_MIN_Y <= pos[1] <= self.FIELD_MAX_Y))
 
     def is_pos_legal(self, pos, team, robot_id):
+        # TODO: account for robot radius
         # TODO: during free kicks must be away from opponent area
         # + ALL OTHER RULES
+        latest_refbox_message = self.get_latest_refbox_message()
+        # TODO: Also avoid ball during other team ball placement, defend free kick, etc.
+        if latest_refbox_message.command == SSL_Referee.STOP:
+            if np.linalg.norm(pos[:2] - self.get_ball_position()) <= 500 + self.ROBOT_RADIUS:
+                return False
         in_own_defense_area = self.is_in_defense_area(pos, team) and \
                 not self.is_goalie(team, robot_id)
         in_other_defense_area = self.is_in_defense_area(pos, self.other_team(team))

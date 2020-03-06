@@ -15,10 +15,19 @@ class Plays:
     def halt(self):
         for robot_id in self.gs.get_robot_ids(self._team):
             self.stop(robot_id)
+    
+    def avoid_ball(self, distance = 500):
+        """All robots stay at least the specified distance away from the ball."""
+        ball_pos = self.gs.get_ball_position()
+        team = self._team
+        # TODO: Slow down robots below 1.5 m/s
+        for robot_id in self.gs.get_robot_ids(team):
+            if np.linalg.norm(self.gs.get_robot_position(team, robot_id)[:2] - ball_pos) < distance:
+                self.path_find(robot_id, self.find_legal_pos(robot_id))
 
     def move_randomly(self):
-         for robot_id in self.gs.get_robot_ids(self._team):
-             self.random_robot(robot_id)
+        for robot_id in self.gs.get_robot_ids(self._team):
+            self.random_robot(robot_id)
 
     def timeout(self) -> None:
         """Run a timeout play. All robots should stop whatever they're doing and
@@ -27,6 +36,11 @@ class Plays:
         """
 
     def form_wall(self, ids, distance_from_ball = 500) -> None:
+        """Form a defensive wall. The robots in ids will form a wall between
+        the ball position and the goal at the specified distance, in a direction
+        perpendicular to the line between the ball and the center of goal and
+        centered on that line.
+        """
         ball_pos = self.gs.get_ball_position() 
         goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
         goal_center = (goal_top + goal_bottom) / 2

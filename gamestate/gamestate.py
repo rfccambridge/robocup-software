@@ -110,6 +110,10 @@ class GameState(Field, Analysis):
     # RAW DATA GET/SET FUNCTIONS
     # returns latest refbox message
     def get_latest_refbox_message(self):
+        """
+        Returns latest refbox message as an object.
+        See referee.proto for specifications.
+        """
         if self._latest_refbox_message_string is None:
             raise Exception("Refbox message must be populated")
         refbox_message = SSL_Referee()

@@ -68,6 +68,7 @@ class RefboxClient:
 class RefboxDataProvider(Provider):
     """
     A wrapper around a RefboxClient to help update a gamestate object
+    Link to SSL Referee User Manual: https://robocup-ssl.github.io/ssl-refbox/manual.html
     """
     def __init__(self, ip='224.5.23.1', port=10003):
         """

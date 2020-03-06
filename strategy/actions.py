@@ -73,16 +73,17 @@ class Actions:
 
     # find a legal path for robot to go to position, returns whether arrived
     # TODO: still goes through defense area - need to fix see is_path_blocked
-    def path_find(self, robot_id: int, goal_pos: Tuple[float, float, float]) -> bool:
-        if not self.gs.is_pos_legal(self.gs.get_robot_position(self._team, robot_id), self._team, robot_id):
-            self.move_straight(robot_id, self.find_legal_pos(robot_id), True)
-            return self.is_done_moving(robot_id)
-        if not self.gs.is_position_open(goal_pos, self._team, robot_id):
-            self.logger.debug("cannot path find to blocked goal")
-            return False
+    def path_find(self, robot_id: int, goal_pos: Tuple[float, float, float], allow_illegal = False) -> bool:
+        """ Tries to find a legal non-colliding path to goal position.
+        If goal position is not legal or is blocked, goes somewhere nearby.
+        """
+        # If the goal is illegal or occupied, find somewhere nearby
+        if not self.gs.is_pos_legal(goal_pos, self._team, robot_id) \
+            or not self.gs.is_position_open(goal_pos, self._team, robot_id):
+            goal_pos = self.find_legal_pos(robot_id, goal_pos)
         start_pos = self.gs.get_robot_position(self._team, robot_id)
         # always check if we can just go straight
-        if not self.is_path_blocked(start_pos, goal_pos, robot_id, buffer_dist=150):
+        if not self.is_path_blocked(start_pos, goal_pos, robot_id, buffer_dist=0, allow_illegal=allow_illegal):
             self.move_straight(robot_id, np.array(goal_pos))
             return self.is_done_moving(robot_id)
         # now check if current waypoints are already going where we want
@@ -96,7 +97,7 @@ class Actions:
         current_path_collides = False
         for i in range(len(current_waypoints) - 1):
             wp, next_wp = current_waypoints[i], current_waypoints[i+1]
-            if self.is_path_blocked(wp, next_wp, robot_id):
+            if self.is_path_blocked(wp, next_wp, robot_id, allow_illegal=allow_illegal):
                 current_path_collides = True
         # avoid rerunning too often so we don't crash the system
         # RRT_MIN_INTERVAL = .1
@@ -106,9 +107,10 @@ class Actions:
         MIN_REFRESH_INTERVAL = 3  # mainly in case something very strange has happened
         need_refresh = robot_id not in self._last_RRT_times or \
             time.time() - self._last_RRT_times[robot_id] > MIN_REFRESH_INTERVAL
+        self.logger.debug(f"Start: {start_pos} Goal: {goal_pos} Waypoints: {current_waypoints}")
         if (current_path_collides or not is_same_goal or need_refresh):
             self._last_RRT_times[robot_id] = time.time()
-            is_success = self.RRT_path_find(start_pos, goal_pos, robot_id)
+            is_success = self.RRT_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
             if not is_success:
                 return False
         return self.is_done_moving(robot_id)

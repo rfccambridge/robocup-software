@@ -17,6 +17,7 @@ class Coach(object):
             run, 
         """
         self._strategy = strategy
+        self._team = self._strategy._team
         self.logger = strategy.logger
         self.gs = strategy.gs
         self._command_dict = {
@@ -41,16 +42,23 @@ class Coach(object):
         }
 
     def is_blue(self) -> bool:
-        return self._strategy._team == 'blue'
+        return self._team == 'blue'
 
     def is_yellow(self) -> bool:
-        return self._strategy._team == 'yellow'
+        return self._team == 'yellow'
 		
     def play(self):
         self.logger.debug("Play was called")
         latest_refbox_message = self.gs.get_latest_refbox_message()
         if latest_refbox_message:
             self._command_dict[latest_refbox_message.command]()
+        for robot_id in self.gs.get_robot_ids(self._team):
+            current_position = self.gs.get_robot_position(self._team, robot_id)
+            # Get out of illegal positions immediately
+            if not self.gs.is_pos_legal(current_position, self._team, robot_id):
+                self.logger.debug(f"Illegal position for robot {robot_id}")
+                legal_pos = self._strategy.find_legal_pos(robot_id, current_position)
+                self._strategy.path_find(robot_id, legal_pos, allow_illegal=True)
 
     def halt(self):
         self.logger.info("HALT CALLED")

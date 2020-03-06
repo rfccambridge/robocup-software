@@ -90,6 +90,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             # self.logger.exception('(unrecognized mode, doing nothing)')
             pass
 
+        # TODO: Do this in comms and simulator separately?
         # tell all robots to refresh their speeds based on waypoints
         team_commands = self.gs.get_team_commands(self._team)
         team_commands = list(team_commands.items())

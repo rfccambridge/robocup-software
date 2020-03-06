@@ -122,42 +122,28 @@ class Analysis(object):
         return block_pos
 
     # finds a legal position for robot to move to
-    def find_legal_pos(self, robot_id: int) -> Tuple[float, float, float]:
-        robot_x, robot_y, robot_w = self.gs.get_robot_position(self._team, robot_id)
+    def find_legal_pos(self, robot_id: int, position = None) -> Tuple[float, float, float]:
+        """Returns a nearby legal and open position by searching around the robot.
+        Returns the current position if it is legal.
+        """
+        if position is None:
+            position = self.gs.get_robot_position(self._team, robot_id)
+        x, y, w = position
         radius = self.gs.ROBOT_RADIUS
-        # Buffer to make sure it fully exits illegal area - is this too much?
-        buffer = 2 * radius
-        # If in one of the defense areas
-        if self.gs.is_pos_legal([robot_x, robot_y], self._team, robot_id):
-            return [robot_x, robot_y, robot_w]
-        elif self.gs.is_in_play([robot_x, robot_y]):
-            legal_x = self.gs.FIELD_MAX_X + self.gs.DEFENSE_AREA_X_LENGTH + buffer if robot_x < 0 \
-                        else self.gs.FIELD_MAX_X - self.gs.DEFENSE_AREA_X_LENGTH - buffer
-            legal_y = - self.gs.DEFENSE_AREA_Y_LENGTH / 2 - buffer if robot_y < 0 \
-                        else self.gs.DEFENSE_AREA_Y_LENGTH / 2 + buffer
-            # Look toward the center line if that is the closer exit, otherwise look toward touchlines
-            # TODO: Account for robot orientation as well
-            if abs(legal_x - robot_x) < abs(legal_y - robot_y):
-                goal_x = legal_x
-                goal_y = robot_y
-                while not self.gs.is_position_open([goal_x, goal_y], self._team, robot_id, radius):
-                    if robot_y < 0:
-                        goal_y -= radius
-                    else:
-                        goal_y += radius
-                return [goal_x, goal_y, robot_w]
-            else:
-                goal_y = legal_y
-                goal_x = robot_x
-                while not self.gs.is_position_open([goal_x, goal_y], self._team, robot_id, radius):
-                    if robot_x < 0:
-                        goal_x += radius
-                    else:
-                        goal_x -= radius
-                return [goal_x, goal_y, robot_w]
-        # TODO: Handling case when robot is out of bounds
-        else:
-            return [0, 0, None]
+        delta = 0
+        for delta in range(0, 1000, 10):
+            positions_to_try = [
+                np.array([x, y + delta, w]), 
+                np.array([x, y - delta, w]),
+                np.array([x + delta, y, w]),
+                np.array([x - delta, y, w])
+            ]
+            for pos in positions_to_try:
+                if self.gs.is_pos_legal(pos, self._team, robot_id) and \
+                   self.gs.is_position_open(pos, self._team, robot_id):
+                    return pos
+        self.logger.debug("No legal position found open")
+        return np.array([0, 0, 0])
 
     # Function that scores how good a position is for the attacker to get open for a pass
     # Higher ratings should indicate better positions
@@ -265,7 +251,7 @@ class Analysis(object):
 
 
     # generate RRT waypoints
-    def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000):
+    def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000, allow_illegal = False):
         goal_pos = np.array(goal_pos)
         start_pos = np.array(start_pos)
         graph = {tuple(start_pos): []}
@@ -313,14 +299,14 @@ class Analysis(object):
         # Smooth path to reduce zig zagging
         i = 0
         while i < len(path) - 2:
-            if not self.is_path_blocked(path[i], path[i+2], robot_id):
+            if not self.is_path_blocked(path[i], path[i+2], robot_id, allow_illegal=allow_illegal):
                 del path[i+1]
                 continue
             i += 1
 
         # Cut out the "dead-weight" waypoints
         for i, pos in enumerate(path):
-            if not self.is_path_blocked(pos, goal_pos, robot_id):
+            if not self.is_path_blocked(pos, goal_pos, robot_id, allow_illegal=allow_illegal):
                 path = path[:i+1]
                 break
 

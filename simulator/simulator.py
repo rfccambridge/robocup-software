@@ -163,6 +163,7 @@ class Simulator(Provider):
             # move robots according to commands
             pos = self.gs.get_robot_position(team, robot_id)
             new_pos = robot_commands.predict_pos(pos, self.delta_time)
+            # self.logger.debug(f"Current Position: {pos}; New Position: {new_pos}")
             self.gs.update_robot_position(
                 team, robot_id, new_pos
             )

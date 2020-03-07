@@ -21,7 +21,7 @@ BALL_POS_HISTORY_LENGTH = 200
 BALL_LOST_TIME = .15
 ROBOT_POS_HISTORY_LENGTH = 20
 # time after which robot is considered lost by gamestate
-ROBOT_LOST_TIME = .2
+ROBOT_LOST_TIME = .5
 # time after which lost robot is deleted from the gamestate
 ROBOT_REMOVE_TIME = 5
 

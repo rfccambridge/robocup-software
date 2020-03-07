@@ -85,6 +85,7 @@ class Actions:
         # always check if we can just go straight
         if not self.is_path_blocked(start_pos, goal_pos, robot_id, buffer_dist=0, allow_illegal=allow_illegal):
             self.move_straight(robot_id, np.array(goal_pos))
+            self.logger.debug(f"Robot {robot_id} going straight from {start_pos} to {goal_pos}")
             return self.is_done_moving(robot_id)
         # now check if current waypoints are already going where we want
         current_goal = self.get_goal_pos(robot_id)
@@ -107,10 +108,11 @@ class Actions:
         MIN_REFRESH_INTERVAL = 3  # mainly in case something very strange has happened
         need_refresh = robot_id not in self._last_RRT_times or \
             time.time() - self._last_RRT_times[robot_id] > MIN_REFRESH_INTERVAL
-        self.logger.debug(f"Start: {start_pos} Goal: {goal_pos} Waypoints: {current_waypoints}")
+        self.logger.debug(f"Robot: {robot_id} Start: {start_pos} Goal: {goal_pos} Waypoints: {current_waypoints}")
         if (current_path_collides or not is_same_goal or need_refresh):
             self._last_RRT_times[robot_id] = time.time()
             is_success = self.RRT_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
             if not is_success:
+                self.logger.debug(f"Robot {robot_id} RRT path find failed")
                 return False
         return self.is_done_moving(robot_id)

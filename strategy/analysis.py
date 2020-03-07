@@ -267,7 +267,7 @@ class Analysis(object):
             if np.random.random() < 0.05:
                 new_pos = goal_pos
 
-            if not self.gs.is_position_open(new_pos, self._team, robot_id, buffer_dist=100) \
+            if not self.gs.is_position_open(new_pos, self._team, robot_id, buffer_dist=0) \
                or tuple(new_pos) in graph:
                 continue
 
@@ -287,6 +287,7 @@ class Analysis(object):
             cnt += 1
 
         if not success:
+            self.logger.debug("RRT path find failing")
             return success
 
         pos = self.get_nearest_pos(graph, goal_pos)  # get nearest position to goal in graph

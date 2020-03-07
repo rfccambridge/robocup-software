@@ -97,6 +97,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         for robot_id, robot_commands in team_commands:
             # stop the robot if we've lost track of it
             if self.gs.is_robot_lost(self._team, robot_id):
+                self.logger.debug(f"Robot {robot_id} is lost")
                 robot_commands.set_speeds(0, 0, 0)
             else:
                 # recalculate the speed the robot should be commanded at

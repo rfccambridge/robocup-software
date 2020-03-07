@@ -68,19 +68,19 @@ class Roles:
                 self.path_find(robot_id, self.find_attacker_pos(robot_id))
 
     def defender(self, robot_id):
-        DEFENDER_OFFSET = 500
         ball_pos = self.gs.get_ball_position()
         curr_pos = self.gs.get_robot_position(self._team, robot_id)[0:2]
         goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
         goal_center = (goal_top + goal_bottom) / 2
         maxDistance = np.linalg.norm(curr_pos - goal_center)
         interceptPos = self.block_goal_center_pos(maxDistance, ball_pos, team=self._team)
-        if len(interceptPos) != 0:
+        if len(interceptPos) != 0 and self.gs.is_pos_legal(interceptPos, self._team, robot_id):
             distance = self.distance_from_line(goal_center, ball_pos, curr_pos)
-            if distance <= self.gs.ROBOT_RADIUS:
+            if distance >= self.gs.ROBOT_RADIUS:
             #     self.logger.debug(f"{distance}")
-            #     self.move_straight(robot_id, interceptPos)
-            # else:
+                self.move_straight(robot_id, interceptPos)
+            else:
+                DEFENDER_OFFSET = min(500, np.linalg.norm(curr_pos - ball_pos))
                 curr_offset = np.linalg.norm(ball_pos - goal_center)
                 defender_pos = self.block_goal_center_pos(curr_offset - DEFENDER_OFFSET)
                 self.move_straight(robot_id, defender_pos)

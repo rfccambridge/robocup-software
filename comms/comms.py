@@ -31,9 +31,6 @@ class Comms(Provider):
 
     def run(self):
         team_commands = self.gs.get_team_commands(self._team)
-        # send serialized message for whole team
-        message = RobotCommands.get_serialized_team_command(team_commands)
-        self._radio.send(message)
         for robot_id, commands in team_commands.items():
             # self.logger.info(commands)
             if self.gs.is_robot_lost(self._team, robot_id):
@@ -46,6 +43,10 @@ class Comms(Provider):
             # simulate charge of capacitors according to commands
             if commands.is_charging:
                 commands.simulate_charge(self.delta_time)
+        # send serialized message for whole team
+        message = RobotCommands.get_serialized_team_command(team_commands)
+        self._radio.send(message)
+        for robot_id, commands in team_commands.items():
             # TODO: UNTESTED
             if commands.is_kicking:
                 commands.is_kicking = False

@@ -35,7 +35,14 @@ class Comms(Provider):
         message = RobotCommands.get_serialized_team_command(team_commands)
         self._radio.send(message)
         for robot_id, commands in team_commands.items():
-            self.logger.info(commands)
+            # self.logger.info(commands)
+            if self.gs.is_robot_lost(self._team, robot_id):
+                self.logger.debug(f"Robot {robot_id} is lost")
+                RobotCommands.set_speeds(0, 0, 0)
+            else:
+                # recalculate the speed the robot should be commanded at
+                pos = self.gs.get_robot_position(self._team, robot_id)
+                RobotCommands.derive_speeds(pos)
             # simulate charge of capacitors according to commands
             if commands.is_charging:
                 commands.simulate_charge(self.delta_time)

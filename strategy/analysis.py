@@ -136,7 +136,11 @@ class Analysis(object):
                 np.array([x, y + delta, w]), 
                 np.array([x, y - delta, w]),
                 np.array([x + delta, y, w]),
-                np.array([x - delta, y, w])
+                np.array([x - delta, y, w]),
+                np.array([x + delta, y + delta, w]),
+                np.array([x - delta, y + delta, w]),
+                np.array([x + delta, y - delta, w]),
+                np.array([x - delta, y - delta, w])
             ]
             for pos in positions_to_try:
                 if self.gs.is_pos_legal(pos, self._team, robot_id) and \

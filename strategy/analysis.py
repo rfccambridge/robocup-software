@@ -133,7 +133,7 @@ class Analysis(object):
         delta = 0
         for delta in range(0, 1000, 10):
             positions_to_try = [
-                np.array([x, y + delta, w]), 
+                np.array([x, y + delta, w]),
                 np.array([x, y - delta, w]),
                 np.array([x + delta, y, w]),
                 np.array([x - delta, y, w])
@@ -351,3 +351,28 @@ class Analysis(object):
             poses.append(intermediate_pos)
 
         return poses[-1]
+
+        def which_enemy_has_ball(self):
+            BUFFER = 2 * self.gs._BALL_RADIUS
+            our_team = self._team
+            other_team = self.gs.other_team(our_team)
+            robot_ids = self.gs.get_robot_ids(other_team)
+            ball_pos = get.gs.get_ball_position()
+            for id in robot_ids:
+                if ball_in_dribbler(other_team, id):
+                    return id
+            return None
+
+
+        def indentify_enemy_threat_level(self):
+            our_team = self._team
+            other_team = self.gs.other_team(our_team)
+            enemy_robot_ids = self.gs.get_robot_ids(other_team)
+            enemy_robot_distances = []
+            goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
+            goal_center = (goal_top + goal_bottom) / 2
+            for id in enemy_robot_ids:
+                distance = np.linalg.norm(self.gs.get_robot_position(id) - goal_center)
+                enemy_robot_distances.append((id, distance))
+            threats = enemy_robot_distances.sort(key = sortSecond)
+            return threats

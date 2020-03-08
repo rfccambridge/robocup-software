@@ -89,6 +89,12 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         else:
             # self.logger.exception('(unrecognized mode, doing nothing)')
             pass
+        # Reset kicking commands after kick takes place and charge is zero
+        # team_commands = self.gs.get_team_commands(self._team)
+        for robot_id, commands in self.gs.get_team_commands(self._team).items():
+            robot_status = self.gs.get_robot_status(self._team, robot_id)
+            if robot_status.charge_level == 0:
+                commands.is_kicking = False
 
     # follow the user-input commands through visualizer
     def UI(self):

@@ -200,9 +200,10 @@ class RobotCommands:
         self._w = w
 
     # predict where the robot will be if it follows the current command
-    def predict_pos(self, pos, delta_time):
-        assert(len(pos) == 3 and type(pos) == np.ndarray)
-        x, y, w = pos
+    def predict_pos(self, current_position, delta_time):
+        assert(len(current_position) == 3 and type(current_position) == np.ndarray)
+        self.derive_speeds(current_position)
+        x, y, w = current_position
         robot_x, robot_y = self.field_to_robot_perspective(w, np.array([x, y]))
         robot_x = robot_x + delta_time * self._x
         robot_y = robot_y + delta_time * self._y

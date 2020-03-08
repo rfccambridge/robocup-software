@@ -89,20 +89,12 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         else:
             # self.logger.exception('(unrecognized mode, doing nothing)')
             pass
-
-        # TODO: Do this in comms and simulator separately?
-        # tell all robots to refresh their speeds based on waypoints
-        team_commands = self.gs.get_team_commands(self._team)
-        team_commands = list(team_commands.items())
-        for robot_id, robot_commands in team_commands:
-            # stop the robot if we've lost track of it
-            if self.gs.is_robot_lost(self._team, robot_id):
-                self.logger.debug(f"Robot {robot_id} is lost")
-                robot_commands.set_speeds(0, 0, 0)
-            else:
-                # recalculate the speed the robot should be commanded at
-                pos = self.gs.get_robot_position(self._team, robot_id)
-                robot_commands.derive_speeds(pos)
+        # Reset kicking commands after kick takes place and charge is zero
+        # team_commands = self.gs.get_team_commands(self._team)
+        for robot_id, commands in self.gs.get_team_commands(self._team).items():
+            robot_status = self.gs.get_robot_status(self._team, robot_id)
+            if robot_status.charge_level == 0:
+                commands.is_kicking = False
 
     # follow the user-input commands through visualizer
     def UI(self):

@@ -8,7 +8,7 @@ Online Function Reference: https://robocup-docs.readthedocs.io/
 Codebase Description: https://docs.google.com/document/d/1Eim1MRx77IE2ieGvYYDAL3BJYKYtR9JhJai6PuHB-iw/edit
 
 # Setup
-__Python 3.6__ or above, and __Linux__ are required (recommended Ubuntu 18.0.4). 
+__Python 3__ (version 3.6 or above), and __Linux__ are required (Ubuntu 16.0.4 or above).
 For Windows/Mac users, we recommend installing a virtual machine such as VMWare.
 
 To install dependencies, run:

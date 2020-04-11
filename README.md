@@ -8,8 +8,7 @@ Online Function Reference: https://robocup-docs.readthedocs.io/
 Codebase Description: https://docs.google.com/document/d/1Eim1MRx77IE2ieGvYYDAL3BJYKYtR9JhJai6PuHB-iw/edit
 
 # Setup
-__Python 3__ is required, due to compatibility issues with the pyserial module.
-In some cases, you may have to use python and pip commands without the 3.
+__Python 3.6__ and Linux is required. For Windows/Mac users, we recommend installing a virtual machine such as VMWare.
 
 To install dependencies, run:
 ```bash
@@ -44,7 +43,8 @@ In order to control a full game (with scoring, fouls, corners, penalties etc.) y
 
 Follow [these](https://robocup-ssl.github.io/ssl-refbox/install.html) instructions to install and run the refbox.
 
-### NOTES FOR MAC
+### OLD - WE RECOMMEND LINUX
+## NOTES FOR MAC
 
 TODO: For mac users, installing pygame for python3 may require more steps
 
@@ -57,7 +57,7 @@ Inside the venv, run
 python3 -m pip install -r requirements.txt
 ```
 
-### NOTES FOR WINDOWS
+## NOTES FOR WINDOWS
 
 NOTE: For dealing with issues installing Python 3 on Windows: https://stackoverflow.com/questions/47539201/python-is-not-recognized-windows-10. Your path will most likely be "C:\Users\AppData\Local\Programs\Python\Python38" if you installed Python 3.8.
 

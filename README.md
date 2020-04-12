@@ -10,7 +10,7 @@ Codebase Description: https://docs.google.com/document/d/1Eim1MRx77IE2ieGvYYDAL3
 # Setup
 __Python 3__ (version 3.6 or above), and __Linux__ are required (Ubuntu 16.0.4 or above). 
 
-For Windows/Mac users, we recommend installing a virtual machine such as VMWare.
+For Windows/Mac users, it might be rough to get things working. Installing a virtual machine such as VMWare is one option, but this may have a lot of lag.
 
 To install dependencies, run:
 ```bash

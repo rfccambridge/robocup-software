@@ -10,7 +10,7 @@ Codebase Description: https://docs.google.com/document/d/1Eim1MRx77IE2ieGvYYDAL3
 # Setup
 __Python 3__ (version 3.6 or above), and __Linux__ are required (Ubuntu 16.0.4 or above). 
 
-For Windows/Mac users, it might be rough to get things working natively. Installing a virtual machine such as VMWare is one option - you'll probably need to allocate multiple cores to run smoothly. 
+For Windows/Mac users, it might be rough to get things working natively. Installing a virtual machine such as VMWare is one option - you may need to allocate multiple cores if it's too slow. 
 
 To install dependencies, run:
 ```bash
@@ -44,6 +44,7 @@ https://docs.google.com/document/d/1i-Pybv2wBhN23FT94PiGMyX6yAJglqeaCds62TX8-7o/
 In order to control a full game (with scoring, fouls, corners, penalties etc.) you should have a refbox running. This isn't necessary for testing and general development.
 
 Follow [these](https://robocup-ssl.github.io/ssl-refbox/install.html) instructions to install and run the refbox.
+Refbox usage instructions are [here](https://robocup-ssl.github.io/ssl-refbox/manual.html).
 
 # WINDOWS/MAC MAY BE A STRUGGLE - WE RECOMMEND LINUX
 ### NOTES FOR MAC

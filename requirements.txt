@@ -2,7 +2,7 @@ digi-xbee==1.2.0
 numpy==1.17.3
 cutelog
 protobuf==3.10.0
-pygame==2.0.0.dev6
+pygame==1.9.6
 pyserial==3.4
 six==1.13.0
 srp==1.0.15

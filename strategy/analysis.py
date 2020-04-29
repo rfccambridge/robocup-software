@@ -173,12 +173,15 @@ class Analysis(object):
             nearest_opponent_dist = min(nearest_opponent_dist, opponent_dist)
         # Rate the position based on these three metrics
         # TODO: come up with a good metric to use
-        pass_wt = 0
+        pass_wt = -1
         goal_wt = -3
         oppt_wt = 2
         return (pass_wt * pass_dist + goal_wt * goal_dist + oppt_wt * nearest_opponent_dist)
 
     def find_attacker_pos(self, robot_id: int) -> Tuple[float, float, float]:
+        """ Finds a position for attacker to get open if the ball is outside shooting range.
+        To be deprecated soon.
+        """
         best_pos = self.gs.get_robot_position(self._team, robot_id)
         best_rating = self.rate_attacker_pos(best_pos, robot_id)
         ball_x, ball_y = self.gs.get_ball_position()
@@ -235,7 +238,7 @@ class Analysis(object):
         line_unit_vector = (s_pos - g_pos) / np.linalg.norm(s_pos - g_pos)
         for pos in robot_positions:
             pos = pos[1][:2]
-            print(f"{pos}")
+            self.logger.debug(f"{pos}")
             x3, y3 = pos[:2]
             if np.dot(line_unit_vector, (s_pos - pos)) > 0 and \
             np.dot(line_unit_vector, (pos - g_pos)) > -1 * self.gs.ROBOT_RADIUS:

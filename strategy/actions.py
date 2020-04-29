@@ -20,7 +20,7 @@ class Actions:
 
         vel = np.cross(ball_pos - robot_pos[0:2], [0,0,1])
         vel = step * vel * np.sign(angle) / np.linalg.norm(vel)
-        print(vel)
+        self.logger.debug(vel)
         self.set_speeds(robot_id, vel[0], vel[1], np.sign(angle) * astep)
 
     def pivot_with_ball(self, robot_id, face_pos: Tuple[float, float]) -> bool:
@@ -47,7 +47,8 @@ class Actions:
         """Charge kicker up to a power level that attains a specific kick_speed.
         Definition of kick speed is specified in the robot commands API/lib."""
         commands = self.gs.get_robot_commands(self._team, robot_id)
-        if commands.kick_velocity() < kick_speed:
+        status = self.gs.get_robot_status(self._team, robot_id)
+        if status.kick_velocity() < kick_speed:
             commands.is_charging = True
         else:
             commands.is_charging = False

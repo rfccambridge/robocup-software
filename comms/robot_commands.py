@@ -57,8 +57,6 @@ class RobotCommands:
         self.is_dribbling = False
         self.is_charging = False
         self.is_kicking = False
-        # other info
-        self.charge_level = 0
 
     # function for limiting robot speeds in the case of ref commands
     def set_speed_limit(self, speed=None):
@@ -253,7 +251,7 @@ class RobotCommands:
                 trimmed_angle = np.arccos(inner_formula)
                 if not (0 <= trimmed_angle <= np.pi):
                     # not sure why this was ever triggering?
-                    print("how is trimmed angle:" + str(trimmed_angle))
+                    self.logger.debug("how is trimmed angle:" + str(trimmed_angle))
                     trimmed_angle = max(trimmed_angle, 0)
                     trimmed_angle = min(trimmed_angle, np.pi)
                 trimmed_angle = min(trimmed_angle, np.pi / 2)

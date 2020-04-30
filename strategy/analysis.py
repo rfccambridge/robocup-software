@@ -128,6 +128,8 @@ class Analysis(object):
         """
         if position is None:
             position = self.gs.get_robot_position(self._team, robot_id)
+        if len(position) == 2:
+            position = (position[0], position[1], None)
         x, y, w = position
         radius = self.gs.ROBOT_RADIUS
         delta = 0
@@ -171,16 +173,27 @@ class Analysis(object):
             opponent_pos = self.gs.get_robot_position(self.gs.other_team(self._team), opponent)
             opponent_dist: float = np.linalg.norm(opponent_pos[:2] - pos[:2])
             nearest_opponent_dist = min(nearest_opponent_dist, opponent_dist)
-        # Rate the position based on these three metrics
-        # TODO: come up with a good metric to use
+        # Rate the position based on metrics
+        # TODO: come up with a better metric to use
         pass_wt = -1
         goal_wt = -3
         oppt_wt = 2
-        return (pass_wt * pass_dist + goal_wt * goal_dist + oppt_wt * nearest_opponent_dist)
+        # also consider off-centeredness
+        goal_offctr = abs((pos[1] - center_of_goal[1]) / (pos[0] - center_of_goal[0]))
+        offctr_wt = -50
+        return (pass_wt * pass_dist + goal_wt * goal_dist + oppt_wt * nearest_opponent_dist + offctr_wt * goal_offctr)
 
+    def attacker_get_open(self, robot_id : int) -> Tuple[float, float, float]:
+        """Sends the attacker to a locally optimal position."""
+        STEP_SIZE = 300
+        offsets = [-2 * STEP_SIZE, -STEP_SIZE, 0, STEP_SIZE, 2 * STEP_SIZE]
+        robot_x, robot_y, _ = self.gs.get_robot_position(self._team, robot_id)
+        test_posns = [(robot_x + dx, robot_y + dy) for dx in offsets for dy in offsets]
+        return max(test_posns, key=lambda p : self.rate_attacker_pos(p, robot_id))
+    
     def find_attacker_pos(self, robot_id: int) -> Tuple[float, float, float]:
         """ Finds a position for attacker to get open if the ball is outside shooting range.
-        To be deprecated soon.
+        To be deprecated soon; use attacker_get_open(self, robot_id) instead
         """
         best_pos = self.gs.get_robot_position(self._team, robot_id)
         best_rating = self.rate_attacker_pos(best_pos, robot_id)

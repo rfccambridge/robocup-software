@@ -65,7 +65,7 @@ class Roles:
             if self.gs.is_pos_legal(ball_pos, team, robot_id) and np.linalg.norm(ball_pos - center_of_goal) < 2000:
                 self.get_ball(robot_id, charge_during=shoot_velocity)
             else:
-                self.path_find(robot_id, self.find_attacker_pos(robot_id))
+                self.path_find(robot_id, self.attacker_get_open(robot_id))
 
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()

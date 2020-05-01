@@ -122,16 +122,30 @@ class Analysis(object):
         return block_pos
 
     # finds a legal position for robot to move to
-    def find_legal_pos(self, robot_id: int, position = None) -> Tuple[float, float, float]:
+    def find_legal_pos(self, robot_id: int, position=None, perpendicular=False) -> Tuple[float, float, float]:
         """Returns a nearby legal and open position by searching around the robot.
+        Searches perpendicular to the path to the goal first if perpendicular is set to True.
         Returns the current position if it is legal.
         """
+        if position is not None and perpendicular:
+            position = position[:2]
+            path = position - self.gs.get_robot_position(self._team, robot_id)[:2]
+            norm_path = path / np.linalg.norm(path)
+            STEP_SIZE = self.gs.ROBOT_RADIUS
+            direction = np.array([norm_path[1], -norm_path[0]])
+            for i in range(0, 2000, int(STEP_SIZE)):
+                if self.gs.is_pos_legal(position + i * direction, self._team, robot_id) and \
+                   self.gs.is_position_open(position + i * direction, self._team, robot_id):
+                    return position + i * direction
+                if self.gs.is_pos_legal(position - i * direction, self._team, robot_id) and \
+                   self.gs.is_position_open(position - i * direction, self._team, robot_id):
+                    return position - i * direction
+            self.logger.debug("No legal perpeudicular position found")
         if position is None:
             position = self.gs.get_robot_position(self._team, robot_id)
         if len(position) == 2:
             position = (position[0], position[1], None)
         x, y, w = position
-        radius = self.gs.ROBOT_RADIUS
         delta = 0
         for delta in range(0, 1000, 10):
             positions_to_try = [
@@ -412,15 +426,15 @@ class Analysis(object):
         """
         s_pos = start_pos[:2]
         g_pos = goal_pos[:2]
-        # find first blocked position
-        obstacle = self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=allow_illegal)
-        # find a new position if there is an obstacle
-        if obstacle is None:
-            self.set_waypoints(robot_id, [g_pos])
-            return True
-        else:
-            g_pos = self.find_legal_pos(robot_id, obstacle) # TODO: make this account for allow_illegal
-            return self.greedy_path_find(s_pos, g_pos, robot_id, allow_illegal=allow_illegal)
+        for _ in range(lim):
+            # find first blocked position
+            obstacle = self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=allow_illegal)
+            # find a new position if there is an obstacle
+            if obstacle is None:
+                self.set_waypoints(robot_id, [g_pos])
+                return True
+            g_pos = self.find_legal_pos(robot_id, obstacle, perpendicular=True) # TODO: make this account for allow_illegal
+        return False
         
     
     def which_enemy_has_ball(self):

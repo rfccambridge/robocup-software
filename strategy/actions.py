@@ -112,7 +112,8 @@ class Actions:
         self.logger.debug(f"Robot: {robot_id} Start: {start_pos} Goal: {goal_pos} Waypoints: {current_waypoints}")
         if (current_path_collides or not is_same_goal or need_refresh):
             self._last_RRT_times[robot_id] = time.time()
-            is_success = self.RRT_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
+            # is_success = self.RRT_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
+            is_success = self.greedy_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
             if not is_success:
                 self.logger.debug(f"Robot {robot_id} RRT path find failed")
                 return False

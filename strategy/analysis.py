@@ -193,7 +193,7 @@ class Analysis(object):
     
     def find_attacker_pos(self, robot_id: int) -> Tuple[float, float, float]:
         """ Finds a position for attacker to get open if the ball is outside shooting range.
-        To be deprecated soon; use attacker_get_open(self, robot_id) instead
+        To be deprecated soon; use attacker_get_open(self, robot_id) instead.
         """
         best_pos = self.gs.get_robot_position(self._team, robot_id)
         best_rating = self.rate_attacker_pos(best_pos, robot_id)
@@ -213,6 +213,34 @@ class Analysis(object):
             x += STEP_SIZE
         return best_pos
 
+    # TODO: speed up first_path_obstacle and is_path_blocked using approach of is_straight_path_open
+    def first_path_obstacle(self, s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=False):
+        "finds first obstacle in a linear robot trajectory"
+        s_pos = np.array(s_pos)[:2]
+        g_pos = np.array(g_pos)[:2]
+
+        if (g_pos == s_pos).all():
+            return None
+        
+        def legal(pos):
+            return self.gs.is_pos_legal(pos, self._team, robot_id) or allow_illegal
+        path = g_pos - s_pos
+        norm_path = path / np.linalg.norm(path)
+        STEP_SIZE = self.gs.ROBOT_RADIUS
+        
+        # step along the path and look for a blocked point
+        # self.logger.info(s_pos)
+        # self.logger.info(g_pos)
+        # self.logger.info(path)
+        steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
+        for i in range(1, steps + 1):
+            intermediate_pos = s_pos + norm_path * STEP_SIZE * i
+            np.append(intermediate_pos, 0)
+            # self.logger.info('Legal? {}'.format(legal(intermediate_pos)))
+            if not self.gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
+                return intermediate_pos
+        return None
+    
     def is_path_blocked(self, s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=False):
         "incrementally check a linear path for obstacles"
         s_pos = np.array(s_pos)[:2]
@@ -229,6 +257,8 @@ class Analysis(object):
         norm_path = path / np.linalg.norm(path)
         STEP_SIZE = self.gs.ROBOT_RADIUS
 
+        # return self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=buffer_dist, allow_illegal=allow_illegal) is not None
+        
         # step along the path and check if any points are blocked
         # self.logger.info(s_pos)
         # self.logger.info(g_pos)
@@ -243,9 +273,14 @@ class Analysis(object):
         return False
 
     def is_straight_path_open(self, s_pos, g_pos):
+        """ Checks if a straight path is open, without worrying about whether it is legal for robots.
+        Should be used when finding a path to send the ball.
+        """
         robot_positions = self.gs.get_all_robot_positions()
         s_pos = s_pos[:2]
         g_pos = g_pos[:2]
+        if (s_pos == g_pos).all():
+            return True
         x1, y1 = s_pos[:2]
         x2, y2 = g_pos[:2]
         line_unit_vector = (s_pos - g_pos) / np.linalg.norm(s_pos - g_pos)
@@ -372,27 +407,43 @@ class Analysis(object):
 
         return poses[-1]
 
-        def which_enemy_has_ball(self):
-            BUFFER = 2 * self.gs._BALL_RADIUS
-            our_team = self._team
-            other_team = self.gs.other_team(our_team)
-            robot_ids = self.gs.get_robot_ids(other_team)
-            ball_pos = get.gs.get_ball_position()
-            for id in robot_ids:
-                if ball_in_dribbler(other_team, id):
-                    return id
-            return None
+    def greedy_path_find(self, start_pos, goal_pos, robot_id, lim=1000, allow_illegal = False):
+        """Heuristic path finder that uses a greedy approach
+        """
+        s_pos = start_pos[:2]
+        g_pos = goal_pos[:2]
+        # find first blocked position
+        obstacle = self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=allow_illegal)
+        # find a new position if there is an obstacle
+        if obstacle is None:
+            self.set_waypoints(robot_id, [g_pos])
+            return True
+        else:
+            g_pos = self.find_legal_pos(robot_id, obstacle) # TODO: make this account for allow_illegal
+            return self.greedy_path_find(s_pos, g_pos, robot_id, allow_illegal=allow_illegal)
+        
+    
+    def which_enemy_has_ball(self):
+        BUFFER = 2 * self.gs._BALL_RADIUS
+        our_team = self._team
+        other_team = self.gs.other_team(our_team)
+        robot_ids = self.gs.get_robot_ids(other_team)
+        ball_pos = get.gs.get_ball_position()
+        for id in robot_ids:
+            if ball_in_dribbler(other_team, id):
+                return id
+        return None
 
 
-        def indentify_enemy_threat_level(self):
-            our_team = self._team
-            other_team = self.gs.other_team(our_team)
-            enemy_robot_ids = self.gs.get_robot_ids(other_team)
-            enemy_robot_distances = []
-            goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
-            goal_center = (goal_top + goal_bottom) / 2
-            for id in enemy_robot_ids:
-                distance = np.linalg.norm(self.gs.get_robot_position(id) - goal_center)
-                enemy_robot_distances.append((id, distance))
-            threats = enemy_robot_distances.sort(key = sortSecond)
-            return threats
+    def indentify_enemy_threat_level(self):
+        our_team = self._team
+        other_team = self.gs.other_team(our_team)
+        enemy_robot_ids = self.gs.get_robot_ids(other_team)
+        enemy_robot_distances = []
+        goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
+        goal_center = (goal_top + goal_bottom) / 2
+        for id in enemy_robot_ids:
+            distance = np.linalg.norm(self.gs.get_robot_position(id) - goal_center)
+            enemy_robot_distances.append((id, distance))
+        threats = enemy_robot_distances.sort(key = sortSecond)
+        return threats

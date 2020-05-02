@@ -243,14 +243,10 @@ class Analysis(object):
         STEP_SIZE = self.gs.ROBOT_RADIUS
         
         # step along the path and look for a blocked point
-        # self.logger.info(s_pos)
-        # self.logger.info(g_pos)
-        # self.logger.info(path)
         steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            # self.logger.info('Legal? {}'.format(legal(intermediate_pos)))
             if not self.gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
                 return intermediate_pos
         return None
@@ -267,24 +263,24 @@ class Analysis(object):
             return self.gs.is_pos_legal(pos, self._team, robot_id) or allow_illegal
         if not self.gs.is_position_open(g_pos, self._team, robot_id) or not legal(g_pos):
             return True
-        path = g_pos - s_pos
-        norm_path = path / np.linalg.norm(path)
-        STEP_SIZE = self.gs.ROBOT_RADIUS
+        # path = g_pos - s_pos
+        # norm_path = path / np.linalg.norm(path)
+        # STEP_SIZE = self.gs.ROBOT_RADIUS
 
-        # return self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=buffer_dist, allow_illegal=allow_illegal) is not None
+        return self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=buffer_dist, allow_illegal=allow_illegal) is not None
         
         # step along the path and check if any points are blocked
         # self.logger.info(s_pos)
         # self.logger.info(g_pos)
         # self.logger.info(path)
-        steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
-        for i in range(1, steps + 1):
-            intermediate_pos = s_pos + norm_path * STEP_SIZE * i
-            np.append(intermediate_pos, 0)
-            # self.logger.info('Legal? {}'.format(legal(intermediate_pos)))
-            if not self.gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
-                return True
-        return False
+        # steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
+        # for i in range(1, steps + 1):
+        #     intermediate_pos = s_pos + norm_path * STEP_SIZE * i
+        #     np.append(intermediate_pos, 0)
+        #     # self.logger.info('Legal? {}'.format(legal(intermediate_pos)))
+        #     if not self.gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
+        #         return True
+        # return False
 
     def is_straight_path_open(self, s_pos, g_pos):
         """ Checks if a straight path is open, without worrying about whether it is legal for robots.
@@ -421,18 +417,18 @@ class Analysis(object):
 
         return poses[-1]
 
-    def greedy_path_find(self, start_pos, goal_pos, robot_id, lim=1000, allow_illegal = False):
-        """Heuristic path finder that uses a greedy approach
+    def greedy_path_find(self, start_pos, goal_pos, robot_id, lim=10, allow_illegal = False):
+        """Heuristic path finder
         """
         s_pos = start_pos[:2]
         g_pos = goal_pos[:2]
         for _ in range(lim):
             # find first blocked position
             obstacle = self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=allow_illegal)
-            # find a new position if there is an obstacle
             if obstacle is None:
-                self.set_waypoints(robot_id, [g_pos])
+                self.set_waypoints(robot_id, [g_pos, goal_pos])
                 return True
+            # find a new position if there is an obstacle
             g_pos = self.find_legal_pos(robot_id, obstacle, perpendicular=True) # TODO: make this account for allow_illegal
         return False
         

@@ -209,6 +209,7 @@ class Analysis(object):
         """ Finds a position for attacker to get open if the ball is outside shooting range.
         To be deprecated soon; use attacker_get_open(self, robot_id) instead.
         """
+        # TODO: Make it select positions that attacker would shoot from
         best_pos = self.gs.get_robot_position(self._team, robot_id)
         best_rating = self.rate_attacker_pos(best_pos, robot_id)
         ball_x, ball_y = self.gs.get_ball_position()

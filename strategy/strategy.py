@@ -122,8 +122,8 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
                     goal_pos = np.array([x, y, w])
                     # Use pathfinding
                     #self.move_straight(robot_id, goal_pos, is_urgent=True)
-                    self.path_find(robot_id, goal_pos)
-                    # self.greedy_path_find(robot_id, goal_pos)
+                    # self.path_find(robot_id, goal_pos)
+                    self.quick_path_find(robot_id, goal_pos)
                     # self.logger.info("UI CLICK!")
                     #self.set_dribbler(robot_id, True)
                     #self.pivot_with_ball(robot_id, goal_pos)

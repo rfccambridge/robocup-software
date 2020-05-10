@@ -35,7 +35,9 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
 
         # state for reducing frequency of expensive calls
         # (this also helps reduce oscillation)
-        self._last_RRT_times = {}  # robot_id : timestamp
+        self._last_pathfind_times = {}  # robot_id : timestamp
+
+        self.robot_on_ball = None # move to coach?
 
     def pre_run(self):
         # print info + initial state for the mode that is running
@@ -141,12 +143,17 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             self.random_robot(robot_id)
 
     def attacker_test(self):
-        if self.gs.viz_inputs['user_selected_robot'] is not None:
-            team, robot_id = self.gs.viz_inputs['user_selected_robot']
-            if team == self._team:
-                self._attacker_id = robot_id
-        if self._attacker_id is not None:
-            self.attacker(self._attacker_id)
+        # team = self._team
+        # robot_ids = self.gs.get_robot_ids(team)
+        self.attacker(1)
+        self.attacker(2)
+        self.assign_ball(1)
+        # if self.gs.viz_inputs['user_selected_robot'] is not None:
+        #     team, robot_id = self.gs.viz_inputs['user_selected_robot']
+        #     if team == self._team:
+        #         self._attacker_id = robot_id
+        # if self._attacker_id is not None:
+        #     self.attacker(self._attacker_id)
 
     def defender_test(self):
 

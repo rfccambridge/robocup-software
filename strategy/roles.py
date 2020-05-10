@@ -59,13 +59,20 @@ class Roles:
             if self.within_shooting_range(team, robot_id):
                 self.prepare_and_kick(robot_id, center_of_goal, shoot_velocity)
             else:
-                pass
+                for teammate_id in self.gs.get_robot_ids(team):
+                    if teammate_id == robot_id:
+                        continue
+                    this_robot_pos = self.gs.get_robot_position(team, robot_id)
+                    teammate_pos = self.gs.dribbler_pos(team, teammate_id)
+                    if self.is_straight_path_open(this_robot_pos, teammate_pos, ignore_ids=[robot_id, teammate_id]):
+                        self.pass_ball(robot_id, teammate_id)
+                        break
         else:
             ball_pos = self.gs.get_ball_position()
-            if self.gs.is_pos_legal(ball_pos, team, robot_id) and np.linalg.norm(ball_pos - center_of_goal) < 2000:
+            if self.gs.is_pos_legal(ball_pos, team, robot_id) and self.get_robot_on_ball() == robot_id:
                 self.get_ball(robot_id, charge_during=shoot_velocity)
             else:
-                self.path_find(robot_id, self.find_attacker_pos(robot_id))
+                self.path_find(robot_id, self.attacker_get_open(robot_id))
 
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()

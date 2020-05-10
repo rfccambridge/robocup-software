@@ -165,6 +165,15 @@ class Analysis(object):
         self.logger.debug("No legal position found open")
         return np.array([0, 0, 0])
 
+    # def rate_attack_formation(self, psns) -> float:
+    #     """ Rates 
+    #     """
+    #     goal = self.gs.get_attack_goal(self._team)
+    #     center_of_goal = (goal[0] + goal[1]) / 2
+    #     np.append(psns, center_of_goal)
+    #     ball_pos = self.gs.get_ball_position()
+    #     return 0.0
+    
     # Function that scores how good a position is for the attacker to get open for a pass
     # Higher ratings should indicate better positions
     def rate_attacker_pos(self, pos: Tuple[float, float, float], robot_id: int) -> float:
@@ -181,28 +190,38 @@ class Analysis(object):
         goal = self.gs.get_attack_goal(self._team)
         center_of_goal = (goal[0] + goal[1]) / 2
         goal_dist = np.linalg.norm(center_of_goal - pos[:2])
-        # Calculate the proximity to opposing robots
-        nearest_opponent_dist: float = self.gs.FIELD_X_LENGTH + self.gs.FIELD_Y_LENGTH
+        # Measure of proximity to opposing robots
+        nearest_opponent_dist = self.gs.FIELD_X_LENGTH + self.gs.FIELD_Y_LENGTH
         for opponent in self.gs.get_robot_ids(self.gs.other_team(self._team)):
             opponent_pos = self.gs.get_robot_position(self.gs.other_team(self._team), opponent)
-            opponent_dist: float = np.linalg.norm(opponent_pos[:2] - pos[:2])
+            opponent_dist = np.linalg.norm(opponent_pos[:2] - pos[:2])
             nearest_opponent_dist = min(nearest_opponent_dist, opponent_dist)
+        # Measure of the spread of a formation
+        nearest_teammate_dist = self.gs.FIELD_X_LENGTH + self.gs.FIELD_Y_LENGTH
+        for teammate in self.gs.get_robot_ids(self._team):
+            if teammate != robot_id:
+                teammate_pos = self.gs.get_robot_position(self._team, teammate)
+                teammate_dist = np.linalg.norm(teammate_pos[:2] - pos[:2])
+                nearest_teammate_dist = min(nearest_teammate_dist, teammate_dist)
         # Rate the position based on metrics
         # TODO: come up with a better metric to use
-        pass_wt = -1
-        goal_wt = -3
-        oppt_wt = 2
+        pass_rtg = -2 * pass_dist
+        goal_rtg = -3 * goal_dist
+        oppt_rtg = 2 * nearest_opponent_dist
+        team_rtg = 2 * nearest_teammate_dist
         # also consider off-centeredness
         goal_offctr = abs((pos[1] - center_of_goal[1]) / (pos[0] - center_of_goal[0]))
-        offctr_wt = -50
-        return (pass_wt * pass_dist + goal_wt * goal_dist + oppt_wt * nearest_opponent_dist + offctr_wt * goal_offctr)
+        ctr_rtg = -50 * goal_offctr
+        # Add together considerations
+        parameters = [pass_rtg, goal_rtg, oppt_rtg, team_rtg, ctr_rtg]
+        return (sum(parameters))
 
     def attacker_get_open(self, robot_id : int) -> Tuple[float, float, float]:
         """Sends the attacker to a locally optimal position."""
         STEP_SIZE = 300
-        offsets = [-2 * STEP_SIZE, -STEP_SIZE, 0, STEP_SIZE, 2 * STEP_SIZE]
+        steps = range(-3,4)
         robot_x, robot_y, _ = self.gs.get_robot_position(self._team, robot_id)
-        test_posns = [(robot_x + dx, robot_y + dy) for dx in offsets for dy in offsets]
+        test_posns = [(robot_x + dx * STEP_SIZE, robot_y + dy * STEP_SIZE) for dx in steps for dy in steps]
         return max(test_posns, key=lambda p : self.rate_attacker_pos(p, robot_id))
     
     def find_attacker_pos(self, robot_id: int) -> Tuple[float, float, float]:
@@ -248,7 +267,8 @@ class Analysis(object):
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            if not self.gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
+            if not self.gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) \
+                or not legal(intermediate_pos):
                 return intermediate_pos
         return None
     
@@ -268,22 +288,10 @@ class Analysis(object):
         # norm_path = path / np.linalg.norm(path)
         # STEP_SIZE = self.gs.ROBOT_RADIUS
 
-        return self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=buffer_dist, allow_illegal=allow_illegal) is not None
-        
-        # step along the path and check if any points are blocked
-        # self.logger.info(s_pos)
-        # self.logger.info(g_pos)
-        # self.logger.info(path)
-        # steps = int(np.floor(np.linalg.norm(path) / STEP_SIZE))
-        # for i in range(1, steps + 1):
-        #     intermediate_pos = s_pos + norm_path * STEP_SIZE * i
-        #     np.append(intermediate_pos, 0)
-        #     # self.logger.info('Legal? {}'.format(legal(intermediate_pos)))
-        #     if not self.gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist) or not legal(intermediate_pos):
-        #         return True
-        # return False
+        return self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=buffer_dist, \
+                                        allow_illegal=allow_illegal) is not None
 
-    def is_straight_path_open(self, s_pos, g_pos):
+    def is_straight_path_open(self, s_pos, g_pos, ignore_ids=[], ignore_opp_ids=[]):
         """ Checks if a straight path is open, without worrying about whether it is legal for robots.
         Should be used when finding a path to send the ball.
         """
@@ -296,6 +304,9 @@ class Analysis(object):
         x2, y2 = g_pos[:2]
         line_unit_vector = (s_pos - g_pos) / np.linalg.norm(s_pos - g_pos)
         for pos in robot_positions:
+            if pos[0][0] == self._team and pos[0][1] in ignore_ids \
+                or pos[0][0] == self.gs.other_team(self._team) and pos[0][1] in ignore_opp_ids:
+                continue
             pos = pos[1][:2]
             self.logger.debug(f"{pos}")
             x3, y3 = pos[:2]

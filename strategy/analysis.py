@@ -39,7 +39,6 @@ class Analysis(object):
             returns the positions between which robots can intercept the ball.
             returns None if interception is not possible
         """
-        team = self.gs.other_team(self._team) if other_team else self._team
         future_ball_array = self.get_future_ball_array()
         if len(future_ball_array) == 0:
             return None
@@ -95,16 +94,16 @@ class Analysis(object):
         dists = {}
         team = self.gs.other_team(self._team) if other_team else self._team
         for robot_id in self.gs.get_robot_ids(team):
-            intercept_path = self.intercept_range(robot_id, other_team)[0] \
+            intercept_path = self.intercept_range(robot_id)[0] \
                              - self.gs.get_robot_position(team, robot_id)[:2]
             dists[robot_id] = np.linalg.norm(intercept_path)
         return dists
-    
+
     def rank_intercept_distances(self, other_team=False):
         """Returns ids and intercept distances as a dictionary sorted in increasing order"""
         dists = self.intercept_distances(other_team)
         return sorted(dists.items(), key = lambda x : x[1])
-    
+
     def best_kick_pos(self, from_pos: Tuple[float, float], to_pos: Tuple[float, float]) -> Tuple[float, float, float]:
         """determine the best robot position to kick in desired direction"""
         dx, dy = to_pos[:2] - from_pos[:2]

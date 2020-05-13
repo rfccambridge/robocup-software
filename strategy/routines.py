@@ -1,10 +1,14 @@
+# pylint: disable=maybe-no-member
 from typing import Tuple
 
-# Definitions + supporting logic for multi-step sequences of actions
-# Use simple state management, return whether finished
+
 class Routines:
-    def prepare_and_kick(self, robot_id: int, kick_pos: Tuple[float, float, float], min_charge=0):
-        """Command robot to get into position, charge to given level, and kick"""
+    """Definitions + supporting logic for multi-step sequences of actions
+    Use simple state management, return whether finished"""
+    def prepare_and_kick(self, robot_id: int,
+                         kick_pos: Tuple[float, float, float],
+                         min_charge: float = 0) -> bool:
+        """Command robot to get into position, charge to given level, & kick"""
         done_pivoting = self.pivot_with_ball(robot_id, kick_pos)
         done_charging = self.charge_up_to(robot_id, min_charge)
         if done_pivoting and done_charging:

@@ -1,3 +1,4 @@
+# pylint: disable=maybe-no-member
 import numpy as np
 from random import random
 

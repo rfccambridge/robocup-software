@@ -1,5 +1,7 @@
+# pylint: disable=no-member
 import numpy as np
-from refbox import SSL_Referee
+from refbox import SSL_Referee  # pylint: disable=import-error
+
 
 class Field(object):
     """
@@ -35,8 +37,12 @@ class Field(object):
         # account for buffer of robot radius
         radius = self.ROBOT_RADIUS
         # defense area is a box centered at y = 0
-        return ((min_x - radius <= pos[0] <= min_x + self.DEFENSE_AREA_X_LENGTH + radius) and
-                min_y - radius <= pos[1] <= min_y + self.DEFENSE_AREA_Y_LENGTH + radius)
+        dx_min, dy_min = min_x - radius, min_y - radius
+        dx_max = min_x + self.DEFENSE_AREA_X_LENGTH + radius
+        dy_max = min_y + self.DEFENSE_AREA_Y_LENGTH + radius
+        in_x = dx_min <= pos[0] <= dx_max
+        in_y = dy_min <= pos[1] <= dy_max
+        return in_x and in_y
 
     def is_in_play(self, pos):
         return ((self.FIELD_MIN_X <= pos[0] <= self.FIELD_MAX_X) and
@@ -47,14 +53,19 @@ class Field(object):
         # TODO: during free kicks must be away from opponent area
         # + ALL OTHER RULES
         latest_refbox_message = self.get_latest_refbox_message()
-        # TODO: Also avoid ball during other team ball placement, defend free kick, etc.
+        # TODO: Also avoid ball during other team ball placement,
+        # defend free kick, etc.
         if latest_refbox_message.command == SSL_Referee.STOP:
-            if np.linalg.norm(pos[:2] - self.get_ball_position()) <= 500 + self.ROBOT_RADIUS:
+            dist = np.linalg.norm(pos[:2] - self.get_ball_position())
+            if dist <= 500 + self.ROBOT_RADIUS:
                 return False
-        in_own_defense_area = self.is_in_defense_area(pos, team) and \
-                not self.is_goalie(team, robot_id)
-        in_other_defense_area = self.is_in_defense_area(pos, self.other_team(team))
-        return self.is_in_play(pos) and not in_own_defense_area and not in_other_defense_area
+        in_d_area = self.is_in_defense_area(pos, team)
+        ot = self.other_team(team)
+        in_own_defense_area = in_d_area and not self.is_goalie(team, robot_id)
+        in_other_defense_area = self.is_in_defense_area(pos, ot)
+        return (self.is_in_play(pos) and
+                not in_own_defense_area and
+                not in_other_defense_area)
 
     def random_position(self):
         """
@@ -83,5 +94,5 @@ class Field(object):
         if team == 'yellow':
             return self.get_defense_goal('blue')
         else:
-            assert(team == 'blue')
+            assert team == 'blue'
             return self.get_defense_goal('yellow')

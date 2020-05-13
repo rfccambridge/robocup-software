@@ -1,12 +1,12 @@
 import time
 import numpy as np
 from collections import deque
+
 # import RobotCommands from the comms folder
 # (expected to run from root directory, use try/except if run from here)
-from comms import RobotCommands, RobotStatus
+from comms import RobotCommands, RobotStatus  # pylint: disable=import-error
+from refbox import SSL_Referee  # pylint: disable=import-error
 
-
-from refbox import SSL_Referee
 # import parts of gamestate that we've separated out for readability
 # (they are actually just part of the same class)
 try:
@@ -30,7 +30,7 @@ class GameState(Field, Analysis):
     """Game state contains all raw game information in one place.
        Many threads can edit and use the game state at once, cuz Python GIL
        Since using python, data types are specified in the comments below.
-       Fundamental physics and game rules functions are available from gamestate.
+       Fundamental physics and game rules functions available from gamestate.
     """
     def __init__(self):
         # NOTE: Fields starting with _underscore are "private" so

@@ -1,4 +1,6 @@
+# pylint: disable=no-member
 import numpy as np
+
 
 class Analysis(object):
     """
@@ -213,8 +215,8 @@ class Analysis(object):
         final_y = final_ball_pos[1]
         defense_goal = self.get_defense_goal(team)
         x_pos_of_goal = defense_goal[0][0]
-        GOAL_WIDTH_BUFFER = 250 # assumes shots slightly wide are going in
-        GOAL_X_BUFFER = 500 # assumes shots stopping slightly short are going in
+        GOAL_WIDTH_BUFFER = 250  # assumes shots slightly wide are going in
+        GOAL_X_BUFFER = 500  # assumes shots stopping slightly short are going in
         x1 = x_pos_of_goal + GOAL_X_BUFFER
         x2 = x_pos_of_goal - GOAL_X_BUFFER
         if (min(final_x, start_x) <= x1 <= max(final_x, start_x)) or \

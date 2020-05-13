@@ -1,11 +1,12 @@
+# pylint: disable=line-too-long
 import time
 import numpy as np
-from collections import deque
 from typing import Tuple
 import logging
-from coordinator import Provider
+from coordinator import Provider  # pylint: disable=import-error
 
 logger = logging.getLogger(__name__)
+
 
 class Simulator(Provider):
     """Simulator class spins to update gamestate instead of vision and comms.
@@ -27,7 +28,9 @@ class Simulator(Provider):
             '_yellow_robot_status',
         ]
 
-    def put_fake_robot(self, team: str, robot_id: int, position: Tuple[float, float, float]) -> None:
+    def put_fake_robot(self, team: str,
+                       robot_id: int,
+                       position: Tuple[float, float, float]) -> None:
         """initialize a robot with given id + team at (x, y, w) position"""
         if position[2] is None:
             position[2] = 0
@@ -72,14 +75,15 @@ class Simulator(Provider):
             self.put_fake_ball(np.array([-2000, 1200]), np.array([0, -1200]))
         elif self._initial_setup == "entry_video":
             SCALE = 1  # if mini field
+            pfr = self.put_fake_robot
             self.put_fake_ball(np.array([2000, 900]) * SCALE, np.array([0, 0]))
-            self.put_fake_robot('blue', 0, np.array([1000, 900, 0]) * SCALE)
-            self.put_fake_robot('blue', 8, np.array([2000, -1100, 0]) * SCALE)
-            self.put_fake_robot('yellow', 0, np.array([1800, -500, 0]) * SCALE)
-            self.put_fake_robot('yellow', 1, np.array([3000, 1200, 0]) * SCALE)
-            self.put_fake_robot('yellow', 2, np.array([3000, -1500, 0]) * SCALE)
-            self.put_fake_robot('yellow', 3, np.array([3500, 500, 0]) * SCALE)
-            self.put_fake_robot('yellow', 4, np.array([3500, -500, 0]) * SCALE)
+            pfr('blue', 0, np.array([1000, 900, 0]) * SCALE)
+            pfr('blue', 8, np.array([2000, -1100, 0]) * SCALE)
+            pfr('yellow', 0, np.array([1800, -500, 0]) * SCALE)
+            pfr('yellow', 1, np.array([3000, 1200, 0]) * SCALE)
+            pfr('yellow', 2, np.array([3000, -1500, 0]) * SCALE)
+            pfr('yellow', 3, np.array([3500, 500, 0]) * SCALE)
+            pfr('yellow', 4, np.array([3500, -500, 0]) * SCALE)
         else:
             logger.error("(initial_setup not recognized, empty field). "
                          "initial_setup: %s", self._initial_setup)
@@ -123,8 +127,8 @@ class Simulator(Provider):
             # handle collisions with other robots
             for (team2, robot_id2), pos2 in \
                     self.gs.get_all_robot_positions():
-                if (team2, robot_id2) != (team, robot_id) and \
-                    self.gs.robot_overlap(pos, pos2).any():
+                if ((team2, robot_id2) != (team, robot_id) and
+                        self.gs.robot_overlap(pos, pos2).any()):
                     overlap = self.gs.robot_overlap(pos, pos2)
                     overlap = np.append(overlap, 0)
                     self.gs.update_robot_position(

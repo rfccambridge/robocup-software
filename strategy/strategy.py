@@ -249,6 +249,6 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             pass
 
     def full_game(self):
-        # pylint: disable=undefined_variable
+        # pylint: disable=undefined-variable
         coach = Coach(self)
         coach.play()

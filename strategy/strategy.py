@@ -1,7 +1,6 @@
-import traceback
 import numpy as np
-import time
-import logging
+
+# pylint: disable=import-error
 from coordinator import Provider
 
 # import lower-level strategy logic that we've separated for readability
@@ -250,5 +249,6 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             pass
 
     def full_game(self):
+        # pylint: disable=undefined_variable
         coach = Coach(self)
         coach.play()

@@ -8,8 +8,9 @@ from typing import Tuple, List
 class Utils:
     def perpendicular(self, vec: Tuple[float, float]) -> Tuple[float, float]:
         x, y = vec
-        if x == 0 and y == 0:
+        if x == y == 0:
             return np.array([0, 0])
+
         perpendicular = np.array([-y, x])
         return perpendicular / np.linalg.norm(perpendicular)
 
@@ -17,7 +18,7 @@ class Utils:
         """convert angle to between -pi and pi"""
         return (angle + np.pi) % (np.pi * 2) - np.pi
 
-    def set_speeds(self, robot_id, x, y, w):
+    def set_speeds(self, robot_id, x, y, w) -> None:
         commands = self.gs.get_robot_commands(self._team, robot_id)
         commands.set_speeds(x, y, w)
 

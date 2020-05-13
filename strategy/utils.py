@@ -1,11 +1,13 @@
+# pylint: disable=maybe-no-member
 """Strategy helper functions for geometry + working with commands"""
 
 import numpy as np
 from typing import Tuple, List
 
+
 class Utils:
-    def perpendicular(self, vector: Tuple[float, float]) -> Tuple[float, float]:
-        x, y = vector
+    def perpendicular(self, vec: Tuple[float, float]) -> Tuple[float, float]:
+        x, y = vec
         if x == 0 and y == 0:
             return np.array([0, 0])
         perpendicular = np.array([-y, x])
@@ -20,10 +22,10 @@ class Utils:
         commands.set_speeds(x, y, w)
 
     def set_waypoints(self,
-        robot_id: int,
-        waypoints: List[Tuple[float, float]],
-        is_urgent: bool = False
-    ) -> None:
+                      robot_id: int,
+                      waypoints: List[Tuple[float, float]],
+                      is_urgent: bool = False
+                      ) -> None:
         """format + insert list of waypoints into robot commands"""
         current_pos = self.gs.get_robot_position(self._team, robot_id)
         commands = self.gs.get_robot_commands(self._team, robot_id)
@@ -34,7 +36,9 @@ class Utils:
                 waypoints[i] = np.array([p[0], p[1], None])
         commands.set_waypoints(waypoints, current_pos, is_urgent)
 
-    def append_waypoint(self, robot_id: int, goal_pos: Tuple[float, float], is_urgent=False) -> None:
+    def append_waypoint(self, robot_id: int,
+                        goal_pos: Tuple[float, float],
+                        is_urgent=False) -> None:
         """format + single waypoint into robot commands"""
         current_pos = self.gs.get_robot_position(self._team, robot_id)
         commands = self.gs.get_robot_commands(self._team, robot_id)
@@ -64,9 +68,9 @@ class Utils:
         return True
 
     def face_pos(self,
-        facing_from_pos: Tuple[float, float],
-        facing_towards_pos: Tuple[float, float]
-    ) -> float:
+                 facing_from_pos: Tuple[float, float],
+                 facing_towards_pos: Tuple[float, float]
+                 ) -> float:
         """Return angle (relative to the x axis) betweeen two positions"""
         dx, dy = facing_towards_pos[:2] - facing_from_pos[:2]
         # use atan2 instead of atan because it takes into account x/y signs
@@ -83,10 +87,14 @@ class Utils:
         """Return angle from robot to ball"""
         return self.robot_face_pos(robot_id, self.gs.get_ball_position())
 
-    def distance_from_line(self, start: Tuple[float, float], end: Tuple[float, float], point: Tuple[float, float]):
+    def distance_from_line(self,
+                           start: Tuple[float, float],
+                           end: Tuple[float, float],
+                           point: Tuple[float, float]):
         start_x, start_y = start
         end_x, end_y = end
         p_x, p_y = point
         dx, dy = end - start
-        distance = abs((-dy * p_x + dx * p_y - start_y * dx + start_x * dy)/np.linalg.norm(end-start))
+        distance = abs((-dy * p_x + dx * p_y - start_y * dx + start_x * dy)
+                       / np.linalg.norm(end - start))
         return distance

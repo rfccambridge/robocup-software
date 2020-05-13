@@ -1,6 +1,7 @@
+# pylint: disable=maybe-no-member
 import numpy as np
 import time
-from typing import Iterable, Optional, List, Tuple
+from typing import Tuple
 
 
 class Actions:
@@ -8,7 +9,9 @@ class Actions:
     Definitions + supporting logic for simple robot actions
     (have a single step/end condition, return True when done)
     """
-    def pivot_with_ball_speeds(self, robot_id, face_pos: Tuple[float, float]) -> bool:
+    def pivot_with_ball_speeds(self,
+                               robot_id,
+                               face_pos: Tuple[float, float]) -> bool:
         """Move robot around ball without losing possession"""
         ball_pos = self.gs.get_ball_position()
         kick_pos = self.best_kick_pos(ball_pos, face_pos)
@@ -18,7 +21,7 @@ class Actions:
         step = 100
         astep = 1
 
-        vel = np.cross(ball_pos - robot_pos[0:2], [0,0,1])
+        vel = np.cross(ball_pos - robot_pos[0:2], [0, 0, 1])
         vel = step * vel * np.sign(angle) / np.linalg.norm(vel)
         self.logger.debug(vel)
         self.set_speeds(robot_id, vel[0], vel[1], np.sign(angle) * astep)
@@ -63,18 +66,22 @@ class Actions:
         commands.is_dribbling = is_dribbling
 
     def stop(self, robot_id: int):
-         commands = self.gs.get_robot_commands(self._team, robot_id)
-         commands.set_speeds(0, 0, 0)
-         commands.clear_waypoints()
+        commands = self.gs.get_robot_commands(self._team, robot_id)
+        commands.set_speeds(0, 0, 0)
+        commands.clear_waypoints()
 
     # tell specific robot to move straight towards given location
-    def move_straight(self, robot_id: int, goal_pos: Tuple[float, float, float], is_urgent=False):
+    def move_straight(self, robot_id: int,
+                      goal_pos: Tuple[float, float, float],
+                      is_urgent: bool = False):
         self.set_waypoints(robot_id, [goal_pos], is_urgent)
         return self.is_done_moving(robot_id)
 
     # find a legal path for robot to go to position, returns whether arrived
     # TODO: still goes through defense area - need to fix see is_path_blocked
-    def full_path_find(self, robot_id: int, goal_pos: Tuple[float, float, float], allow_illegal = False) -> bool:
+    def full_path_find(self, robot_id: int,
+                       goal_pos: Tuple[float, float, float],
+                       allow_illegal: bool = False) -> bool:
         """ Tries to find a legal non-colliding path to goal position.
         If goal position is not legal or is blocked, goes somewhere nearby.
         """
@@ -99,7 +106,8 @@ class Actions:
         current_path_collides = False
         for i in range(len(current_waypoints) - 1):
             wp, next_wp = current_waypoints[i], current_waypoints[i+1]
-            if self.is_path_blocked(wp, next_wp, robot_id, allow_illegal=allow_illegal):
+            if self.is_path_blocked(wp, next_wp, robot_id,
+                                    allow_illegal=allow_illegal):
                 current_path_collides = True
         # avoid rerunning too often so we don't crash the system
         # RRT_MIN_INTERVAL = .1
@@ -112,23 +120,27 @@ class Actions:
         self.logger.debug(f"Robot: {robot_id} Start: {start_pos} Goal: {goal_pos} Waypoints: {current_waypoints}")
         if (current_path_collides or not is_same_goal or need_refresh):
             self._last_pathfind_times[robot_id] = time.time()
-            # is_success = self.RRT_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
-            is_success = self.RRT_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
+            is_success = self.RRT_path_find(
+                start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
             if not is_success:
                 self.logger.debug(f"Robot {robot_id} RRT path find failed")
                 return False
         return self.is_done_moving(robot_id)
 
-    def path_find(self, robot_id: int, goal_pos: Tuple[float, float, float], allow_illegal = False) -> bool:
-        """ Makes the robot to start moving to a destination using as greedy approach
-        """
+    def path_find(self, robot_id: int,
+                  goal_pos: Tuple[float, float, float],
+                  allow_illegal: bool = False) -> bool:
+        """ Makes the robot to start moving to a destination using 
+        a greedy approach"""
         # If the goal is illegal or occupied, find somewhere nearby
         if not self.gs.is_pos_legal(goal_pos, self._team, robot_id) \
             or not self.gs.is_position_open(goal_pos, self._team, robot_id):
             goal_pos = self.find_legal_pos(robot_id, goal_pos)
         start_pos = self.gs.get_robot_position(self._team, robot_id)
         # always check if we can just go straight
-        if not self.is_path_blocked(start_pos, goal_pos, robot_id, buffer_dist=0, allow_illegal=allow_illegal):
+        if not self.is_path_blocked(start_pos, goal_pos, robot_id,
+                                    buffer_dist=0,
+                                    allow_illegal=allow_illegal):
             self.move_straight(robot_id, np.array(goal_pos))
             self.logger.debug(f"Robot {robot_id} going straight from {start_pos} to {goal_pos}")
             return self.is_done_moving(robot_id)
@@ -145,7 +157,7 @@ class Actions:
         fst_segmt_collides = False if fst_segmt is None \
             else self.is_path_blocked(fst_segmt[0], fst_segmt[1], robot_id, allow_illegal=allow_illegal)
         fst_segmt_len = 0 if fst_segmt is None else np.linalg.norm(fst_segmt[1][:2] - fst_segmt[0][:2])
-        
+
         TRIVIAL_DISTANCE = 3 * self.gs.ROBOT_RADIUS # distance where we should just let the robot go
         MIN_REFRESH_INTERVAL = .1  # need frequent refreshes since we do not have full path planning
         need_refresh = robot_id not in self._last_pathfind_times or \
@@ -159,11 +171,11 @@ class Actions:
                 self.logger.debug(f"Robot {robot_id} greedy path find failed")
                 return False
         return self.is_done_moving(robot_id)
-    
+
     # move this logic to coach?
     def get_robot_on_ball(self):
-        return self.robot_on_ball 
-    
+        return self.robot_on_ball
+
     def assign_ball(self, robot_id: int) -> bool:
         self.robot_on_ball = robot_id
         return True

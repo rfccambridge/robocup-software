@@ -1,9 +1,11 @@
+# pylint: disable=maybe-no-member
 import numpy as np
 import time
-from typing import Optional, Tuple, Iterable
+from typing import Tuple
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class Analysis(object):
     """
@@ -28,8 +30,9 @@ class Analysis(object):
             t += delta_t
         return future_ball_array
 
-    def intercept_range(self, robot_id: int
-        ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def intercept_range(self,
+                        robot_id: int
+                        ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """find the range for which a robot can reach the ball in its trajectory
 
         @return position1, position2:
@@ -42,11 +45,12 @@ class Analysis(object):
         max_index = len(future_ball_array) - 1
         robot_pos = self.gs.get_robot_position(self._team, robot_id)
         max_speed = self.gs.robot_max_speed(self._team, robot_id)
+
         def buffer_time(data):
             timestamp, ball_pos = data
             ball_travel_time = timestamp - time.time()
-            distance_robot_needs_to_travel = np.linalg.norm(ball_pos - robot_pos[:2])
-            robot_travel_time = distance_robot_needs_to_travel / max_speed
+            dist_robot_needs_to_travel = np.linalg.norm(ball_pos - robot_pos[:2])
+            robot_travel_time = dist_robot_needs_to_travel / max_speed
             return ball_travel_time - robot_travel_time
         index = 0
         while(index < max_index and buffer_time(future_ball_array[index]) < 0):
@@ -93,7 +97,9 @@ class Analysis(object):
 
     # TODO: generalize for building walls and stuff
     # TODO: account for attacker orientation?
-    def block_goal_center_pos(self, max_distance_from_goal: float, ball_pos=None, team=None):
+    def block_goal_center_pos(self, max_distance_from_goal: float,
+                              ball_pos: bool = None,
+                              team: bool = None):
         """Return position between the ball and the goal, at a particular distance from the goal"""
         if team is None:
             team = self._team
@@ -166,17 +172,18 @@ class Analysis(object):
         return np.array([0, 0, 0])
 
     # def rate_attack_formation(self, psns) -> float:
-    #     """ Rates 
+    #     """ Rates
     #     """
     #     goal = self.gs.get_attack_goal(self._team)
     #     center_of_goal = (goal[0] + goal[1]) / 2
     #     np.append(psns, center_of_goal)
     #     ball_pos = self.gs.get_ball_position()
     #     return 0.0
-    
-    # Function that scores how good a position is for the attacker to get open for a pass
-    # Higher ratings should indicate better positions
+
     def rate_attacker_pos(self, pos: Tuple[float, float, float], robot_id: int) -> float:
+        """ Function that scores how good a position is for the attacker to
+        get open for a pass. Higher ratings should indicate better positions
+        """
         ball_pos = self.gs.get_ball_position()
         if not self.gs.is_pos_legal(pos, self._team, robot_id) \
             or not self.gs.is_position_open(pos, self._team, robot_id):
@@ -326,9 +333,8 @@ class Analysis(object):
         robot_pos = self.gs.get_robot_position(team, robot_id)[:2]
         return np.linalg.norm(robot_pos - center_of_goal) < shoot_range
 
-
-    # generate RRT waypoints
     def RRT_path_find(self, start_pos, goal_pos, robot_id, lim=1000, allow_illegal = False):
+        """generate RRT waypoints"""
         goal_pos = np.array(goal_pos)
         start_pos = np.array(start_pos)
         graph = {tuple(start_pos): []}
@@ -420,7 +426,8 @@ class Analysis(object):
         for i in range(1, steps + 1):
             intermediate_pos = s_pos + norm_path * STEP_SIZE * i
             np.append(intermediate_pos, 0)
-            if not self.gs.is_position_open(intermediate_pos, self._team, robot_id, buffer_dist=100) or \
+            if not self.gs.is_position_open(intermediate_pos, self._team,
+                                            robot_id, buffer_dist=100) or \
                not self.gs.is_pos_legal(g_pos, self._team, robot_id):
                 break
             if np.linalg.norm(intermediate_pos - s_pos) > 4 * STEP_SIZE:
@@ -429,35 +436,37 @@ class Analysis(object):
 
         return poses[-1]
 
-    def greedy_path_find(self, start_pos, goal_pos, robot_id, lim=10, allow_illegal = False):
-        """Heuristic path finder
-        """
+    def greedy_path_find(self, start_pos, goal_pos,
+                         robot_id, lim=10, allow_illegal: bool = False):
+        """Heuristic path finder"""
         s_pos = start_pos[:2]
         g_pos = goal_pos[:2]
         for _ in range(lim):
             # find first blocked position
-            obstacle = self.first_path_obstacle(s_pos, g_pos, robot_id, buffer_dist=0, allow_illegal=allow_illegal)
+            obstacle = self.first_path_obstacle(
+                s_pos, g_pos, robot_id,
+                buffer_dist=0,
+                allow_illegal=allow_illegal)
             if obstacle is None:
                 self.set_waypoints(robot_id, [g_pos, goal_pos])
                 return True
             # find a new position if there is an obstacle
-            g_pos = self.find_legal_pos(robot_id, obstacle, perpendicular=True) # TODO: make this account for allow_illegal
+            # TODO: make this account for allow_illegal
+            g_pos = self.find_legal_pos(robot_id, obstacle, perpendicular=True)
         return False
-        
-    
+
     def which_enemy_has_ball(self):
         BUFFER = 2 * self.gs._BALL_RADIUS
         our_team = self._team
         other_team = self.gs.other_team(our_team)
         robot_ids = self.gs.get_robot_ids(other_team)
-        ball_pos = get.gs.get_ball_position()
+        ball_pos = self.gs.get_ball_position()
         for id in robot_ids:
-            if ball_in_dribbler(other_team, id):
+            if self.ball_in_dribbler(other_team, id):
                 return id
         return None
 
-
-    def indentify_enemy_threat_level(self):
+    def identify_enemy_threat_level(self):
         our_team = self._team
         other_team = self.gs.other_team(our_team)
         enemy_robot_ids = self.gs.get_robot_ids(other_team)
@@ -467,5 +476,5 @@ class Analysis(object):
         for id in enemy_robot_ids:
             distance = np.linalg.norm(self.gs.get_robot_position(id) - goal_center)
             enemy_robot_distances.append((id, distance))
-        threats = enemy_robot_distances.sort(key = sortSecond)
+        threats = enemy_robot_distances.sort(key = lambda x: x[-1])
         return threats

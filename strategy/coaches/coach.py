@@ -1,20 +1,21 @@
 """Role analysis class for strategy."""
-import sys
-# sys.path.append("../..")
+# pylint: disable=import-error
 from refbox import SSL_Referee
+
 
 class Coach(object):
     """Coach class that takes in the Strategy class and assembles together high
-    level commands. 
-    See https://robocup-ssl.github.io/ssl-rules/sslrules.html#_referee_commands """
+    level commands.
+    See https://robocup-ssl.github.io/ssl-rules/sslrules.html#_referee_commands
+    """
 
     def __init__(self, strategy) -> None:
         """Coach class initialization with a strategy that the coach should
-        oversee. 
-        
+        oversee.
+
         Args:
             strategy (strategy.Strategy): Strategy object that the Coach should
-            run, 
+            run,
         """
         self._strategy = strategy
         self._team = self._strategy._team
@@ -46,7 +47,7 @@ class Coach(object):
 
     def is_yellow(self) -> bool:
         return self._team == 'yellow'
-		
+
     def play(self):
         self.logger.debug("Play was called")
         latest_refbox_message = self.gs.get_latest_refbox_message()
@@ -87,10 +88,9 @@ class Coach(object):
     def direct_free(self):
         self.logger.info("FREE KICK CALLED")
 
-
     def defend_direct_free(self):
         self.logger.info("DEFEND FREE KICK CALLED")
-        self._strategy.form_wall([1,2,3])
+        self._strategy.form_wall([1, 2, 3])
 
     def indirect_free(self):
         raise NotImplementedError
@@ -103,7 +103,7 @@ class Coach(object):
 
     def goal(self):
         self.logger.warning('GOOOOOOOOOOOOOOOOOAAAAAAAAAAALLLLLLLLLLLLLLL')
-    
+
     def defend_goal(self):
         self.logger.warning('RIP')
 
@@ -112,9 +112,3 @@ class Coach(object):
 
     def defend_ball_placement(self):
         raise NotImplementedError
-
-
-            
-    
-
-    

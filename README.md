@@ -1,6 +1,7 @@
 # Robocup Software
 ## Documentation
 
+![Continuous Integration](https://github.com/rfccambridge/robocup-software/workflows/Continuous%20Integration/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/robocup-docs/badge/?version=latest)](https://robocup-docs.readthedocs.io/en/latest/?badge=latest)
 
 Online Function Reference: https://robocup-docs.readthedocs.io/

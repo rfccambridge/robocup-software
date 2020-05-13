@@ -46,8 +46,8 @@ class Roles:
             if goalie_pos.any():
                 self.move_straight(robot_id, goalie_pos)
 
-    def attacker(self, robot_id):
-        """Commands a given robot id to play as attacker"""
+    def attacker_on_ball(self, robot_id):
+        """Attacker that has the ball"""
         team = self._team
         # Shooting velocity
         shoot_velocity = 1200
@@ -69,10 +69,14 @@ class Roles:
                         break
         else:
             ball_pos = self.gs.get_ball_position()
-            if self.gs.is_pos_legal(ball_pos, team, robot_id) and self.get_robot_on_ball() == robot_id:
+            if self.gs.is_pos_legal(ball_pos, team, robot_id):
                 self.get_ball(robot_id, charge_during=shoot_velocity)
             else:
-                self.path_find(robot_id, self.attacker_get_open(robot_id))
+                self.path_find(robot_id, self.find_legal_pos(robot_id, self.gs.get_ball_position()))
+    
+    def attacker_off_ball(self, robot_id):
+        """Commands a given robot id to play as attacker without a ball"""
+        self.path_find(robot_id, self.attacker_get_open(robot_id))
 
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()

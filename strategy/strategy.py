@@ -37,8 +37,6 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         # (this also helps reduce oscillation)
         self._last_pathfind_times = {}  # robot_id : timestamp
 
-        self.robot_on_ball = None # move to coach?
-
     def pre_run(self):
         # print info + initial state for the mode that is running
         self.logger.info("\nRunning strategy for {} team, mode: {}".format(
@@ -144,10 +142,9 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
 
     def attacker_test(self):
         # team = self._team
-        # robot_ids = self.gs.get_robot_ids(team)
-        self.attacker(1)
-        self.attacker(2)
-        self.assign_ball(1)
+        ranked_dists = self.rank_intercept_distances()
+        self.attacker_on_ball(ranked_dists[0][0])
+        self.attacker_off_ball(ranked_dists[1][0])
         # if self.gs.viz_inputs['user_selected_robot'] is not None:
         #     team, robot_id = self.gs.viz_inputs['user_selected_robot']
         #     if team == self._team:

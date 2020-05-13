@@ -28,7 +28,7 @@ class Analysis(object):
             t += delta_t
         return future_ball_array
 
-    def intercept_range(self, robot_id: int
+    def intercept_range(self, robot_id: int, other_team=False
         ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """find the range for which a robot can reach the ball in its trajectory
 
@@ -36,12 +36,13 @@ class Analysis(object):
             returns the positions between which robots can intercept the ball.
             returns None if interception is not possible
         """
+        team = self.gs.other_team(self._team) if other_team else self._team
         future_ball_array = self.get_future_ball_array()
         if len(future_ball_array) == 0:
             return None
         max_index = len(future_ball_array) - 1
-        robot_pos = self.gs.get_robot_position(self._team, robot_id)
-        max_speed = self.gs.robot_max_speed(self._team, robot_id)
+        robot_pos = self.gs.get_robot_position(team, robot_id)
+        max_speed = self.gs.robot_max_speed(team, robot_id)
         def buffer_time(data):
             timestamp, ball_pos = data
             ball_travel_time = timestamp - time.time()
@@ -85,6 +86,21 @@ class Analysis(object):
             safest_pos = robot_pos
         return safest_pos
 
+    def intercept_distances(self, other_team=False):
+        """Returns intercept distances for a team as a dictionary"""
+        dists = {}
+        team = self.gs.other_team(self._team) if other_team else self._team
+        for robot_id in self.gs.get_robot_ids(team):
+            intercept_path = self.intercept_range(robot_id, other_team)[0] \
+                             - self.gs.get_robot_position(team, robot_id)[:2]
+            dists[robot_id] = np.linalg.norm(intercept_path)
+        return dists
+    
+    def rank_intercept_distances(self, other_team=False):
+        """Returns ids and intercept distances as a dictionary sorted in increasing order"""
+        dists = self.intercept_distances(other_team)
+        return sorted(dists.items(), key = lambda x : x[1])
+    
     def best_kick_pos(self, from_pos: Tuple[float, float], to_pos: Tuple[float, float]) -> Tuple[float, float, float]:
         """determine the best robot position to kick in desired direction"""
         dx, dy = to_pos[:2] - from_pos[:2]

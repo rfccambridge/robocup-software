@@ -159,11 +159,3 @@ class Actions:
                 self.logger.debug(f"Robot {robot_id} greedy path find failed")
                 return False
         return self.is_done_moving(robot_id)
-    
-    # move this logic to coach?
-    def get_robot_on_ball(self):
-        return self.robot_on_ball 
-    
-    def assign_ball(self, robot_id: int) -> bool:
-        self.robot_on_ball = robot_id
-        return True

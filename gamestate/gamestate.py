@@ -18,10 +18,10 @@ except (SystemError, ImportError):
 
 # RAW DATA PROCESSING CONSTANTS
 BALL_POS_HISTORY_LENGTH = 200
-BALL_LOST_TIME = .15
+BALL_LOST_TIME = 0.15
 ROBOT_POS_HISTORY_LENGTH = 20
 # time after which robot is considered lost by gamestate
-ROBOT_LOST_TIME = .5
+ROBOT_LOST_TIME = 0.5
 # time after which lost robot is deleted from the gamestate
 ROBOT_REMOVE_TIME = 5
 
@@ -32,6 +32,7 @@ class GameState(Field, Analysis):
        Since using python, data types are specified in the comments below.
        Fundamental physics and game rules functions available from gamestate.
     """
+
     def __init__(self):
         # NOTE: Fields starting with _underscore are "private" so
         # should be accessed through getter and setter methods
@@ -42,7 +43,7 @@ class GameState(Field, Analysis):
         self._game_loop_sleep = None
         self._last_step_time = None
 
-        # Raw Position Data - updated by vision provider (either vision or simulator)
+        # Raw Position Data - vision provider updates (by vision or simulator)
         # queue of (time, pos) where positions are in the form np.array([x, y])
         # most recent data is at the front of queue
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
@@ -71,29 +72,35 @@ class GameState(Field, Analysis):
             "user_kick_command": False,
             "user_dribble_command": False,
             # tell simulator to move selected robot instantly
-            "teleport_selected_robot": False
+            "teleport_selected_robot": False,
         }
 
         # Refbox - the latest message delivered from the refbox
-        # Contains all? relevant game status information such as time, events, goalie id, direction of play
-        # See protocol: https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto
+        # Contains all? relevant game status information such as time, events,
+        # goalie id, direction of play
+        # See protocol:
+        # https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto
 
-        # DO NOT ACCESS THIS DIRECTLY ----- CALL self.get_latest_refbox_message()
-        # Initialize to a default message for when we do not care about the refbox
-        self._latest_refbox_message_string = b'\x08\x8f\xbb\xb7\x83\x86\xf5\xe7\x02\x10\r \x00(\x010\x9e\xb6\xe3\x9b\x82\xf5\xe7\x02:\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00B\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00P\x00'
+        # DO NOT ACCESS DIRECTLY ----- CALL self.get_latest_refbox_message()
+        # Initialize a default message for when we do not care about the refbox
+        self._latest_refbox_message_string = (
+            b"\x08\x8f\xbb\xb7\x83\x86\xf5\xe7\x02\x10\r \x00(\x010\x9e\xb6"
+            b"\xe3\x9b\x82\xf5\xe7\x02:\x12\n\x00\x10\x00\x18\x00(\x000\x048"
+            b"\x80\xc6\x86\x8f\x01@\x00B\x12\n\x00\x10\x00\x18\x00(\x000\x048"
+            b"\x80\xc6\x86\x8f\x01@\x00P\x00")
         # TODO - functions to get data from refbox message?
         # Game status/events
         self.game_clock = None
 
     def other_team(self, team):
-        if team == 'blue':
-            return 'yellow'
+        if team == "blue":
+            return "yellow"
         else:
-            return 'blue'
+            return "blue"
 
     # helper for parsing info stored in refbox message
     def get_team_info(self, team):
-        if team == 'blue':
+        if team == "blue":
             return self.get_latest_refbox_message().blue
         else:
             return self.get_latest_refbox_message().yellow
@@ -138,7 +145,7 @@ class GameState(Field, Analysis):
     def update_ball_position(self, pos, timestamp=None):
         if timestamp is None:
             timestamp = time.time()
-        assert(len(pos) == 2 and type(pos) == np.ndarray)
+        assert len(pos) == 2 and type(pos) == np.ndarray
         pos = pos.copy().astype(float)
         self._ball_position.appendleft((timestamp, pos))
 
@@ -156,10 +163,10 @@ class GameState(Field, Analysis):
         return time.time() - last_update_time > BALL_LOST_TIME
 
     def get_team_positions(self, team):
-        if team == 'blue':
+        if team == "blue":
             return self._blue_robot_positions
         else:
-            assert(team == 'yellow')
+            assert team == "yellow"
             return self._yellow_robot_positions
 
     def get_robot_ids(self, team):
@@ -187,7 +194,7 @@ class GameState(Field, Analysis):
     # returns a list of ((team, robot_id), position) for iteration
     def get_all_robot_positions(self):
         all_robot_positions = []
-        for team in ['blue', 'yellow']:
+        for team in ["blue", "yellow"]:
             for robot_id in self.get_robot_ids(team):
                 robot_pos = self.get_robot_position(team, robot_id)
                 if robot_pos is not None:
@@ -196,7 +203,7 @@ class GameState(Field, Analysis):
         return all_robot_positions
 
     def update_robot_position(self, team, robot_id, pos):
-        assert(len(pos) == 3 and type(pos) == np.ndarray)
+        assert len(pos) == 3 and type(pos) == np.ndarray
         pos = pos.copy().astype(float)
         robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
@@ -233,17 +240,17 @@ class GameState(Field, Analysis):
         return time.time() - last_update_time > ROBOT_LOST_TIME
 
     def get_team_commands(self, team):
-        if team == 'blue':
+        if team == "blue":
             return self._blue_robot_commands
         else:
-            assert(team == 'yellow')
+            assert team == "yellow"
             return self._yellow_robot_commands
 
     def get_team_status(self, team):
-        if team == 'blue':
+        if team == "blue":
             return self._blue_robot_status
         else:
-            assert(team == 'yellow')
+            assert team == "yellow"
             return self._yellow_robot_status
 
     def get_robot_commands(self, team, robot_id):
@@ -265,7 +272,7 @@ class GameState(Field, Analysis):
     # returns a list of ((team, robot_id), commands) for iteration
     def get_all_robot_commands(self):
         all_robot_commands = []
-        for team in ['blue', 'yellow']:
+        for team in ["blue", "yellow"]:
             for robot_id in self.get_robot_ids(team):
                 robot_commands = self.get_robot_commands(team, robot_id)
                 key = (team, robot_id)

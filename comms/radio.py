@@ -2,19 +2,26 @@
 Setup + Troubleshooting:
 
 802.15.4 devices
-    Click Load default firmware settings in the Radio Configuration toolbar to load the default values for the device firmware.
-    Make sure API mode (API1 or API2) is enabled. To do so, set the AP parameter value to 1 (API mode without escapes) or 2 (API mode with escapes).
-    Configure ID (PAN ID) setting to CAFE.
-    Configure CH (Channel setting) to C.
-    Click Write radio settings in the Radio Configuration toolbar to apply the new values to the module.
-    Once you have configured both modules, check to make sure they can see each other. Click Discover radio modules in the same network, the second button of the device panel in the Radio Modules view. The other device must be listed in the Discovering remote devices dialog.
+    Click Load default firmware settings in the Radio Configuration toolbar
+    to load the default values for the device firmware.
+    Make sure API mode (API1 or API2) is enabled. To do so, set the AP
+    parameter value to
+        * 1 (API mode without escapes) or
+        * 2 (API mode with escapes).
+        * Configure ID (PAN ID) setting to CAFE.
+        * Configure CH (Channel setting) to C.
+    Click Write radio settings in the Radio Configuration toolbar to apply
+    the new values to the module.
+    Once you have configured both modules, check to make sure they can see each
+    other. Click Discover radio modules in the same network, the second button
+    of the device panel in the Radio Modules view. The other device must be
+    listed in the Discovering remote devices dialog.
 
 Troubleshooting:
     If you are getting the error
     Could not open port "/dev/USBXXX", permission denied
     then make sure that your user has usb port access without sudo
     you can do this by adding user into dialout group. Google this.
-
 """
 from digi.xbee.devices import XBeeDevice
 from digi.xbee.exception import XBeeException
@@ -27,7 +34,7 @@ BAUD_RATE = 9600
 
 class Radio(object):
     # current xbee only can send once every ~60ms, sending faster may block
-    MESSAGE_DELAY = .1
+    MESSAGE_DELAY = 0.1
 
     def __init__(self, is_second_radio=False):
         # Find our XBee device connected to this computer
@@ -57,12 +64,12 @@ class Radio(object):
                 try:
                     self.device.send_data_async(remote_device, message)
                 except Exception as e:
-                    print('xbee error - something using same port? (xtcu):')
+                    print("xbee error - something using same port? (xtcu):")
                     print(e)
                     # TODO: reconnect when error?
                 delta = time.time() - start
-                if delta > .003:
-                    print('xbee send is taking a long time, too long/many?')
+                if delta > 0.003:
+                    print("xbee send is taking a long time, too long/many?")
                     print("time taken: " + str(delta))
                     print("message length: " + str(len(message)))
             except XBeeException as xbee_exp:

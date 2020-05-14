@@ -1,3 +1,5 @@
+# pylint: disable=all
+# flake8: noqa
 try:
     from comms import Comms
     from robot_commands import RobotCommands

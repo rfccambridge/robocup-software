@@ -37,10 +37,7 @@ class RobotCommands:
     # Goal is to get upper bound on what firmware can obey accurately
     ROBOT_MAX_SPEED = 500
     ROBOT_MAX_W = 6.14
-    MAX_KICK_SPEED = 2500  # TODO
-    MAX_CHARGE_LEVEL = 250  # volts? should be whatever the board measures in
-    CHARGE_RATE = 60  # volts per second?
-
+    
     # constants for deriving speed from waypoints
     # default proportional scaling constant for distance differences
     SPEED_SCALE = .9
@@ -60,8 +57,6 @@ class RobotCommands:
         self.is_dribbling = False
         self.is_charging = False
         self.is_kicking = False
-        # other info
-        self.charge_level = 0
 
     # function for limiting robot speeds in the case of ref commands
     def set_speed_limit(self, speed=None):
@@ -159,10 +154,10 @@ class RobotCommands:
         if not direction.any():
             return
         epsilon = 1
-        waypoint = pos[:2] - direction / np.linalg.norm(direction) * epsilon
+        waypoint = pos[:2] - (direction / np.linalg.norm(direction)) * epsilon
         waypoint = np.array([waypoint[0], waypoint[1], pos[2]])
         self.append_waypoint(waypoint, current_position)
-        self.append_waypoint(pos, current_position)
+        self.append_waypoint(pos, current_position) 
 
     def append_waypoint(self, waypoint, current_position):
         if self.waypoints:
@@ -202,21 +197,11 @@ class RobotCommands:
         self._y = y
         self._w = w
 
-    # estimate increase in charge level based on time elapsed
-    def simulate_charge(self, delta_time):
-        self.charge_level += delta_time * self.CHARGE_RATE
-        if self.charge_level > self.MAX_CHARGE_LEVEL:
-            self.charge_level = self.MAX_CHARGE_LEVEL
-
-    def kick_velocity(self):
-        # TODO: more accurate using voltage
-        speed_factor = self.charge_level / self.MAX_CHARGE_LEVEL
-        return self.MAX_KICK_SPEED * speed_factor
-
     # predict where the robot will be if it follows the current command
-    def predict_pos(self, pos, delta_time):
-        assert(len(pos) == 3 and type(pos) == np.ndarray)
-        x, y, w = pos
+    def predict_pos(self, current_position, delta_time):
+        assert(len(current_position) == 3 and type(current_position) == np.ndarray)
+        self.derive_speeds(current_position)
+        x, y, w = current_position
         robot_x, robot_y = self.field_to_robot_perspective(w, np.array([x, y]))
         robot_x = robot_x + delta_time * self._x
         robot_y = robot_y + delta_time * self._y
@@ -230,7 +215,7 @@ class RobotCommands:
     # use the waypoints to calculate desired speeds from robot perspective
     def derive_speeds(self, current_position):
         if not self.waypoints:
-            self.set_speeds(0, 0, 0)
+            #self.set_speeds(0, 0, 0)
             return
         og_x, og_y, og_w = current_position
         if self._prev_waypoint is None:
@@ -266,7 +251,7 @@ class RobotCommands:
                 trimmed_angle = np.arccos(inner_formula)
                 if not (0 <= trimmed_angle <= np.pi):
                     # not sure why this was ever triggering?
-                    print("how is trimmed angle:" + str(trimmed_angle))
+                    self.logger.debug("how is trimmed angle:" + str(trimmed_angle))
                     trimmed_angle = max(trimmed_angle, 0)
                     trimmed_angle = min(trimmed_angle, np.pi)
                 trimmed_angle = min(trimmed_angle, np.pi / 2)

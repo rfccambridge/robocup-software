@@ -1,13 +1,14 @@
+# pylint: disable=maybe-no-member
 from typing import Tuple
 
-# Definitions + supporting logic for multi-step sequences of actions
-# Use simple state management, return whether finished
+
 class Routines:
-    """
-    The high level class representing a routine
-    """
-    def prepare_and_kick(self, robot_id: int, kick_pos: Tuple[float, float, float], min_charge=0):
-        """Command robot to get into position, charge to given level, and kick"""
+    """Definitions + supporting logic for multi-step sequences of actions
+    Use simple state management, return whether finished"""
+    def prepare_and_kick(self, robot_id: int,
+                         kick_pos: Tuple[float, float, float],
+                         min_charge: float = 0) -> bool:
+        """Command robot to get into position, charge to given level, & kick"""
         done_pivoting = self.pivot_with_ball(robot_id, kick_pos)
         done_charging = self.charge_up_to(robot_id, min_charge)
         if done_pivoting and done_charging:
@@ -24,7 +25,7 @@ class Routines:
         intercept_xy = intercept_range[0]
         # this will do gradual turn, does it make sense?
         intercept_angle = self.robot_face_ball(robot_id)
-        intercept_pos = self._gs.dribbler_to_robot_pos(
+        intercept_pos = self.gs.dribbler_to_robot_pos(
             intercept_xy,
             intercept_angle
         )
@@ -33,4 +34,16 @@ class Routines:
         # start charging up
         self.charge_up_to(robot_id, charge_during)
         # use more specific condition to check if we're done
-        return self._gs.ball_in_dribbler(self._team, robot_id)
+        return self.gs.ball_in_dribbler(self._team, robot_id)
+
+    def pass_ball(self, passer_id, receiver_id, pass_velocity=600):
+        self.logger.debug(f"Robot {passer_id} attempting pass to robot {receiver_id}")
+        if not self.gs.ball_in_dribbler(self._team, passer_id):
+            self.get_ball(passer_id, charge_during=pass_velocity)
+        if passer_id == receiver_id:
+            return True
+        goal_pos = self.gs.get_robot_position(self._team, receiver_id)
+        pass_complete = self.prepare_and_kick(passer_id, goal_pos, min_charge=pass_velocity)
+        if pass_complete:
+            self.logger.debug(f"Robot {passer_id} successfully passed to robot {receiver_id}")
+        return pass_complete

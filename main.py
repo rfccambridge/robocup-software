@@ -6,8 +6,15 @@ import sys
 import signal
 import traceback
 import argparse
+import logging
+import logging.handlers
+import multiprocessing
+import time
 
-# Remove pygame welcome message
+# http://plumberjack.blogspot.com/2010/09/using-logging-with-multiprocessing.html
+logger = logging.getLogger(__name__)
+
+# Remove pygame's annoying welcome message
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
@@ -18,117 +25,103 @@ from strategy import Strategy
 from visualization import Visualizer
 from comms import Comms
 from simulator import Simulator
+from coordinator import Coordinator
 
 # Setup command line arg parsing
 parser = argparse.ArgumentParser(description='Runs our main codebase')
 parser.add_argument('-s', '--simulate',
                     action="store_true",
                     help='run the codebase using the simulator rather than real vision data or robots')
+parser.add_argument('-ss', '--simulator_setup',
+                    default='full_teams',
+                    help='The setup to use for the simulator.')
 parser.add_argument('-nra', '--no_radio',
                     action="store_true",
-                    help='turns off command sending. no commands go over the radio')
+                    help='Turns off command sending. No commands go over the radio.')
 parser.add_argument('-nre', '--no_refbox',
                     action="store_true",
-                    help='ignores commands from the refbox.')
+                    help='Ignores commands from the refbox.')
+parser.add_argument('-cbt', '--control_both_teams',
+                    action="store_true",
+                    help='Indicates that we are playing against ourselves and so we should play as both teams.')
+parser.add_argument('-htc', '--home_team_color',
+                    choices=['yellow', 'blue'],
+                    default='blue',
+                    help="The color of the home team.")
+parser.add_argument('-hs', '--home_strategy',
+                    default='UI',
+                    help="The strategy the home team should use to play.")
+parser.add_argument('-as', '--away_strategy',
+                    default='UI',
+                    help="The strategy the away team should use to play.")
+parser.add_argument('-d', '--debug',
+                    action="store_true",
+                    help='Uses more verbose logging for debugging.')
 command_line_args = parser.parse_args()
 
-# whether or not we are running with real field and robots
+# Create globals
 IS_SIMULATION = command_line_args.simulate
-NO_RADIO = command_line_args.no_radio  # turns off command sending if real
-NO_REFBOX = command_line_args.no_refbox # turns off refbox data provider
-CONTROL_BOTH_TEAMS = False
-# we will control home team in a real match
-HOME_TEAM = 'blue'
+NO_RADIO = command_line_args.no_radio
+NO_REFBOX = command_line_args.no_refbox
+CONTROL_BOTH_TEAMS = command_line_args.control_both_teams
+HOME_TEAM = command_line_args.home_team_color
 AWAY_TEAM = 'yellow' if HOME_TEAM == 'blue' else 'blue'
-# which simulator initial setup to use (if simulating)
-SIMULATION_SETUP = 'full_teams'
-# which strategies each team is running (see strategy module)
-HOME_STRATEGY = 'defender_test'
-AWAY_STRATEGY = None
+SIMULATOR_SETUP = command_line_args.simulator_setup
+HOME_STRATEGY = command_line_args.home_strategy
+AWAY_STRATEGY = command_line_args.away_strategy
 
-# loop wait times for each thread - how much to sleep between loops
-VISION_LOOP_SLEEP = .02
-COMMS_SEND_LOOP_SLEEP = .1
-COMMS_RECEIVE_LOOP_SLEEP = .1
-CONTROL_LOOP_SLEEP = .1
-SIMULATION_LOOP_SLEEP = .05
-VISUALIZATION_LOOP_SLEEP = .05
-GAME_LOOP_SLEEP = .1
+def setup_logging():
+    VERBOSE = False
+    logging_level = logging.INFO
+    if command_line_args.debug:
+        logging_level = logging.DEBUG
+    logging.basicConfig(level=logging_level, filename='robocup.log')
 
 if __name__ == '__main__':
-    VERBOSE = False
+    setup_logging()
 
     # Welcome message
     print('RFC Cambridge Robocup Software')
     print('------------------------------')
-    print('Running in simulator mode: {}'.format(IS_SIMULATION))
-    if not IS_SIMULATION:
-        print(f'Running in no radio mode: {NO_RADIO}')
+    print(f'Running in simulator mode: {IS_SIMULATION}')
+    print(f'Running in no radio mode: {NO_RADIO}')
     print(f'Running in no refbox mode: {NO_REFBOX}')
+    print(f'Open cutelog separately to see logging!')
 
-    # initialize gamestate + all other modules
-    gamestate = GameState()
-    vision = SSLVisionDataProvider(gamestate)
-    refbox = RefboxDataProvider(gamestate)
-    home_comms = Comms(gamestate, HOME_TEAM)
-    away_comms = Comms(gamestate, AWAY_TEAM, True)
-    simulator = Simulator(gamestate) if IS_SIMULATION else None
-    home_strategy = Strategy(gamestate, HOME_TEAM, simulator)
-    away_strategy = Strategy(gamestate, AWAY_TEAM, simulator)
+    # Initialize providers and pass to coordinator
+    providers = []
 
-    # choose which modules to run based on run conditions
-    print('Spinning up Threads...')
     if IS_SIMULATION:
-        # spin up simulator to replace actual vision data + comms
-        simulator.start_simulating(SIMULATION_SETUP, SIMULATION_LOOP_SLEEP)
-        if not NO_REFBOX:
-            refbox.start_updating(VISION_LOOP_SLEEP)
+        NO_RADIO = True
+        providers += [Simulator(SIMULATOR_SETUP)]
     else:
-        # spin up ssl-vision data polling to update gamestate
-        vision.start_updating(VISION_LOOP_SLEEP)
-        if not NO_RADIO:
-            # spin up comms to send commands to robots
-            home_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
-            # home_comms.start_receiving(COMMS_RECEIVE_LOOP_SLEEP)
-            if CONTROL_BOTH_TEAMS:
-                away_comms.start_sending(COMMS_SEND_LOOP_SLEEP)
-                # away_comms.start_sending(COMMS_RECEIVE_LOOP_SLEEP)
-        if not NO_REFBOX:
-            refbox.start_updating(VISION_LOOP_SLEEP)
-    # spin up strategy threads to control the robots
-    home_strategy.start_controlling(HOME_STRATEGY, CONTROL_LOOP_SLEEP)
+        providers += [SSLVisionDataProvider()]
+
+    if not NO_REFBOX:
+        providers += [RefboxDataProvider()]
+
+    if not NO_RADIO:
+        providers += [Comms(HOME_TEAM)]
+        if CONTROL_BOTH_TEAMS:
+            providers += [Comms(AWAY_TEAM, True)]
+
+    providers += [Strategy(HOME_TEAM, HOME_STRATEGY)]
+
     if CONTROL_BOTH_TEAMS:
-        away_strategy.start_controlling(AWAY_STRATEGY, CONTROL_LOOP_SLEEP)
-    # initialize visualizer to show robots on screen
-    visualizer = Visualizer(gamestate, home_strategy, away_strategy)
-    # start the game  - now everything should be going
-    gamestate.start_game(GAME_LOOP_SLEEP)
+        providers += [Strategy(AWAY_TEAM, AWAY_STRATEGY)]
 
-    # Prepare to be interrupted by user
-    exit_signal_received = False
+    providers += [Visualizer()]
 
-    def exit_gracefully(signum, frame):
-        global exit_signal_received
-        if exit_signal_received:
-            return
-        else:
-            exit_signal_received = True
-        print('Exiting Everything')
-        # clean up all threads
-        vision.stop_updating()
-        refbox.stop_updating()
-        home_comms.stop_sending_and_receiving()
-        away_comms.stop_sending_and_receiving()
-        simulator.stop_simulating()
-        home_strategy.stop_controlling()
-        away_strategy.stop_controlling()
-        gamestate.end_game()
-        print('Done Cleaning Up All Threads')
-        sys.exit()
-    signal.signal(signal.SIGINT, exit_gracefully)
+    # Pass the providers to the coordinator
+    c = Coordinator(providers)
 
-    print('Running! Ctrl-c repeatedly to quit (C-c-k on eshell?!)')
+    # Setup the exit handler
+    def stop_it(signum, frame):
+        c.stop_game()
+    signal.signal(signal.SIGINT, stop_it)
 
-    # (visualizer runs on main thread to work on all platforms)
-    visualizer.visualization_loop(VISUALIZATION_LOOP_SLEEP)
-    traceback.print_stack()
+    # Start the game
+    c.start_game()
+
+    # Exit once game is over
+    sys.exit()

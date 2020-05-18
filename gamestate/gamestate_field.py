@@ -1,4 +1,7 @@
+# pylint: disable=no-member
 import numpy as np
+from refbox import SSL_Referee  # pylint: disable=import-error
+
 
 class Field(object):
     """
@@ -21,8 +24,8 @@ class Field(object):
         """
         returns bottom left corner of defense area
         """
-        if team == "blue" and self.is_blue_defense_side_left or \
-           team == "yellow" and not self.is_blue_defense_side_left:
+        if team == "blue" and self.is_blue_defense_side_left() or \
+           team == "yellow" and not self.is_blue_defense_side_left():
             min_x = self.FIELD_MIN_X
         else:
             min_x = self.FIELD_MAX_X - self.DEFENSE_AREA_X_LENGTH
@@ -31,21 +34,38 @@ class Field(object):
 
     def is_in_defense_area(self, pos, team):
         min_x, min_y = self.defense_area_corner(team)
+        # account for buffer of robot radius
+        radius = self.ROBOT_RADIUS
         # defense area is a box centered at y = 0
-        return ((min_x <= pos[0] <= min_x + self.DEFENSE_AREA_X_LENGTH) and
-                min_y <= pos[1] <= min_y + self.DEFENSE_AREA_Y_LENGTH)
+        dx_min, dy_min = min_x - radius, min_y - radius
+        dx_max = min_x + self.DEFENSE_AREA_X_LENGTH + radius
+        dy_max = min_y + self.DEFENSE_AREA_Y_LENGTH + radius
+        in_x = dx_min <= pos[0] <= dx_max
+        in_y = dy_min <= pos[1] <= dy_max
+        return in_x and in_y
 
     def is_in_play(self, pos):
         return ((self.FIELD_MIN_X <= pos[0] <= self.FIELD_MAX_X) and
                 (self.FIELD_MIN_Y <= pos[1] <= self.FIELD_MAX_Y))
 
     def is_pos_legal(self, pos, team, robot_id):
+        # TODO: account for robot radius
         # TODO: during free kicks must be away from opponent area
         # + ALL OTHER RULES
-        in_own_defense_area = self.is_in_defense_area(pos, team) and \
-                not self.is_goalie(team, robot_id)
-        in_other_defense_area = self.is_in_defense_area(pos, self.other_team(team))
-        return self.is_in_play(pos) and not in_own_defense_area and not in_other_defense_area
+        latest_refbox_message = self.get_latest_refbox_message()
+        # TODO: Also avoid ball during other team ball placement,
+        # defend free kick, etc.
+        if latest_refbox_message.command == SSL_Referee.STOP:
+            dist = np.linalg.norm(pos[:2] - self.get_ball_position())
+            if dist <= 500 + self.ROBOT_RADIUS:
+                return False
+        in_d_area = self.is_in_defense_area(pos, team)
+        ot = self.other_team(team)
+        in_own_defense_area = in_d_area and not self.is_goalie(team, robot_id)
+        in_other_defense_area = self.is_in_defense_area(pos, ot)
+        return (self.is_in_play(pos) and
+                not in_own_defense_area and
+                not in_other_defense_area)
 
     def random_position(self):
         """
@@ -56,12 +76,12 @@ class Field(object):
 
     def is_pos_valid(self, pos, team, robot_id):
         return self.is_position_open(pos, team, robot_id) and \
-            self.is_pos_in_bounds(pos, team, robot_id)
+            self.is_pos_legal(pos, team, robot_id)
 
     # returns the top and bottom goalposts for a team
     def get_defense_goal(self, team):
-        if (self.is_blue_defense_side_left and team == 'blue') or \
-           (not self.is_blue_defense_side_left and team == 'yellow'):
+        if (self.is_blue_defense_side_left() and team == 'blue') or \
+           (not self.is_blue_defense_side_left() and team == 'yellow'):
             top_post = np.array([self.FIELD_MIN_X, self.GOAL_WIDTH/2])
             bottom_post = np.array([self.FIELD_MIN_X, -self.GOAL_WIDTH/2])
             return (top_post, bottom_post)
@@ -74,5 +94,5 @@ class Field(object):
         if team == 'yellow':
             return self.get_defense_goal('blue')
         else:
-            assert(team == 'blue')
+            assert team == 'blue'
             return self.get_defense_goal('yellow')

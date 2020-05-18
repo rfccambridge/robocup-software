@@ -35,7 +35,7 @@ js = pygame.joystick.Joystick(0)
 print(js.get_name())
 
 # set up commands robot for a single robot
-ROBOT_ID = 0
+ROBOT_ID = 4
 robot_commands = RobotCommands()
 
 while True:

@@ -2,8 +2,13 @@ import sys
 import math
 import time
 import numpy as np
-import pygame
 from typing import Iterable, Tuple, Optional
+from coordinator import Provider
+import logging
+from logging.handlers import SocketHandler
+import pygame
+import multiprocessing
+
 
 # rendering constants (dimensions are in field - mm)
 FIELD_LINE_WIDTH = 20
@@ -40,33 +45,34 @@ BUTTON_TEXT_COLOR = (255, 255, 255)
 # how much space to include outside the field
 WINDOW_BUFFER = 70
 
-class Visualizer(object):
+
+class Visualizer(Provider):
     """Robocup homegrown visualization library that essentially does the same
     as the modules in OpenAI gym."""
 
-    def __init__(self, gamestate, home_strategy, away_strategy):
+    def __init__(self, log_level='info'):
+        super().__init__()
         self._viewer = None
         self._clock = None
 
         self.user_click_down = None
         self.user_click_up = None
 
-        self._gs = gamestate
-        # get references to strategy objects to display strategic information
-        self._home_strategy = home_strategy
-        self._away_strategy = away_strategy
-        self._updating = True
+        self._owned_fields = ['viz_inputs']
+
+    def init_shit(self):
+        self.gs = self.data_in_q.get()
 
         # derive screen dimentions from field dimensions
-        self._TOTAL_SCREEN_WIDTH = int((self._gs.FIELD_X_LENGTH + 2 * WINDOW_BUFFER) * SCALE)
+        self._TOTAL_SCREEN_WIDTH = int((self.gs.FIELD_X_LENGTH + 2 * WINDOW_BUFFER) * SCALE)
         self._TOTAL_SCREEN_HEIGHT = \
-            int((self._gs.FIELD_Y_LENGTH + 2 * WINDOW_BUFFER + UI_BUFFER) * SCALE)
+            int((self.gs.FIELD_Y_LENGTH + 2 * WINDOW_BUFFER + UI_BUFFER) * SCALE)
 
         # Buttons for different commands (label : pygame.Rect)
         def button_pos(n):
             return (
-                self._gs.FIELD_MIN_X + (BUTTON_OFFSET_X + BUTTON_WIDTH) * n,
-                self._gs.FIELD_MAX_Y + UI_BUFFER + BUTTON_OFFSET_Y,
+                self.gs.FIELD_MIN_X + (BUTTON_OFFSET_X + BUTTON_WIDTH) * n,
+                self.gs.FIELD_MAX_Y + UI_BUFFER + BUTTON_OFFSET_Y,
             )
         self.buttons = {
             "timeout": button_pos(0),
@@ -75,7 +81,6 @@ class Visualizer(object):
         }
 
         # Designed to be run in main thread so it works on more platforms
-        pygame.init()
         self._viewer = pygame.display.set_mode(
             (self._TOTAL_SCREEN_WIDTH, self._TOTAL_SCREEN_HEIGHT)
         )
@@ -91,7 +96,7 @@ class Visualizer(object):
             pos = pos[:2]
         pos = np.array(pos).astype(float)
         # shift position so (0, 0) is the center of the field, as in ssl-vision
-        pos += np.array([self._gs.FIELD_MAX_X, self._gs.FIELD_MAX_Y])
+        pos += np.array([self.gs.FIELD_MAX_X, self.gs.FIELD_MAX_Y])
         # account for buffer space outside of field
         pos += WINDOW_BUFFER
         # scale for display
@@ -113,159 +118,171 @@ class Visualizer(object):
         # account for buffer space outside of field
         pos -= WINDOW_BUFFER
         # shift position so that center becomes (0, 0)
-        pos -= np.array([self._gs.FIELD_MAX_X, self._gs.FIELD_MAX_Y])
+        pos -= np.array([self.gs.FIELD_MAX_X, self.gs.FIELD_MAX_Y])
         return pos
+    
+    def pre_run(self):
+        pygame.init()
+        self.init_shit() 
 
-    def visualization_loop(self, loop_sleep: float):
-        """Loop that powers the pygame visualization. Must be called from the main thread."""
-        # wait until game begins (while other threads are initializing)
-        self._gs.wait_until_game_begins()
-        while self._updating:
-            # make sure prints from all threads get flushed to terminal
-            sys.stdout.flush()
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self._updating = False
-                if event.type == pygame.KEYDOWN:
-                    # hotkey controls
-                    if event.key == pygame.K_b:
-                        self.select_ball()
-                    # toggle dribbler
-                    if event.key == pygame.K_d:
-                        old = self._gs.user_dribble_command
-                        self._gs.user_dribble_command = not old
-                    # charge while key down
-                    if event.key == pygame.K_c:
-                        self._gs.user_charge_command = True
-                    # kick only once
-                    if event.key == pygame.K_k:
-                        self._gs.user_kick_command = True
-                    else:
-                        self._gs.user_kick_command = False
-                if event.type == pygame.KEYUP:
-                    # stop charging on release
-                    if event.key == pygame.K_c:
-                        self._gs.user_charge_command = False
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.user_click_up = None
-                    self.user_click_down = self.screen_to_field(
-                        pygame.mouse.get_pos()
-                    )
-
+    def post_run(self):
+        self.logger.debug("Calling post_run in visualization")
+        pygame.quit()
+        
+    def run(self):
+        """Loop that runs the pygame visualization."""
+        # take user input
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pass
+            if event.type == pygame.KEYDOWN:
+                # hotkey controls
+                if event.key == pygame.K_b:
+                    self.select_ball()
+                # toggle dribbler
+                if event.key == pygame.K_d:
+                    old = self.gs.viz_inputs['user_dribble_command']
+                    self.gs.viz_inputs['user_dribble_command'] = not old
+                # charge while key down
+                if event.key == pygame.K_c:
+                    self.gs.viz_inputs['user_charge_command'] = True
+                # kick while key down
+                if event.key == pygame.K_k:
+                    self.gs.viz_inputs['user_kick_command'] = True
+                # teleport while key down
+                if event.key == pygame.K_t:
+                    self.gs.viz_inputs['teleport_selected_robot'] = True
+            if event.type == pygame.KEYUP:
+                # stop charging on release
+                if event.key == pygame.K_c:
+                    self.gs.viz_inputs['user_charge_command'] = False
+                if event.key == pygame.K_k:
+                    self.gs.viz_inputs['user_kick_command'] = False
+                # stop teleporting on release
+                if event.key == pygame.K_t:
+                    self.gs.viz_inputs['teleport_selected_robot'] = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.user_click_up = None
+                self.user_click_down = self.screen_to_field(
+                    pygame.mouse.get_pos()
+                )
+                if self.gs.is_in_play(self.user_click_down):
                     # trigger button clicks
                     for label, pos in self.buttons.items():
                         dims = (BUTTON_WIDTH, BUTTON_HEIGHT)
                         if self.is_collision(pos, dims, pygame.mouse.get_pos()):
                             # prints current location of mouse
-                            print('button pressed: ' + label)
+                            self.logger.info('button pressed: ' + label)
+                else:
+                    self.user_click_down = None
+                # FOR DEBUGGING:
+                # self.logger.debug(self.gs.is_pos_valid(
+                #     self.user_click_down, 'blue', 1
+                # ))
 
-                    # FOR DEBUGGING:
-                    # print(self._gs.is_pos_valid(
-                    #     self.user_click_down, 'blue', 1
-                    # ))
-
-                if event.type == pygame.MOUSEBUTTONUP:
+            if event.type == pygame.MOUSEBUTTONUP:
+                if self.user_click_down is not None:
                     self.user_click_up = self.screen_to_field(
                         pygame.mouse.get_pos()
                     )
                     # ball/robot selection
                     down, up = self.user_click_down, self.user_click_up
                     robot_clicked = \
-                        self._gs.robot_at_position(down) and \
-                        self._gs.robot_at_position(up)
+                        self.gs.robot_at_position(down) and \
+                        self.gs.robot_at_position(up)
                     ball_clicked = \
-                        self._gs.ball_overlap(down).any() and \
-                        self._gs.ball_overlap(up).any()
+                        self.gs.ball_overlap(down).any() and \
+                        self.gs.ball_overlap(up).any()
                     if robot_clicked or ball_clicked:
                         self.user_click_down = None
-                        self._gs.user_click_position = None
-                        self._gs.user_drag_vector = None
+                        self.gs.viz_inputs['user_click_position'] = None
+                        self.gs.viz_inputs['user_drag_vector'] = None
                         if ball_clicked:
                             self.select_ball()
                         elif robot_clicked:
                             self.select_robot(robot_clicked)
 
+                    # store xy of original mouse down, and drag vector
                     if self.user_click_down is not None:
-                        # store xy of original mouse down, and drag vector
-                        self._gs.user_click_position = \
+                        self.gs.viz_inputs['user_click_position'] = \
                             self.user_click_down
-                        self._gs.user_drag_vector = \
+                        self.gs.viz_inputs['user_drag_vector'] = \
                             self.user_click_up - self.user_click_down
+                        self.user_click_down = None
+                        self.gs.viz_inputs['simulator_events_count'] += 1
 
-            self._viewer.fill(FIELD_COLOR)
-            self.render()
-            pygame.display.flip()
-            # yield to other threads
-            time.sleep(loop_sleep)
-        print("Exiting Pygame")
-        pygame.quit()
+        self._viewer.fill(FIELD_COLOR)
+        self.render()
+        pygame.display.flip()
+        time.sleep(0.05)
 
     def select_ball(self):
-        self._gs.user_selected_ball = True
-        self._gs.user_selected_robot = None
+        self.gs.viz_inputs['user_selected_ball'] = True
+        self.gs.viz_inputs['user_selected_robot'] = None
 
     def select_robot(self, robot):
-        self._gs.user_selected_robot = robot
-        self._gs.user_selected_ball = False
+        self.gs.viz_inputs['user_selected_robot'] = robot
+        self.gs.viz_inputs['user_selected_ball'] = False
 
     def render(self):
         assert(self._viewer is not None)
         # Draw Field
         # Boundary Lines
-        top_left = (self._gs.FIELD_MIN_X, self._gs.FIELD_MAX_Y)
-        dims = (self._gs.FIELD_X_LENGTH, self._gs.FIELD_Y_LENGTH)
+        top_left = (self.gs.FIELD_MIN_X, self.gs.FIELD_MAX_Y)
+        dims = (self.gs.FIELD_X_LENGTH, self.gs.FIELD_Y_LENGTH)
         self.draw_rect(LINE_COLOR, top_left, dims, FIELD_LINE_WIDTH)
         # Mid line
-        top_mid = (0, self._gs.FIELD_MAX_Y)
-        bottom_mid = (0, self._gs.FIELD_MIN_Y)
+        top_mid = (0, self.gs.FIELD_MAX_Y)
+        bottom_mid = (0, self.gs.FIELD_MIN_Y)
         self.draw_line(LINE_COLOR, top_mid, bottom_mid, FIELD_LINE_WIDTH)
         # Center Circle
         self.draw_circle(
             LINE_COLOR,
             (0, 0),
-            self._gs.CENTER_CIRCLE_RADIUS,
+            self.gs.CENTER_CIRCLE_RADIUS,
             FIELD_LINE_WIDTH
         )
         # Goals + Defence areas
         for team in ['blue', 'yellow']:
-            top_left = self._gs.defense_area_corner(team) + \
-                (0, self._gs.DEFENSE_AREA_Y_LENGTH)
-            dims = (self._gs.DEFENSE_AREA_X_LENGTH, self._gs.DEFENSE_AREA_Y_LENGTH)
+            top_left = self.gs.defense_area_corner(team) + \
+                (0, self.gs.DEFENSE_AREA_Y_LENGTH)
+            dims = (self.gs.DEFENSE_AREA_X_LENGTH, self.gs.DEFENSE_AREA_Y_LENGTH)
             self.draw_rect(LINE_COLOR, top_left, dims, FIELD_LINE_WIDTH)
-            goalposts = self._gs.get_defense_goal(team)
+            goalposts = self.gs.get_defense_goal(team)
             self.draw_line(GOAL_COLOR, *goalposts, FIELD_LINE_WIDTH * 2)
 
         # Draw all the robots
-        for (team, robot_id), pos in self._gs.get_all_robot_positions():
-            pos = self._gs.get_robot_position(team, robot_id)
+        for (team, robot_id), pos in self.gs.get_all_robot_positions():
+            pos = self.gs.get_robot_position(team, robot_id)
             robot_color = BLUE_TEAM_COLOR if team == 'blue' else YELLOW_TEAM_COLOR
-            if self._gs.is_robot_lost(team, robot_id):
+            if self.gs.is_robot_lost(team, robot_id):
                 robot_color = ROBOT_LOST_COLOR
             (x, y, w) = pos
-            self.draw_circle(robot_color, pos, self._gs.ROBOT_RADIUS)
+            self.draw_circle(robot_color, pos, self.gs.ROBOT_RADIUS)
             # draw id of robot
             self.draw_text(str(robot_id), pos, 100, (0, 0, 0), 'Arial')
             # indicate front of robot
-            draw_radius = self._gs.ROBOT_RADIUS - ROBOT_FRONT_LINE_WIDTH / 2
+            draw_radius = self.gs.ROBOT_RADIUS - ROBOT_FRONT_LINE_WIDTH / 2
             corner1 = np.array([
-                draw_radius * np.cos(w + self._gs.ROBOT_FRONT_ANGLE),
-                draw_radius * np.sin(w + self._gs.ROBOT_FRONT_ANGLE),
+                draw_radius * np.cos(w + self.gs.ROBOT_FRONT_ANGLE),
+                draw_radius * np.sin(w + self.gs.ROBOT_FRONT_ANGLE),
             ]) + pos[:2]
             corner2 = np.array([
-                draw_radius * np.cos(w - self._gs.ROBOT_FRONT_ANGLE),
-                draw_radius * np.sin(w - self._gs.ROBOT_FRONT_ANGLE),
+                draw_radius * np.cos(w - self.gs.ROBOT_FRONT_ANGLE),
+                draw_radius * np.sin(w - self.gs.ROBOT_FRONT_ANGLE),
             ]) + pos[:2]
             self.draw_line(ROBOT_FRONT_COLOR, corner1, corner2, ROBOT_FRONT_LINE_WIDTH)
-            robot_commands = self._gs.get_robot_commands(team, robot_id)
+            robot_commands = self.gs.get_robot_commands(team, robot_id)
+            robot_status = self.gs.get_robot_status(team, robot_id)
             # draw charge level
-            charge = robot_commands.charge_level / robot_commands.MAX_CHARGE_LEVEL
-            charge_end = np.array([pos[0], pos[1] + charge * self._gs.ROBOT_RADIUS])
+            charge = float(robot_status.charge_level) / robot_status.MAX_CHARGE_LEVEL
+            charge_end = np.array([pos[0], pos[1] + charge * self.gs.ROBOT_RADIUS])
             self.draw_line((255, 255, 255), pos, charge_end, 15)
             # draw dribbler zone if on
             if robot_commands.is_dribbling:
                 self.draw_circle(
                     TRAJECTORY_COLOR,
-                    self._gs.dribbler_pos(team, robot_id),
+                    self.gs.dribbler_pos(team, robot_id),
                     20
                 )
             # draw waypoints for this robot
@@ -279,57 +296,45 @@ class Visualizer(object):
                     TRAJECTORY_LINE_WIDTH
                 )
                 prev_waypoint = waypoint
-            # TEST: draw interception range
-            interception_range = self._home_strategy.intercept_range(0)
-            if interception_range is not None:
-                self.draw_position(interception_range[0])
-                midpoint = (interception_range[1]+interception_range[0])/2
-                self.draw_position(midpoint)
-                self.draw_position(interception_range[1])                
             # highlight selected robot
-            if (team, robot_id) == self._gs.user_selected_robot:
+            if (team, robot_id) == self.gs.viz_inputs['user_selected_robot']:
                 self.draw_circle(
                     SELECTION_COLOR,
                     pos,
-                    self._gs.ROBOT_RADIUS + SELECTION_WIDTH,
+                    self.gs.ROBOT_RADIUS + SELECTION_WIDTH,
                     SELECTION_WIDTH
                 )
 
         # Draw ball
-        ball_pos = self._gs.get_ball_position()
-        if not self._gs.is_ball_lost():
+        ball_pos = self.gs.get_ball_position()
+        t = self.gs.get_ball_last_update_time()
+        
+        if not self.gs.is_ball_lost():
             # draw where the best position is to kick towards the mouse.
             # mouse_pos = self.screen_to_field(pygame.mouse.get_pos())
-            # kick_pos = self._home_strategy.best_kick_pos(ball_pos, mouse_pos)
-            # self.draw_waypoint(kick_pos)
 
             # draw where we think ball will be in 1s
-            predicted_pos = self._gs.predict_ball_pos(1)
-            self.draw_circle((0, 0, 0), predicted_pos, self._gs.BALL_RADIUS)
+            predicted_pos = self.gs.predict_ball_pos(1)
+            self.draw_circle((0, 0, 0), predicted_pos, self.gs.BALL_RADIUS)
             # draw actual ball
-            self.draw_circle(BALL_COLOR, ball_pos, self._gs.BALL_RADIUS)
+            self.draw_circle(BALL_COLOR, ball_pos, self.gs.BALL_RADIUS)
             # highlight ball if selected
-            if self._gs.user_selected_ball:
+            if self.gs.viz_inputs['user_selected_ball']:
                 self.draw_circle(
                     SELECTION_COLOR,
                     ball_pos,
-                    self._gs.BALL_RADIUS + SELECTION_WIDTH,
+                    self.gs.BALL_RADIUS + SELECTION_WIDTH,
                     SELECTION_WIDTH
                 )
 
             # draw ball velocity
-            velocity = self._gs.get_ball_velocity()
+            velocity = self.gs.get_ball_velocity()
             self.draw_line(
                 TRAJECTORY_COLOR,
                 ball_pos,
                 ball_pos + velocity,
                 TRAJECTORY_LINE_WIDTH
             )
-
-        # debug strategy stuff
-        # best_goalie_pos = self._home_strategy.best_goalie_pos()
-        # if best_goalie_pos.any():
-        #    self.draw_waypoint(best_goalie_pos)
 
         # draw user click location with a red 'X'
         if self.user_click_down is not None and self.user_click_up is None:

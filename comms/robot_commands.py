@@ -346,11 +346,12 @@ class RobotCommands:
         return angle
 
     def __str__(self):
-        return "dribble: {}, charge: {}, kick: {} (x, y, w): ({}, {}, {})".format(
+        return "dribble: {}, charge: {}, kick: {} (x, y, w): ({}, {}, {}) \n {}".format(
             self.is_dribbling,
             self.is_charging,
             self.is_kicking,
             self._x,
             self._y,
-            self._w
+            self._w,
+            self.waypoints
         )

@@ -86,6 +86,9 @@ class Simulator(Provider):
             pfr('yellow', 4, np.array([3500, -500, 0]) * SCALE)
         elif self._initial_setup == "clear_field_test":
             self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
+        elif self._initial_setup == "clear_field_kickoff_test":
+            self.put_fake_robot('blue', 1, np.array([-self.gs.ROBOT_RADIUS * 1.1, 0, 0]))
+            self.put_fake_ball(np.array([0, 0]), np.array([0, 0]))
         elif self._initial_setup == "surrounded_by_opponents_test":
             self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
             self.put_fake_robot('yellow', 1, np.array([-3000, 200, 0]))

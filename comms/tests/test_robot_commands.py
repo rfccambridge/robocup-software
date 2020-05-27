@@ -102,7 +102,8 @@ def test_append_waypoint():
         (rc.waypoints[-1][2] is not None)
 
 # tests the basic functionality fo derive_speeds
-# function could be improved (made smoother) without breaking this test
+# just looks at basic directionality, not reducing speed for turns
+# so, logic can be improved (made smoother) without breaking this test
 def test_derive_speeds():
     rc = RobotCommands()
     angle = math.pi / 2 # makes robot perspective same as field - easier
@@ -112,6 +113,7 @@ def test_derive_speeds():
         np.array([1000, 1000, angle]),
         np.array([0, 1000, angle]),
         np.array([0, 0, angle]),
+        np.array([0, -1000, angle + 1]),
     ]
     # no waypoints do nothing
     rc.derive_speeds(original_position)
@@ -128,6 +130,9 @@ def test_derive_speeds():
     assert rc._x < 0 and np.allclose(rc._y, 0)
     rc.derive_speeds(waypoints[0])
     assert np.allclose(rc._x, 0) and rc._y < 0
+    # continue straight with turning, to last waypoint
+    rc.derive_speeds(waypoints[0])
+    assert np.allclose(rc._x, 0) and rc._y < 0 and rc._w > 0
 
 def test_append_urgent_destination():
     rc = RobotCommands()

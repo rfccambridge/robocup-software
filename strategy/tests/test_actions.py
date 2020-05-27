@@ -8,6 +8,9 @@ from simulator.simulator import Simulator
 team = "blue"
 strategy_name = ""
 
+def dummy_test():
+    assert(False)
+
 def test_pivot_with_ball():
     """ Tests pivot_with_ball in simple case of empty field and 90 degree turn.
     Passes if the robot begins to turn in the shorter path to the goal direction

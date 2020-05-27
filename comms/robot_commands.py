@@ -37,7 +37,7 @@ class RobotCommands:
     # Goal is to get upper bound on what firmware can obey accurately
     ROBOT_MAX_SPEED = 500
     ROBOT_MAX_W = 6.14
-    
+
     # constants for deriving speed from waypoints
     # default proportional scaling constant for distance differences
     SPEED_SCALE = .9
@@ -157,9 +157,13 @@ class RobotCommands:
         waypoint = pos[:2] - (direction / np.linalg.norm(direction)) * epsilon
         waypoint = np.array([waypoint[0], waypoint[1], pos[2]])
         self.append_waypoint(waypoint, current_position)
-        self.append_waypoint(pos, current_position) 
+        self.append_waypoint(pos, current_position)
 
     def append_waypoint(self, waypoint, current_position):
+        """ 
+        Add a new waypoint to the end of the robot waypoint list.
+        If w is None, then use some convenient angle.
+        """
         if self.waypoints:
             initial_pos = self.waypoints[-1]
         else:
@@ -198,6 +202,7 @@ class RobotCommands:
         self._w = w
 
     # predict where the robot will be if it follows the current command
+    # command is in robot's perspective
     def predict_pos(self, current_position, delta_time):
         assert(len(current_position) == 3 and type(current_position) == np.ndarray)
         self.derive_speeds(current_position)
@@ -223,7 +228,6 @@ class RobotCommands:
         # if close enough to first waypoint, delete and move to next one
         while len(self.waypoints) > 1 and \
                 self.close_enough(current_position, self.waypoints[0]):
-            goal_pos = self.waypoints[0]
             self._prev_waypoint = self.waypoints.pop(0)
         goal_pos = self.waypoints[0]
         goal_x, goal_y, goal_w = goal_pos
@@ -271,7 +275,7 @@ class RobotCommands:
         self._w = min(self._w, self.ROBOT_MAX_W)
         self._w = max(self._w, -self.ROBOT_MAX_W)
         # print("w: {}, goal_w: {}, d_w: {}, self_w: {}".format(og_w, goal_w, norm_w, self._w))
-        
+
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
         # distance condition helpful for simulator b.c. won't overrun waypoint
@@ -292,7 +296,7 @@ class RobotCommands:
         return is_close or is_past
 
     # HELPER FUNCTIONS
-    # Transforms field x, y into a vector in the robot's perspective
+    # Transforms field dx, dy into a vector in the robot's perspective
     def field_to_robot_perspective(self, w_robot, vector):
         assert(len(vector) == 2 and type(vector) == np.ndarray)
         if not vector.any():
@@ -302,7 +306,7 @@ class RobotCommands:
         magnitude = self.magnitude(vector)
         return np.array([np.sin(w_rot) * magnitude, np.cos(w_rot) * magnitude])
 
-    # Transforms robot perspective x, y vector into field vector
+    # Transforms robot perspective dx, dy vector into field vector
     def robot_to_field_perspective(self, w_robot, vector):
         assert(len(vector) == 2 and type(vector) == np.ndarray)
         if not vector.any():
@@ -337,6 +341,7 @@ class RobotCommands:
     def trim_angle_90(self, angle):
         """Transforms angle into range -pi/2 to pi/2, for shortest turning
            Treats 180 degrees reflection as equivalent.
+           So resulting angle is facing same or direct opposite of original.
         """
         angle = self.trim_angle(angle)
         if angle > math.pi / 2:

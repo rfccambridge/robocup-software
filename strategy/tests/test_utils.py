@@ -8,6 +8,8 @@ def test_tests():
 
 
 def test_perpendicular():
+    """Tests that perpendicular works correctly for [1, 0] [0, 1], and [0, 0].
+    """
     utils = Utils()
     x = np.array([1, 0])
     y = np.array([0, 1])
@@ -19,6 +21,9 @@ def test_perpendicular():
 
 
 def test_distance_from_line():
+    """Tests distance_from_line in the trivial case where the point is on the line.
+    Passes if the returned distance is 0.
+    """
     utils = Utils()
     x = np.array([1, 1])
     y = np.array([1, 2])

@@ -99,10 +99,10 @@ class SSLVisionDataProvider(Provider):
                             self._circular_mean((times_seen - 1, 1), (robot_data.orientation, pos[2]))
                         ])
                         robot_positions[robot_id] = average_pos
-        #if (team == 'blue'):
+        # if (team == 'blue'):
         #    print(robot_positions[0])
         return robot_positions
-    
+
     def _circular_mean(self, weights, angles):
         "helper function for averaging angles by converting to points"
         x = y = 0.

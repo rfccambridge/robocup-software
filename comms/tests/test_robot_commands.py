@@ -30,6 +30,7 @@ def test_command_serialization():
         commands.is_kicking = is_kicking
         commands.set_speeds(x, y, w)
         return commands
+
     # round movement values due to serialization granularity errors
     def round_command(cmd_dict):
         def round_value(value, unit):
@@ -39,6 +40,7 @@ def test_command_serialization():
         cmd_dict['y'] = round_value(cmd_dict['y'], 20)
         # w to the nearest .2 radians/s
         cmd_dict['w'] = round_value(cmd_dict['w'], .1)
+
     # see if serializing then deserializing retains approx values
     def assert_serialize(is_dribbling, is_charging, is_kicking, x, y, w):
         correct_cmd = {
@@ -56,6 +58,7 @@ def test_command_serialization():
         round_command(deserialized_cmd)
         round_command(correct_cmd)
         assert correct_cmd == deserialized_cmd
+
     assert_serialize(False, False, False, 0, 0, 0)
     assert_serialize(True, True, True, 100, 100, 2)
     assert_serialize(False, True, False, -20, 300, -2)
@@ -64,11 +67,13 @@ def test_command_serialization():
 # robot/field perspective conversion helpers
 def test_perspective_conversion():
     rc = RobotCommands()
+
     def assert_conversion(w_robot, vector):
         ftr = rc.field_to_robot_perspective(w_robot, vector)
         rtf = rc.robot_to_field_perspective(w_robot, vector)
         assert np.allclose(rc.field_to_robot_perspective(w_robot, rtf), vector)
         assert np.allclose(rc.robot_to_field_perspective(w_robot, ftr), vector)
+
     assert_conversion(0, np.array([0, 0]))
     assert_conversion(0, np.array([100, 0]))
     assert_conversion(0, np.array([0, 100]))
@@ -83,7 +88,8 @@ def test_perspective_conversion():
     assert np.allclose(ftr, np.array([100, 0]))
     ftr = rc.field_to_robot_perspective(math.pi / 2, np.array([100, 100]))
     assert np.allclose(ftr, np.array([100, 100]))
-    
+
+# test functions for adding waypoints for robot
 def test_append_waypoint():
     rc = RobotCommands()
     waypoints = [
@@ -100,6 +106,20 @@ def test_append_waypoint():
     rc.append_waypoint([-100, -100, None], current_position)
     assert (len(rc.waypoints) == len(waypoints) + 1) and \
         (rc.waypoints[-1][2] is not None)
+
+def test_set_waypoints():
+    rc = RobotCommands()
+    angle = math.pi / 2 # makes robot perspective same as field - easier
+    og_pos = np.array([0, 0, angle])
+    waypoints = [
+        np.array([1000, 0, 0]),
+        np.array([1000, 1000, 0]),
+        np.array([0, 1000, 0]),
+        np.array([0, 0, 0]),
+    ]
+    rc.set_waypoints(waypoints, og_pos)
+    for i in range(len(waypoints)):
+        assert (rc.waypoints[i] == waypoints[i]).all()
 
 # tests the basic functionality fo derive_speeds
 # just looks at basic directionality, not reducing speed for turns
@@ -134,6 +154,7 @@ def test_derive_speeds():
     rc.derive_speeds(waypoints[0])
     assert np.allclose(rc._x, 0) and rc._y < 0 and rc._w > 0
 
+# test special function to add waypoint with full speed approach
 def test_append_urgent_destination():
     rc = RobotCommands()
     angle = math.pi / 2 # makes robot perspective same as field - easier
@@ -150,21 +171,8 @@ def test_append_urgent_destination():
     rc.set_speed_limit(low_speed_limit)
     rc.derive_speeds(mock_position)
     assert rc._x == low_speed_limit
-    
-def test_set_waypoints():
-    rc = RobotCommands()
-    angle = math.pi / 2 # makes robot perspective same as field - easier
-    og_pos = np.array([0, 0, angle])
-    waypoints = [
-        np.array([1000, 0, 0]),
-        np.array([1000, 1000, 0]),
-        np.array([0, 1000, 0]),
-        np.array([0, 0, 0]),
-    ]
-    rc.set_waypoints(waypoints, og_pos)
-    for i in range(len(waypoints)):
-        assert (rc.waypoints[i] == waypoints[i]).all()
 
+# test simulation helpers
 def test_predict_pos():
     rc = RobotCommands()
     angle = math.pi / 2 # makes robot perspective same as field - easier
@@ -173,4 +181,3 @@ def test_predict_pos():
     # this is usually used for small time intervals
     new_pos = rc.predict_pos(og_pos, .01)
     assert np.allclose(new_pos, np.array([1, 1, angle + .01]))
-

@@ -1,11 +1,11 @@
 # pylint: disable=maybe-no-member
-"""Strategy helper functions for geometry + working with commands"""
 
 import numpy as np
 from typing import Tuple, List
 
 
 class Utils:
+    """Strategy helper functions for geometry + working with commands"""
     def perpendicular(self, vec: Tuple[float, float]) -> Tuple[float, float]:
         x, y = vec
         if x == y == 0:

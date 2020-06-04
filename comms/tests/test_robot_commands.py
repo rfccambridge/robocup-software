@@ -68,6 +68,7 @@ def test_command_serialization():
 def test_perspective_conversion():
     rc = RobotCommands()
 
+    # confirms that conversions both ways is consistent
     def assert_conversion(w_robot, vector):
         ftr = rc.field_to_robot_perspective(w_robot, vector)
         rtf = rc.robot_to_field_perspective(w_robot, vector)
@@ -104,6 +105,7 @@ def test_append_waypoint():
         assert (len(rc.waypoints) == i + 1) and np.allclose(rc.waypoints[-1], wp)
     # make sure it can handle None for w
     rc.append_waypoint([-100, -100, None], current_position)
+    # check that waypoints are faithfully added
     assert (len(rc.waypoints) == len(waypoints) + 1) and \
         (rc.waypoints[-1][2] is not None)
 
@@ -117,6 +119,7 @@ def test_set_waypoints():
         np.array([0, 1000, 0]),
         np.array([0, 0, 0]),
     ]
+    # check that waypoints are faithfully added
     rc.set_waypoints(waypoints, og_pos)
     for i in range(len(waypoints)):
         assert (rc.waypoints[i] == waypoints[i]).all()
@@ -166,13 +169,14 @@ def test_append_urgent_destination():
         mock_position = np.array([x, 0, angle])
         rc.derive_speeds(mock_position)
         assert rc._x == rc.ROBOT_MAX_SPEED
-    # extra test for speed limit
+    # extra test for changing speed limit
     low_speed_limit = 100
     rc.set_speed_limit(low_speed_limit)
     rc.derive_speeds(mock_position)
     assert rc._x == low_speed_limit
 
-# test simulation helpers
+# test simulation helper
+# accurate short-term predictions based on current speed
 def test_predict_pos():
     rc = RobotCommands()
     angle = math.pi / 2 # makes robot perspective same as field - easier

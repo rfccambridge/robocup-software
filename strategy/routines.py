@@ -37,13 +37,15 @@ class Routines:
         return self.gs.ball_in_dribbler(self._team, robot_id)
 
     def pass_ball(self, passer_id, receiver_id, pass_velocity=600):
-        self.logger.debug(f"Robot {passer_id} attempting pass to robot {receiver_id}")
+        self.logger.debug("Robot %s attempting pass to robot %s",
+                          passer_id, receiver_id)
         if not self.gs.ball_in_dribbler(self._team, passer_id):
             self.get_ball(passer_id, charge_during=pass_velocity)
         if passer_id == receiver_id:
             return True
         goal_pos = self.gs.get_robot_position(self._team, receiver_id)
-        pass_complete = self.prepare_and_kick(passer_id, goal_pos, min_charge=pass_velocity)
+        pass_complete = self.prepare_and_kick(
+            passer_id, goal_pos, min_charge=pass_velocity)
         if pass_complete:
             self.logger.debug("Robot %s successfully passed to robot %s",
                               passer_id, receiver_id)

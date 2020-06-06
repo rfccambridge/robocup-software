@@ -84,6 +84,19 @@ class Simulator(Provider):
             pfr('yellow', 2, np.array([3000, -1500, 0]) * SCALE)
             pfr('yellow', 3, np.array([3500, 500, 0]) * SCALE)
             pfr('yellow', 4, np.array([3500, -500, 0]) * SCALE)
+        elif self._initial_setup == "clear_field_test":
+            self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
+        elif self._initial_setup == "clear_field_kickoff_test":
+            self.put_fake_robot('blue', 1, np.array([-self.gs.ROBOT_RADIUS * 1.1, 0, 0]))
+            self.put_fake_ball(np.array([0, 0]), np.array([0, 0]))
+        elif self._initial_setup == "surrounded_by_opponents_test":
+            self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
+            self.put_fake_robot('yellow', 1, np.array([-3000, 200, 0]))
+            self.put_fake_robot('yellow', 2, np.array([-3000, -200, 0]))
+            self.put_fake_robot('yellow', 3, np.array([-3180, 100, 0]))
+            self.put_fake_robot('yellow', 4, np.array([-3180, -100, 0]))
+            self.put_fake_robot('yellow', 5, np.array([-2820, 100, 0]))
+            self.put_fake_robot('yellow', 6, np.array([-2820, -100, 0]))
         else:
             logger.error("(initial_setup not recognized, empty field). "
                          "initial_setup: %s", self._initial_setup)

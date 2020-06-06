@@ -142,7 +142,7 @@ class Actions:
                                     buffer_dist=0,
                                     allow_illegal=allow_illegal):
             self.move_straight(robot_id, np.array(goal_pos))
-            self.logger.debug(f"Robot {robot_id} going straight from {start_pos} to {goal_pos}")
+            # self.logger.debug(f"Robot {robot_id} going straight from {start_pos} to {goal_pos}")
             return self.is_done_moving(robot_id)
         # now check if current waypoints are already going where we want
         current_goal = self.get_goal_pos(robot_id)
@@ -168,7 +168,7 @@ class Actions:
             # is_success = self.RRT_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
             is_success = self.greedy_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
             if not is_success:
-                self.logger.debug(f"Robot {robot_id} greedy path find failed")
+                # self.logger.debug(f"Robot {robot_id} greedy path find failed")
                 return False
 
         return self.is_done_moving(robot_id)

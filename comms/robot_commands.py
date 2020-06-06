@@ -94,7 +94,7 @@ class RobotCommands:
         return single_robot_command
 
     # for debugging/sanity check
-    def deserialize_command(command):
+    def deserialize_command(self, command):
         if len(command) != 4:
             raise ValueError("Commands should be 4 bytes")
 
@@ -124,7 +124,7 @@ class RobotCommands:
 
     # Compile a single serialized command message for all 6 robots
     # (static method) takes a dict of {robot_id: robot_commands}
-    def get_serialized_team_command(team_commands):
+    def get_serialized_team_command(self, team_commands):
         team_command_message = b""
         num_robots = len(team_commands)
         if len(team_commands) > 6:
@@ -346,11 +346,12 @@ class RobotCommands:
         return angle
 
     def __str__(self):
-        return "dribble: {}, charge: {}, kick: {} (x, y, w): ({}, {}, {})".format(
+        return "dribble: {}, charge: {}, kick: {} (x, y, w): ({}, {}, {}) \n {}".format(
             self.is_dribbling,
             self.is_charging,
             self.is_kicking,
             self._x,
             self._y,
-            self._w
+            self._w,
+            self.waypoints
         )

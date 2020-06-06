@@ -247,7 +247,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             if self.gs.get_ball_position()[0] > 3000:
                 self.video_phase = 7
                 self.logger.info("Moving back to video phase %s",
-                                 self.video_phase))
+                                 self.video_phase)
         else:
             pass
 

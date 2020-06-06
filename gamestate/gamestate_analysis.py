@@ -61,7 +61,9 @@ class Analysis(object):
             overlap = max(0, overlap)
             w = robot_pos[2]
             return np.array([overlap * np.cos(w), overlap * np.sin(w)])
-        return self.overlap(robot_pos, ball_pos, self.ROBOT_RADIUS + self.BALL_RADIUS)
+        return self.overlap(robot_pos,
+                            ball_pos,
+                            self.ROBOT_RADIUS + self.BALL_RADIUS)
 
     def ball_overlap(self, pos):
         """
@@ -76,13 +78,13 @@ class Analysis(object):
         """
         x, y, w = self.get_robot_position(team, robot_id)
         direction = np.array([np.cos(w), np.sin(w)])
-        relative_pos = direction * (self.ROBOT_DRIBBLER_RADIUS + self.BALL_RADIUS)
+        relative_pos = direction * (self.ROBOT_DRIBBLER_RADIUS + self.BALL_RADIUS)  # noqa
         return np.array([x, y]) + relative_pos
 
     def dribbler_to_robot_pos(self, dribbler_pos, robot_w):
         direction = np.array([np.cos(robot_w), np.sin(robot_w)])
-        # divide radius by 2 to go a bit closer to the ball to help make contact
-        x, y = dribbler_pos - direction * (self.ROBOT_DRIBBLER_RADIUS + self.BALL_RADIUS / 2)
+        # divide radius by 2 to go a bit closer to ball to help make contact
+        x, y = dribbler_pos - direction * (self.ROBOT_DRIBBLER_RADIUS + self.BALL_RADIUS / 2)  # noqa
         return np.array([x, y, robot_w])
 
     def ball_in_dribbler_single_frame(self, team, robot_id, ball_pos=None):
@@ -99,7 +101,6 @@ class Analysis(object):
         DRIBBLE_ZONE_RADIUS = 60
         in_zone = np.linalg.norm(ball_pos - ideal_pos) < DRIBBLE_ZONE_RADIUS
         close_enough = np.linalg.norm(ball_pos - robot_pos[:2]) < MAX_DIST
-        #print(close_enough)
         return in_zone and close_enough
 
     def ball_in_dribbler(self, team, robot_id):
@@ -108,20 +109,21 @@ class Analysis(object):
         i = 0
         if len(positions) <= 1:
             return False
-        if not self.ball_in_dribbler_single_frame(team, robot_id, positions[0][1]):
+        if not self.ball_in_dribbler_single_frame(team, robot_id, positions[0][1]):  # noqa
             return False
         # look back from 0 (most recent) until big enough interval
         while i < len(positions) - 1 and \
-              positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
+                positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
             ball_pos = positions[i][1]
             i += 1
-            if not self.ball_in_dribbler_single_frame(team, robot_id, ball_pos):
+            if not self.ball_in_dribbler_single_frame(team, robot_id, ball_pos):  # noqa
                 return False
         return True
 
     def is_position_open(self, pos, team, robot_id, buffer_dist=0):
         """
-        return whether robot can be in a location without colliding another robot
+        return whether robot can be in a location without colliding
+        with another robot
         """
         for key, robot_pos in self.get_all_robot_positions():
             if key == (team, robot_id):
@@ -152,7 +154,7 @@ class Analysis(object):
             return np.array([0, 0])
         # look back from 0 (most recent) until big enough interval
         while i < len(positions) - 1 and \
-              positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
+                positions[0][0] - positions[i][0] < MIN_TIME_INTERVAL:
             i += 1
         # use those two points as reference for calculation
         time1, pos1 = positions[i]
@@ -162,14 +164,14 @@ class Analysis(object):
         midpoint_velocity = delta_pos / delta_time
         if not midpoint_velocity.any():
             return np.array([0, 0])
-        # print("before adjust: {}".format(midpoint_velocity))
 
         # adjust ball's deceleration since the midpoint of interval used
         midpoint_time = (time1 + time2) / 2
         time_since_midpoint = time2 - midpoint_time
-        accel_direction = -midpoint_velocity / np.linalg.norm(midpoint_velocity)
+        accel_direction = - midpoint_velocity / np.linalg.norm(midpoint_velocity)  # noqa
         accel = accel_direction * self.BALL_DECCELERATION * time_since_midpoint
         velocity_now = midpoint_velocity + accel
+
         # truncate if slowdown has caused change directions
         if ((velocity_now * midpoint_velocity) < 0).any():
             assert(((velocity_now * midpoint_velocity) <= 0).all())
@@ -188,8 +190,9 @@ class Analysis(object):
         velocity_final = accel * delta_time + velocity_initial
         if ((velocity_initial * velocity_final) < 0).any():
             assert(((velocity_initial * velocity_final) <= 0).all())
-# We need to use two cases here because one coordinate of initial velocity can be zero which
-# would cause us to divide by zero if we use that axis.
+            # We need to use two cases here because one coordinate of initial
+            # velocity can be zero which
+            # would cause us to divide by zero if we use that axis.
             if not accel[0] == 0:
                 time_to_stop = -1 * velocity_initial[0] / accel[0]
             else:
@@ -216,22 +219,23 @@ class Analysis(object):
         defense_goal = self.get_defense_goal(team)
         x_pos_of_goal = defense_goal[0][0]
         GOAL_WIDTH_BUFFER = 250  # assumes shots slightly wide are going in
-        GOAL_X_BUFFER = 500  # assumes shots stopping slightly short are going in
+        GOAL_X_BUFFER = 500  # assumes shots stopping slightly short go in
         x1 = x_pos_of_goal + GOAL_X_BUFFER
         x2 = x_pos_of_goal - GOAL_X_BUFFER
         if (min(final_x, start_x) <= x1 <= max(final_x, start_x)) or \
            (min(final_x, start_x) <= x2 <= max(final_x, start_x)):
             slope = (start_y - final_y)/(start_x - final_x)
             y_intercept = slope * (x_pos_of_goal - start_x) + start_y
-            if -self.GOAL_WIDTH/2 - GOAL_WIDTH_BUFFER <= y_intercept <= self.GOAL_WIDTH/2 + GOAL_WIDTH_BUFFER:
+            if -self.GOAL_WIDTH/2 - GOAL_WIDTH_BUFFER <= y_intercept \
+                    <= self.GOAL_WIDTH/2 + GOAL_WIDTH_BUFFER:
                 return np.array([x_pos_of_goal, y_intercept])
         return None
 
     def is_ball_behind_goalie(self, team):
         ball_pos = self.get_ball_position()
         goal_posts_pos = self.get_defense_goal(team)
-        center_of_goal = np.array([goal_posts_pos[0][0], (goal_posts_pos[0][1] + goal_posts_pos[1][1])/2])
-        ball_distance_from_goal_center = np.linalg.norm(ball_pos - center_of_goal)
-        if ball_distance_from_goal_center <= 600:
-            return True
-        return False
+        center_of_goal = np.array(
+            [goal_posts_pos[0][0],
+             (goal_posts_pos[0][1] + goal_posts_pos[1][1]) / 2])
+        ball_dist_from_goal_center = np.linalg.norm(ball_pos - center_of_goal)
+        return ball_dist_from_goal_center <= 600

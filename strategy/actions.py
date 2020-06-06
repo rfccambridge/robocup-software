@@ -87,13 +87,15 @@ class Actions:
         """
         # If the goal is illegal or occupied, find somewhere nearby
         if not self.gs.is_pos_legal(goal_pos, self._team, robot_id) \
-            or not self.gs.is_position_open(goal_pos, self._team, robot_id):
+           or not self.gs.is_position_open(goal_pos, self._team, robot_id):
             goal_pos = self.find_legal_pos(robot_id, goal_pos)
         start_pos = self.gs.get_robot_position(self._team, robot_id)
         # always check if we can just go straight
-        if not self.is_path_blocked(start_pos, goal_pos, robot_id, buffer_dist=0, allow_illegal=allow_illegal):
+        if not self.is_path_blocked(start_pos, goal_pos, robot_id,
+                                    buffer_dist=0, allow_illegal=allow_illegal):
             self.move_straight(robot_id, np.array(goal_pos))
-            self.logger.debug(f"Robot {robot_id} going straight from {start_pos} to {goal_pos}")
+            self.logger.debug(f"Robot {robot_id} going straight from \
+                                {start_pos} to {goal_pos}")
             return self.is_done_moving(robot_id)
         # now check if current waypoints are already going where we want
         current_goal = self.get_goal_pos(robot_id)
@@ -165,7 +167,6 @@ class Actions:
         # self.logger.debug(f"Robot: {robot_id} Start: {start_pos} Goal: {goal_pos} Waypoints: {current_waypoints}")
         if (fst_segmt_collides or not is_same_goal or (need_refresh and not SAME_GOAL_THRESHOLD < fst_segmt_len < TRIVIAL_DISTANCE)):
             self._last_pathfind_times[robot_id] = time.time()
-            # is_success = self.RRT_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
             is_success = self.greedy_path_find(start_pos, goal_pos, robot_id, allow_illegal=allow_illegal)
             if not is_success:
                 # self.logger.debug(f"Robot {robot_id} greedy path find failed")

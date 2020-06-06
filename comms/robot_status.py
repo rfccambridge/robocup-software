@@ -1,8 +1,5 @@
-import math
-import numpy as np
-
 """
-Contains information about a robot's state that we don't directly control. 
+Contains information about a robot's state that we don't directly control.
 For example, the kicker charge level or other sensor data.
 Populated by feedback from radio or simulator.
 """

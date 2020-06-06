@@ -13,6 +13,7 @@ class Simulator(Provider):
        Applies rudimentary physics and commands, to allow offline prototyping.
     """
     # TODO: when we get multiple comms, connect to all available robots
+
     def __init__(self, initial_setup):
         super().__init__()
         self.logger = None
@@ -87,7 +88,8 @@ class Simulator(Provider):
         elif self._initial_setup == "clear_field_test":
             self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
         elif self._initial_setup == "clear_field_kickoff_test":
-            self.put_fake_robot('blue', 1, np.array([-self.gs.ROBOT_RADIUS * 1.1, 0, 0]))
+            self.put_fake_robot('blue', 1, np.array(
+                [-self.gs.ROBOT_RADIUS * 1.1, 0, 0]))
             self.put_fake_ball(np.array([0, 0]), np.array([0, 0]))
         elif self._initial_setup == "surrounded_by_opponents_test":
             self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
@@ -167,8 +169,10 @@ class Simulator(Provider):
                 radius_vector = collision_pos - pos[:2]
                 if self.gs.is_robot_front_sector(pos, collision_pos):
                     # we are in the front sector, use flat angle
-                    radius_vector = self.gs.dribbler_pos(team, robot_id) - pos[:2]
-                tangent_vector = np.array([radius_vector[1], -radius_vector[0]])
+                    radius_vector = self.gs.dribbler_pos(
+                        team, robot_id) - pos[:2]
+                tangent_vector = np.array(
+                    [radius_vector[1], -radius_vector[0]])
                 assert(tangent_vector.any())
                 tangent_vector /= np.linalg.norm(tangent_vector)
                 new_v = np.dot(ball_v, tangent_vector) * tangent_vector
@@ -193,7 +197,7 @@ class Simulator(Provider):
                 ball_v = self.gs.get_ball_velocity()
                 DRIBBLE_CAPTURE_VELOCITY = 20
                 if self.gs.ball_in_dribbler(team, robot_id) and \
-                    np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
+                        np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
                     pullback_velocity = (robot_pos[:2] - ball_pos) * 2
                     centering_velocity = (dribbler_center - ball_pos) * 1
                     total_velocity = pullback_velocity + centering_velocity
@@ -208,7 +212,8 @@ class Simulator(Provider):
                 if self.gs.ball_in_dribbler(team, robot_id):
                     ball_pos = self.gs.get_ball_position()
                     # (hacky) offset it outside the robot radius
-                    kick_direction = self.gs.get_robot_direction(team, robot_id)
+                    kick_direction = self.gs.get_robot_direction(
+                        team, robot_id)
                     ball_pos += kick_direction * 40
                     new_velocity = robot_status.kick_velocity() * \
                         self.gs.get_robot_direction(team, robot_id)

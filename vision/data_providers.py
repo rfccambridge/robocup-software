@@ -2,7 +2,6 @@
 '''A class to provide robot position data from the cameras'''
 import sslclient
 import threading
-import logging
 import numpy as np
 from collections import Counter
 from typing import Tuple
@@ -86,7 +85,9 @@ class SSLVisionDataProvider(Provider):
                 CONFIDENCE_THRESHOLD = .5
                 if robot_data.confidence >= CONFIDENCE_THRESHOLD:
                     # average in the new data
-                    pos = np.array([robot_data.x, robot_data.y, robot_data.orientation])
+                    pos = np.array([robot_data.x,
+                                    robot_data.y,
+                                    robot_data.orientation])
                     if robot_id not in robot_positions:
                         robot_positions[robot_id] = pos
                     else:
@@ -96,13 +97,14 @@ class SSLVisionDataProvider(Provider):
                             (current_pos[0] * (times_seen - 1) + pos[0]) / times_seen, 
                             (current_pos[1] * (times_seen - 1) + pos[1]) / times_seen, 
                             # TODO: safely average orientation?
-                            self._circular_mean((times_seen - 1, 1), (robot_data.orientation, pos[2]))
+                            self._circular_mean((times_seen - 1, 1),
+                                                (robot_data.orientation, pos[2]))
                         ])
                         robot_positions[robot_id] = average_pos
-        #if (team == 'blue'):
+        # if (team == 'blue'):
         #    print(robot_positions[0])
         return robot_positions
-    
+
     def _circular_mean(self, weights, angles):
         "helper function for averaging angles by converting to points"
         x = y = 0.

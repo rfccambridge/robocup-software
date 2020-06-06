@@ -45,5 +45,6 @@ class Routines:
         goal_pos = self.gs.get_robot_position(self._team, receiver_id)
         pass_complete = self.prepare_and_kick(passer_id, goal_pos, min_charge=pass_velocity)
         if pass_complete:
-            self.logger.debug(f"Robot {passer_id} successfully passed to robot {receiver_id}")
+            self.logger.debug("Robot %s successfully passed to robot %s",
+                              passer_id, receiver_id)
         return pass_complete

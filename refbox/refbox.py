@@ -1,13 +1,8 @@
 import socket
 from struct import pack
-import binascii
-from ipaddress import ip_address
-import threading
-import time
 from coordinator import Provider
-
-# from referee_pb2 import SSL_Referee_Game_Event
 from .referee_pb2 import SSL_Referee
+
 
 class RefboxClient:
     """
@@ -18,12 +13,13 @@ class RefboxClient:
         Creates a RefboxClient object
 
         Args:
-            ip (str, optional): The ip to listen to refbox messages on. Defaults to '224.5.23.1'.
-            port (int, optional): The port to listen for refbox messages on. Defaults to 10003.
+            ip (str, optional): The ip to listen to refbox messages on.
+                Defaults to '224.5.23.1'.
+            port (int, optional): The port to listen for refbox messages on.
+                Defaults to 10003.
         """
         self.ip = ip
         self.port = port
-
 
     def connect(self):
         """
@@ -39,9 +35,15 @@ class RefboxClient:
         if not isinstance(self.port, int):
             raise ValueError('Port type should be int type')
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.sock = socket.socket(socket.AF_INET,
+                                  socket.SOCK_DGRAM,
+                                  socket.IPPROTO_UDP)
         self.sock.settimeout(0.1)
-        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, pack("=4sl", socket.inet_aton(self.ip), socket.INADDR_ANY))
+        self.sock.setsockopt(socket.IPPROTO_IP,
+                             socket.IP_ADD_MEMBERSHIP,
+                             pack("=4sl",
+                                  socket.inet_aton(self.ip),
+                                  socket.INADDR_ANY))
         self.sock.bind((self.ip, self.port))
 
     def receive(self):
@@ -50,7 +52,7 @@ class RefboxClient:
 
         Returns:
             SSL_Referee: The protobuf message from the refbox
-        
+
         Raises:
             socket.timeout exception if no packets are received
         """
@@ -65,19 +67,23 @@ class RefboxClient:
         if self.sock:
             self.sock.close()
 
+
 class RefboxDataProvider(Provider):
     """
     A wrapper around a RefboxClient to help update a gamestate object
-    Link to SSL Referee User Manual: https://robocup-ssl.github.io/ssl-refbox/manual.html
+    Link to SSL Referee User Manual:
+        https://robocup-ssl.github.io/ssl-refbox/manual.html
     """
     def __init__(self, ip='224.5.23.1', port=10003):
         """
         Creates a RefboxDataProvider object
 
         Args:
-            gamestate (GameState): The gamestate object which we should update the state of
-            ip (str, optional): The IP address to listen for messages on. Defaults to '224.5.23.1'.
-            port (int, optional): The port to listen for messages. Defaults to 10003.
+            gamestate (GameState): The gamestate object to update the state of
+            ip (str, optional): The IP address to listen for messages on.
+                Defaults to '224.5.23.1'.
+            port (int, optional): The port to listen for messages.
+                Defaults to 10003.
         """
         super().__init__()
         self._client = None
@@ -111,6 +117,6 @@ class RefboxDataProvider(Provider):
         A loop to receive the latest packets.
         """
         try:
-            self.gs.update_latest_refbox_message(self._client.receive().SerializeToString())
+            self.gs.update_latest_refbox_message(self._client.receive().SerializeToString())  # noqa
         except socket.timeout:
             pass

@@ -160,7 +160,7 @@ class RobotCommands:
         self.append_waypoint(pos, current_position)
 
     def append_waypoint(self, waypoint, current_position):
-        """ 
+        """
         Add a new waypoint to the end of the robot waypoint list.
         If w is None, then use some convenient angle.
         """
@@ -204,7 +204,8 @@ class RobotCommands:
     # predict where the robot will be if it follows the current command
     # command is in robot's perspective
     def predict_pos(self, current_position, delta_time):
-        assert(len(current_position) == 3 and type(current_position) == np.ndarray)
+        assert(len(current_position) == 3
+               and type(current_position) == np.ndarray)
         self.derive_speeds(current_position)
         x, y, w = current_position
         robot_x, robot_y = self.field_to_robot_perspective(w, np.array([x, y]))
@@ -220,7 +221,7 @@ class RobotCommands:
     # use the waypoints to calculate desired speeds from robot perspective
     def derive_speeds(self, current_position):
         if not self.waypoints:
-            #self.set_speeds(0, 0, 0)
+            # self.set_speeds(0, 0, 0)
             return
         og_x, og_y, og_w = current_position
         if self._prev_waypoint is None:
@@ -255,7 +256,7 @@ class RobotCommands:
                 trimmed_angle = np.arccos(inner_formula)
                 if not (0 <= trimmed_angle <= np.pi):
                     # not sure why this was ever triggering?
-                    self.logger.debug("how is trimmed angle:" + str(trimmed_angle))
+                    self.logger.debug(f"how is trimmed angle: {trimmed_angle}")
                     trimmed_angle = max(trimmed_angle, 0)
                     trimmed_angle = min(trimmed_angle, np.pi)
                 trimmed_angle = min(trimmed_angle, np.pi / 2)
@@ -274,7 +275,9 @@ class RobotCommands:
         self._w = norm_w * self.ROTATION_SPEED_SCALE
         self._w = min(self._w, self.ROBOT_MAX_W)
         self._w = max(self._w, -self.ROBOT_MAX_W)
-        # print("w: {}, goal_w: {}, d_w: {}, self_w: {}".format(og_w, goal_w, norm_w, self._w))
+        # print("w: {}, goal_w: {}, d_w: {}, self_w: {}".format(
+        #   og_w, goal_w, norm_w, self._w)
+        # )
 
     # used for eliminating intermediate waypoints
     def close_enough(self, current, goal):
@@ -351,7 +354,7 @@ class RobotCommands:
         return angle
 
     def __str__(self):
-        return "dribble: {}, charge: {}, kick: {} (x, y, w): ({}, {}, {}) \n {}".format(
+        return "dribble: {}, charge: {}, kick: {} (x, y, w): ({}, {}, {}) \n {}".format( # noqa
             self.is_dribbling,
             self.is_charging,
             self.is_kicking,

@@ -2,7 +2,6 @@
 '''A class to provide robot position data from the cameras'''
 import sslclient
 import threading
-import logging
 import numpy as np
 from collections import Counter
 from typing import Tuple
@@ -19,11 +18,12 @@ class SSLVisionDataProvider(Provider):
         self._ssl_vision_thread = None
         # cache data from different cameras so we can merge them
         # camera_id : latest raw data
+        sslclient_detection = sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame  # noqa
         self._raw_camera_data = {
-            0: sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame(),
-            1: sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame(),
-            2: sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame(),
-            3: sslclient.messages_robocup_ssl_detection_pb2.SSL_DetectionFrame(),
+            0: sslclient_detection(),
+            1: sslclient_detection(),
+            2: sslclient_detection(),
+            3: sslclient_detection(),
         }
         self._owned_fields = [
             '_ball_position',
@@ -32,7 +32,7 @@ class SSLVisionDataProvider(Provider):
         ]
 
     def pre_run(self):
-        """Starts listening to SSL-vision and updating the gamestate with new data"""
+        """Starts listen to SSL-vision and updating gamestate with new data"""
         self._ssl_vision_client = sslclient.client()
         self._ssl_vision_client.connect()
         self._ssl_vision_thread = threading.Thread(
@@ -55,7 +55,8 @@ class SSLVisionDataProvider(Provider):
             # print(data)
             # get a detection packet from any camera, and store it
             if data.HasField('detection'):
-                self._raw_camera_data[data.detection.camera_id] = data.detection
+                cid = data.detection.camera_id
+                self._raw_camera_data[cid] = data.detection
 
     def run(self):
         # update positions of all robots seen by data feed
@@ -86,23 +87,28 @@ class SSLVisionDataProvider(Provider):
                 CONFIDENCE_THRESHOLD = .5
                 if robot_data.confidence >= CONFIDENCE_THRESHOLD:
                     # average in the new data
-                    pos = np.array([robot_data.x, robot_data.y, robot_data.orientation])
+                    pos = np.array([robot_data.x,
+                                    robot_data.y,
+                                    robot_data.orientation])
                     if robot_id not in robot_positions:
                         robot_positions[robot_id] = pos
                     else:
                         times_seen = num_cameras_seen[robot_id]
                         current_pos = robot_positions[robot_id]
                         average_pos = np.array([
-                            (current_pos[0] * (times_seen - 1) + pos[0]) / times_seen, 
-                            (current_pos[1] * (times_seen - 1) + pos[1]) / times_seen, 
+                            (current_pos[0] * (times_seen - 1) + pos[0]) / times_seen,  # noqa
+                            (current_pos[1] * (times_seen - 1) + pos[1]) / times_seen,  # noqa
                             # TODO: safely average orientation?
-                            self._circular_mean((times_seen - 1, 1), (robot_data.orientation, pos[2]))
+                            self._circular_mean(
+                                (times_seen - 1, 1),
+                                (robot_data.orientation, pos[2])
+                            )
                         ])
                         robot_positions[robot_id] = average_pos
-        #if (team == 'blue'):
+        # if (team == 'blue'):
         #    print(robot_positions[0])
         return robot_positions
-    
+
     def _circular_mean(self, weights, angles):
         "helper function for averaging angles by converting to points"
         x = y = 0.
@@ -119,7 +125,7 @@ class SSLVisionDataProvider(Provider):
         "Returns average ball readings of the cameras."
         average_ball = None
         times_seen = 0
-        # TODO: Do some advanced processing based on which camera has seen the ball
+        # TODO: Do some adv. processing based on which camera has seen the ball
         for camera_id, raw_data in self._raw_camera_data.items():
             balls = raw_data.balls
             CONFIDENCE_THRESHOLD = .5
@@ -130,5 +136,5 @@ class SSLVisionDataProvider(Provider):
                     average_ball = np.array([ball.x, ball.y])
                 else:
                     pos = np.array([ball.x, ball.y])
-                    average_ball = (average_ball * (times_seen - 1) + pos) / times_seen
+                    average_ball = (average_ball * (times_seen - 1) + pos) / times_seen  # noqa
         return average_ball

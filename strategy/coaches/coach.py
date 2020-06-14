@@ -26,20 +26,40 @@ class Coach(object):
             SSL_Referee.STOP: self.stop,
             SSL_Referee.NORMAL_START: self.force_start,
             SSL_Referee.FORCE_START: self.force_start,
-            SSL_Referee.PREPARE_KICKOFF_YELLOW: self.kickoff if self.is_yellow() else self.defend_kickoff,
-            SSL_Referee.PREPARE_KICKOFF_BLUE: self.kickoff if self.is_blue() else self.defend_kickoff,
-            SSL_Referee.PREPARE_PENALTY_YELLOW: self.penalty if self.is_yellow() else self.defend_penalty,
-            SSL_Referee.PREPARE_PENALTY_BLUE: self.penalty if self.is_blue() else self.defend_penalty,
-            SSL_Referee.DIRECT_FREE_YELLOW: self.direct_free if self.is_yellow() else self.defend_direct_free,
-            SSL_Referee.DIRECT_FREE_BLUE: self.direct_free if self.is_blue() else self.defend_direct_free,
-            SSL_Referee.INDIRECT_FREE_YELLOW: self.indirect_free if self.is_yellow() else self.defend_indirect_free,
-            SSL_Referee.INDIRECT_FREE_BLUE: self.indirect_free if self.is_blue() else self.defend_indirect_free,
-            SSL_Referee.TIMEOUT_YELLOW: self.timeout,
-            SSL_Referee.TIMEOUT_BLUE: self.timeout,
-            SSL_Referee.GOAL_YELLOW: self.goal if self.is_yellow() else self.defend_goal,
-            SSL_Referee.GOAL_BLUE: self.goal if self.is_blue() else self.defend_goal,
-            SSL_Referee.BALL_PLACEMENT_YELLOW: self.ball_placement if self.is_yellow() else self.defend_ball_placement,
-            SSL_Referee.BALL_PLACEMENT_BLUE: self.ball_placement if self.is_blue() else self.defend_ball_placement,
+            SSL_Referee.PREPARE_KICKOFF_YELLOW:
+                self.kickoff if self.is_yellow() else self.defend_kickoff,
+            SSL_Referee.PREPARE_KICKOFF_BLUE:
+                self.kickoff if self.is_blue() else self.defend_kickoff,
+            SSL_Referee.PREPARE_PENALTY_YELLOW:
+                self.penalty if self.is_yellow() else self.defend_penalty,
+            SSL_Referee.PREPARE_PENALTY_BLUE:
+                self.penalty if self.is_blue() else self.defend_penalty,
+            SSL_Referee.DIRECT_FREE_YELLOW:
+                self.direct_free if self.is_yellow() else
+                self.defend_direct_free,
+            SSL_Referee.DIRECT_FREE_BLUE:
+                self.direct_free if self.is_blue() else
+                self.defend_direct_free,
+            SSL_Referee.INDIRECT_FREE_YELLOW:
+                self.indirect_free if self.is_yellow() else
+                self.defend_indirect_free,
+            SSL_Referee.INDIRECT_FREE_BLUE:
+                self.indirect_free if self.is_blue() else
+                self.defend_indirect_free,
+            SSL_Referee.TIMEOUT_YELLOW:
+                self.timeout,
+            SSL_Referee.TIMEOUT_BLUE:
+                self.timeout,
+            SSL_Referee.GOAL_YELLOW:
+                self.goal if self.is_yellow() else self.defend_goal,
+            SSL_Referee.GOAL_BLUE:
+                self.goal if self.is_blue() else self.defend_goal,
+            SSL_Referee.BALL_PLACEMENT_YELLOW:
+                self.ball_placement if self.is_yellow() else
+                self.defend_ball_placement,
+            SSL_Referee.BALL_PLACEMENT_BLUE:
+                self.ball_placement if self.is_blue() else
+                self.defend_ball_placement,
         }
 
     def is_blue(self) -> bool:
@@ -54,12 +74,12 @@ class Coach(object):
         if latest_refbox_message:
             self._command_dict[latest_refbox_message.command]()
         for robot_id in self.gs.get_robot_ids(self._team):
-            current_position = self.gs.get_robot_position(self._team, robot_id)
+            current_pos = self.gs.get_robot_position(self._team, robot_id)
             # Get out of illegal positions immediately
-            if not self.gs.is_pos_legal(current_position, self._team, robot_id):
+            if not self.gs.is_pos_legal(current_pos, self._team, robot_id):
                 self.logger.debug(f"Illegal position for robot {robot_id}")
-                legal_pos = self._strategy.find_legal_pos(robot_id, current_position)
-                self._strategy.path_find(robot_id, legal_pos, allow_illegal=True)
+                new_pos = self._strategy.find_legal_pos(robot_id, current_pos)
+                self._strategy.path_find(robot_id, new_pos, allow_illegal=True)
 
     def halt(self):
         self.logger.info("HALT CALLED")

@@ -4,21 +4,9 @@
 """
 import sys
 import signal
-import traceback
 import argparse
 import logging
 import logging.handlers
-import multiprocessing
-import time
-
-# http://plumberjack.blogspot.com/2010/09/using-logging-with-multiprocessing.html
-logger = logging.getLogger(__name__)
-
-# Remove pygame's annoying welcome message
-import os
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-
-from gamestate import GameState
 from vision import SSLVisionDataProvider
 from refbox import RefboxDataProvider
 from strategy import Strategy
@@ -26,24 +14,34 @@ from visualization import Visualizer
 from comms import Comms
 from simulator import Simulator
 from coordinator import Coordinator
+import os
+
+# Remove pygame's annoying welcome message
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+
+# http://plumberjack.blogspot.com/2010/09/using-logging-with-multiprocessing.html
+logger = logging.getLogger(__name__)
+
 
 # Setup command line arg parsing
 parser = argparse.ArgumentParser(description='Runs our main codebase')
 parser.add_argument('-s', '--simulate',
                     action="store_true",
-                    help='run the codebase using the simulator rather than real vision data or robots')
+                    help='run the codebase using the simulator rather than '
+                         'real vision data or robots')
 parser.add_argument('-ss', '--simulator_setup',
                     default='full_teams',
                     help='The setup to use for the simulator.')
 parser.add_argument('-nra', '--no_radio',
                     action="store_true",
-                    help='Turns off command sending. No commands go over the radio.')
+                    help='Turns off command sending. No cmds go over radio.')
 parser.add_argument('-nre', '--no_refbox',
                     action="store_true",
                     help='Ignores commands from the refbox.')
 parser.add_argument('-cbt', '--control_both_teams',
                     action="store_true",
-                    help='Indicates that we are playing against ourselves and so we should play as both teams.')
+                    help='Indicates that we are playing against ourselves so '
+                         'we should play as both teams.')
 parser.add_argument('-htc', '--home_team_color',
                     choices=['yellow', 'blue'],
                     default='blue',
@@ -70,12 +68,13 @@ SIMULATOR_SETUP = command_line_args.simulator_setup
 HOME_STRATEGY = command_line_args.home_strategy
 AWAY_STRATEGY = command_line_args.away_strategy
 
+
 def setup_logging():
-    VERBOSE = False
     logging_level = logging.INFO
     if command_line_args.debug:
         logging_level = logging.DEBUG
     logging.basicConfig(level=logging_level, filename='robocup.log')
+
 
 if __name__ == '__main__':
     setup_logging()
@@ -86,7 +85,7 @@ if __name__ == '__main__':
     print(f'Running in simulator mode: {IS_SIMULATION}')
     print(f'Running in no radio mode: {NO_RADIO}')
     print(f'Running in no refbox mode: {NO_REFBOX}')
-    print(f'Open cutelog separately to see logging!')
+    print('Open cutelog separately to see logging!')
 
     # Initialize providers and pass to coordinator
     providers = []

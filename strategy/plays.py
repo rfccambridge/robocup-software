@@ -1,4 +1,3 @@
-# pylint: disable=maybe-no-member
 import numpy as np
 
 
@@ -25,7 +24,8 @@ class Plays:
         team = self._team
         # TODO: Slow down robots below 1.5 m/s
         for robot_id in self.gs.get_robot_ids(team):
-            if np.linalg.norm(self.gs.get_robot_position(team, robot_id)[:2] - ball_pos) < distance:
+            a = self.gs.get_robot_position(team, robot_id)[:2] - ball_pos
+            if np.linalg.norm(a) < distance:  # noqa
                 self.path_find(robot_id, self.find_legal_pos(robot_id))
 
     def move_randomly(self):
@@ -44,14 +44,16 @@ class Plays:
         direction perpendicular to the line between the ball and the center of
         goal and centered on that line.
         """
-        ball_pos = self.gs.get_ball_position() 
+        ball_pos = self.gs.get_ball_position()
         goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
         goal_center = (goal_top + goal_bottom) / 2
         distance_from_goal = np.linalg.norm(ball_pos - goal_center)
         # TODO: Choose legal position
-        block_pos = self.block_goal_center_pos(distance_from_goal - distance_from_ball)
+        block_pos = self.block_goal_center_pos(
+            distance_from_goal - distance_from_ball)
         # TODO: Leave right amount of buffer space in offset_vector
-        offset_vector = self.perpendicular(ball_pos - goal_center) * self.gs.ROBOT_RADIUS * 2
+        offset_vector = self.perpendicular(ball_pos - goal_center) \
+            * self.gs.ROBOT_RADIUS * 2
         wall_positions = []
         for i in range(len(ids)):
             robot_offset = ((i - (len(ids) - 1)/2) * offset_vector)
@@ -59,12 +61,14 @@ class Plays:
             wall_positions.append(robot_offset + block_pos)
         self.logger.debug(wall_positions)
 
-        # Assign robot positions based on wall orientation to minimize path crossing
-        wall_positions = sorted(wall_positions, key=lambda x: np.dot(x[:2], offset_vector))
+        # Assign robot pos based on wall orientation to minimize path crossing
+        wall_positions = sorted(
+            wall_positions, key=lambda x: np.dot(x[:2], offset_vector))
+
         ids = sorted(ids, key=lambda x: np.dot(
-            self.gs.get_robot_position(self._team, x)[:2], 
+            self.gs.get_robot_position(self._team, x)[:2],
             offset_vector
         ))
         for i in range(len(ids)):
-            # TODO: Use path finding 
+            # TODO: Use path finding
             self.move_straight(ids[i], wall_positions[i])

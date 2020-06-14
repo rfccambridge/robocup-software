@@ -1,14 +1,9 @@
-import sys
 import math
 import time
 import numpy as np
-from typing import Iterable, Tuple, Optional
 from coordinator import Provider
-import logging
-from logging.handlers import SocketHandler
 import pygame
-import multiprocessing
-
+from typing import Tuple
 
 # rendering constants (dimensions are in field - mm)
 FIELD_LINE_WIDTH = 20
@@ -64,9 +59,10 @@ class Visualizer(Provider):
         self.gs = self.data_in_q.get()
 
         # derive screen dimentions from field dimensions
-        self._TOTAL_SCREEN_WIDTH = int((self.gs.FIELD_X_LENGTH + 2 * WINDOW_BUFFER) * SCALE)
+        self._TOTAL_SCREEN_WIDTH = \
+            int((self.gs.FIELD_X_LENGTH + 2 * WINDOW_BUFFER) * SCALE)
         self._TOTAL_SCREEN_HEIGHT = \
-            int((self.gs.FIELD_Y_LENGTH + 2 * WINDOW_BUFFER + UI_BUFFER) * SCALE)
+            int((self.gs.FIELD_Y_LENGTH + 2 * WINDOW_BUFFER + UI_BUFFER) * SCALE)  # noqa
 
         # Buttons for different commands (label : pygame.Rect)
         def button_pos(n):
@@ -87,7 +83,6 @@ class Visualizer(Provider):
         pygame.display.set_caption("Robocup Visualizer")
         self._clock = pygame.time.Clock()
 
-     
     def field_to_screen(self, pos: Tuple[float, float]) -> Tuple[float, float]:
         """Takes in either a tuple (x, y, w) or (x, y) and transforms the first
         two coordinates into the reference frame in our viewer only."""
@@ -120,15 +115,15 @@ class Visualizer(Provider):
         # shift position so that center becomes (0, 0)
         pos -= np.array([self.gs.FIELD_MAX_X, self.gs.FIELD_MAX_Y])
         return pos
-    
+
     def pre_run(self):
         pygame.init()
-        self.init_shit() 
+        self.init_shit()
 
     def post_run(self):
         self.logger.debug("Calling post_run in visualization")
         pygame.quit()
-        
+
     def run(self):
         """Loop that runs the pygame visualization."""
         # take user input
@@ -170,7 +165,7 @@ class Visualizer(Provider):
                     # trigger button clicks
                     for label, pos in self.buttons.items():
                         dims = (BUTTON_WIDTH, BUTTON_HEIGHT)
-                        if self.is_collision(pos, dims, pygame.mouse.get_pos()):
+                        if self.is_collision(pos, dims, pygame.mouse.get_pos()):  # noqa
                             # prints current location of mouse
                             self.logger.info('button pressed: ' + label)
                 else:
@@ -246,7 +241,7 @@ class Visualizer(Provider):
         for team in ['blue', 'yellow']:
             top_left = self.gs.defense_area_corner(team) + \
                 (0, self.gs.DEFENSE_AREA_Y_LENGTH)
-            dims = (self.gs.DEFENSE_AREA_X_LENGTH, self.gs.DEFENSE_AREA_Y_LENGTH)
+            dims = (self.gs.DEFENSE_AREA_X_LENGTH, self.gs.DEFENSE_AREA_Y_LENGTH)  # noqa
             self.draw_rect(LINE_COLOR, top_left, dims, FIELD_LINE_WIDTH)
             goalposts = self.gs.get_defense_goal(team)
             self.draw_line(GOAL_COLOR, *goalposts, FIELD_LINE_WIDTH * 2)
@@ -254,7 +249,7 @@ class Visualizer(Provider):
         # Draw all the robots
         for (team, robot_id), pos in self.gs.get_all_robot_positions():
             pos = self.gs.get_robot_position(team, robot_id)
-            robot_color = BLUE_TEAM_COLOR if team == 'blue' else YELLOW_TEAM_COLOR
+            robot_color = BLUE_TEAM_COLOR if team == 'blue' else YELLOW_TEAM_COLOR  # noqa
             if self.gs.is_robot_lost(team, robot_id):
                 robot_color = ROBOT_LOST_COLOR
             (x, y, w) = pos
@@ -271,12 +266,12 @@ class Visualizer(Provider):
                 draw_radius * np.cos(w - self.gs.ROBOT_FRONT_ANGLE),
                 draw_radius * np.sin(w - self.gs.ROBOT_FRONT_ANGLE),
             ]) + pos[:2]
-            self.draw_line(ROBOT_FRONT_COLOR, corner1, corner2, ROBOT_FRONT_LINE_WIDTH)
+            self.draw_line(ROBOT_FRONT_COLOR, corner1, corner2, ROBOT_FRONT_LINE_WIDTH)  # noqa
             robot_commands = self.gs.get_robot_commands(team, robot_id)
             robot_status = self.gs.get_robot_status(team, robot_id)
             # draw charge level
-            charge = float(robot_status.charge_level) / robot_status.MAX_CHARGE_LEVEL
-            charge_end = np.array([pos[0], pos[1] + charge * self.gs.ROBOT_RADIUS])
+            charge = float(robot_status.charge_level) / robot_status.MAX_CHARGE_LEVEL  # noqa
+            charge_end = np.array([pos[0], pos[1] + charge * self.gs.ROBOT_RADIUS])  # noqa
             self.draw_line((255, 255, 255), pos, charge_end, 15)
             # draw dribbler zone if on
             if robot_commands.is_dribbling:
@@ -307,8 +302,8 @@ class Visualizer(Provider):
 
         # Draw ball
         ball_pos = self.gs.get_ball_position()
-        t = self.gs.get_ball_last_update_time()
-        
+        _ = self.gs.get_ball_last_update_time()
+
         if not self.gs.is_ball_lost():
             # draw where the best position is to kick towards the mouse.
             # mouse_pos = self.screen_to_field(pygame.mouse.get_pos())

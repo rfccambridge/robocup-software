@@ -42,7 +42,8 @@ class GameState(Field, Analysis):
         self._game_loop_sleep = None
         self._last_step_time = None
 
-        # Raw Position Data - updated by vision provider (either vision or simulator)
+        # Raw Position Data - updated by vision provider
+        # (either vision or simulator)
         # queue of (time, pos) where positions are in the form np.array([x, y])
         # most recent data is at the front of queue
         self._ball_position = deque([], BALL_POS_HISTORY_LENGTH)
@@ -75,12 +76,16 @@ class GameState(Field, Analysis):
         }
 
         # Refbox - the latest message delivered from the refbox
-        # Contains all? relevant game status information such as time, events, goalie id, direction of play
-        # See protocol: https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto
+        # Contains all? relevant game status information such as time, events,
+        # goalie id, direction of play
+        # See protocol:
+        # https://github.com/RoboCup-SSL/ssl-refbox/blob/master/referee.proto
 
-        # DO NOT ACCESS THIS DIRECTLY ----- CALL self.get_latest_refbox_message()
-        # Initialize to a default message for when we do not care about the refbox
-        self._latest_refbox_message_string = b'\x08\x8f\xbb\xb7\x83\x86\xf5\xe7\x02\x10\r \x00(\x010\x9e\xb6\xe3\x9b\x82\xf5\xe7\x02:\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00B\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00P\x00'
+        # DO NOT ACCESS THIS DIRECTLY -----
+        # CALL self.get_latest_refbox_message()
+        # Initialize to a default message for when we do not care
+        # about the refbox
+        self._latest_refbox_message_string = b'\x08\x8f\xbb\xb7\x83\x86\xf5\xe7\x02\x10\r \x00(\x010\x9e\xb6\xe3\x9b\x82\xf5\xe7\x02:\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00B\x12\n\x00\x10\x00\x18\x00(\x000\x048\x80\xc6\x86\x8f\x01@\x00P\x00'  # noqa
         # TODO - functions to get data from refbox message?
         # Game status/events
         self.game_clock = None

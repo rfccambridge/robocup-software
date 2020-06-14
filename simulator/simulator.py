@@ -13,6 +13,7 @@ class Simulator(Provider):
        Applies rudimentary physics and commands, to allow offline prototyping.
     """
     # TODO: when we get multiple comms, connect to all available robots
+
     def __init__(self, initial_setup):
         super().__init__()
         self.logger = None
@@ -87,7 +88,8 @@ class Simulator(Provider):
         elif self._initial_setup == "clear_field_test":
             self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
         elif self._initial_setup == "clear_field_kickoff_test":
-            self.put_fake_robot('blue', 1, np.array([-self.gs.ROBOT_RADIUS * 1.1, 0, 0]))
+            self.put_fake_robot('blue', 1, np.array(
+                [-self.gs.ROBOT_RADIUS * 1.1, 0, 0]))
             self.put_fake_ball(np.array([0, 0]), np.array([0, 0]))
         elif self._initial_setup == "surrounded_by_opponents_test":
             self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))
@@ -103,7 +105,7 @@ class Simulator(Provider):
 
     def run(self):
         # allow user to move the ball via UI
-        if self._viz_events_handled < self.gs.viz_inputs['simulator_events_count']:
+        if self._viz_events_handled < self.gs.viz_inputs['simulator_events_count']:  # noqa
             self._viz_events_handled += 1
             if self.gs.viz_inputs['user_selected_ball']:
                 new_pos = self.gs.viz_inputs['user_click_position']
@@ -124,11 +126,6 @@ class Simulator(Provider):
         ball_pos = self.gs.get_ball_position()
         if ball_pos is not None:
             new_ball_pos = self.gs.predict_ball_pos(self.delta_time)
-            # self.logger.debug("pos: {}".format(ball_pos))
-            # self.logger.debug("dt: {}, new_pos: {}".format(self.delta_time, new_ball_pos))
-            # self.logger.debug("v: {}".format(self.gs.get_ball_velocity()))
-            # self.logger.debug("Predicted Ball Location: %s", self.gs.predict_ball_pos(0))
-            # self.logger.debug("Ball velocity: %s", self.gs.get_ball_velocity())
             self.gs.update_ball_position(new_ball_pos)
 
         for (team, robot_id), pos in \
@@ -167,8 +164,10 @@ class Simulator(Provider):
                 radius_vector = collision_pos - pos[:2]
                 if self.gs.is_robot_front_sector(pos, collision_pos):
                     # we are in the front sector, use flat angle
-                    radius_vector = self.gs.dribbler_pos(team, robot_id) - pos[:2]
-                tangent_vector = np.array([radius_vector[1], -radius_vector[0]])
+                    radius_vector = self.gs.dribbler_pos(
+                        team, robot_id) - pos[:2]
+                tangent_vector = np.array(
+                    [radius_vector[1], -radius_vector[0]])
                 assert(tangent_vector.any())
                 tangent_vector /= np.linalg.norm(tangent_vector)
                 new_v = np.dot(ball_v, tangent_vector) * tangent_vector
@@ -180,7 +179,6 @@ class Simulator(Provider):
             # move robots according to commands
             pos = self.gs.get_robot_position(team, robot_id)
             new_pos = robot_commands.predict_pos(pos, self.delta_time)
-            # self.logger.debug(f"Current Position: {pos}; New Position: {new_pos}")
             self.gs.update_robot_position(
                 team, robot_id, new_pos
             )
@@ -193,7 +191,7 @@ class Simulator(Provider):
                 ball_v = self.gs.get_ball_velocity()
                 DRIBBLE_CAPTURE_VELOCITY = 20
                 if self.gs.ball_in_dribbler(team, robot_id) and \
-                    np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
+                        np.linalg.norm(ball_v) < DRIBBLE_CAPTURE_VELOCITY:
                     pullback_velocity = (robot_pos[:2] - ball_pos) * 2
                     centering_velocity = (dribbler_center - ball_pos) * 1
                     total_velocity = pullback_velocity + centering_velocity
@@ -208,7 +206,8 @@ class Simulator(Provider):
                 if self.gs.ball_in_dribbler(team, robot_id):
                     ball_pos = self.gs.get_ball_position()
                     # (hacky) offset it outside the robot radius
-                    kick_direction = self.gs.get_robot_direction(team, robot_id)
+                    kick_direction = self.gs.get_robot_direction(
+                        team, robot_id)
                     ball_pos += kick_direction * 40
                     new_velocity = robot_status.kick_velocity() * \
                         self.gs.get_robot_direction(team, robot_id)

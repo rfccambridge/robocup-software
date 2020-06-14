@@ -2,6 +2,7 @@ import numpy as np
 import math
 from comms.robot_commands import RobotCommands
 
+
 # trim angle helpers
 def test_trim_angle():
     rc = RobotCommands()
@@ -12,6 +13,7 @@ def test_trim_angle():
     angle = 2 * math.pi
     assert rc.trim_angle(angle) == 0
 
+
 def test_trim_angle_90():
     rc = RobotCommands()
     angle = math.pi / 2 + 1
@@ -20,6 +22,7 @@ def test_trim_angle_90():
     assert rc.trim_angle_90(angle) == math.pi/2 - 1
     angle = math.pi
     assert rc.trim_angle_90(angle) == 0
+
 
 # serialize/deserialize conversion
 def test_command_serialization():
@@ -64,6 +67,7 @@ def test_command_serialization():
     assert_serialize(False, True, False, -20, 300, -2)
     assert_serialize(False, True, False, -200, 500, 0)
 
+
 # robot/field perspective conversion helpers
 def test_perspective_conversion():
     rc = RobotCommands()
@@ -90,6 +94,7 @@ def test_perspective_conversion():
     ftr = rc.field_to_robot_perspective(math.pi / 2, np.array([100, 100]))
     assert np.allclose(ftr, np.array([100, 100]))
 
+
 # test functions for adding waypoints for robot
 def test_append_waypoint():
     rc = RobotCommands()
@@ -102,16 +107,17 @@ def test_append_waypoint():
     current_position = np.array([0, 0, 0])
     for i, wp in enumerate(waypoints):
         rc.append_waypoint(wp, current_position)
-        assert (len(rc.waypoints) == i + 1) and np.allclose(rc.waypoints[-1], wp)
+        assert len(rc.waypoints) == i + 1 and np.allclose(rc.waypoints[-1], wp)
     # make sure it can handle None for w
     rc.append_waypoint([-100, -100, None], current_position)
     # check that waypoints are faithfully added
     assert (len(rc.waypoints) == len(waypoints) + 1) and \
         (rc.waypoints[-1][2] is not None)
 
+
 def test_set_waypoints():
     rc = RobotCommands()
-    angle = math.pi / 2 # makes robot perspective same as field - easier
+    angle = math.pi / 2  # makes robot perspective same as field - easier
     og_pos = np.array([0, 0, angle])
     waypoints = [
         np.array([1000, 0, 0]),
@@ -124,12 +130,13 @@ def test_set_waypoints():
     for i in range(len(waypoints)):
         assert (rc.waypoints[i] == waypoints[i]).all()
 
+
 # tests the basic functionality fo derive_speeds
 # just looks at basic directionality, not reducing speed for turns
 # so, logic can be improved (made smoother) without breaking this test
 def test_derive_speeds():
     rc = RobotCommands()
-    angle = math.pi / 2 # makes robot perspective same as field - easier
+    angle = math.pi / 2  # makes robot perspective same as field - easier
     original_position = np.array([0, 0, angle])
     waypoints = [
         np.array([1000, 0, angle]),
@@ -140,7 +147,7 @@ def test_derive_speeds():
     ]
     # no waypoints do nothing
     rc.derive_speeds(original_position)
-    assert rc._x == 0 and rc._y ==0 and rc._w == 0
+    assert rc._x == 0 and rc._y == 0 and rc._w == 0
     # now test deriving speeds from waypoints
     rc.waypoints = waypoints
     rc.derive_speeds(original_position)
@@ -157,10 +164,11 @@ def test_derive_speeds():
     rc.derive_speeds(waypoints[0])
     assert np.allclose(rc._x, 0) and rc._y < 0 and rc._w > 0
 
+
 # test special function to add waypoint with full speed approach
 def test_append_urgent_destination():
     rc = RobotCommands()
-    angle = math.pi / 2 # makes robot perspective same as field - easier
+    angle = math.pi / 2  # makes robot perspective same as field - easier
     og_position = np.array([0, 0, angle])
     gx = 1000
     rc.append_urgent_destination(np.array([gx, 0, None]), og_position)
@@ -175,11 +183,12 @@ def test_append_urgent_destination():
     rc.derive_speeds(mock_position)
     assert rc._x == low_speed_limit
 
+
 # test simulation helper
 # accurate short-term predictions based on current speed
 def test_predict_pos():
     rc = RobotCommands()
-    angle = math.pi / 2 # makes robot perspective same as field - easier
+    angle = math.pi / 2  # makes robot perspective same as field - easier
     rc.set_speeds(100, 100, 1)
     og_pos = np.array([0, 0, angle])
     # this is usually used for small time intervals

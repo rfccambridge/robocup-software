@@ -1,6 +1,9 @@
+"""Coordinator deals with all of the multiprocessing.
+Warning: This file is a PITA as it deals with all of the multiprocessing.
+Only modify it as last resort, or if you have debugging time available.
+"""
 from multiprocessing import Queue
 from multiprocessing import Process, Event
-import multiprocessing
 import traceback
 import logging
 from logging.handlers import SocketHandler
@@ -13,13 +16,11 @@ from queue import Empty, Full
 # Do not make this large or bad things will happen
 MAX_Q_SIZE = 1
 
-# Warning: This file is a pain in the ass as it deals with all of the multiprocessing.
-# Only modify it as a last resort, or if you have a shittone of debugging time available.
 
 class Provider(object):
     """
-    Basic interface class that reads data in from the Coordinator, 
-    does some action, and then writes actions back to the coordinator.  
+    Basic interface class that reads data in from the Coordinator,
+    does some action, and then writes actions back to the coordinator.
     """
     def __init__(self):
         """
@@ -43,8 +44,10 @@ class Provider(object):
 
     def run(self):
         """
-        Handle provider specific logic. This function is continuously repeatedly called AT MINIMUM
-        once every second but likely much much more frequently. 
+        Handle provider specific logic. This function is continuously
+        repeatedly called AT MINIMUM once every second but likely much much
+        more frequently.
+
         It should modify self.gs which will be sent back to the coordinator.
         Needs to be implemented in child classes.
         """
@@ -52,7 +55,7 @@ class Provider(object):
 
     def _update_gamestate(self):
         """
-        Get the latest gamestate from the coordinator. Do not call this method from
+        Get the latest gamestate from coordinator. DON'T call this method from
         outside the provider.
         """
         # Save a copy of all of the fields this provider owns
@@ -116,16 +119,18 @@ class Provider(object):
 
     def pre_run(self):
         """
-        This function is called exactly once whenever a provider is started, and before self.run() is called. 
-        Override this function to do initialization that it wouldn't be possible to to in self.run() (which gets
-        called repeatedly).
+        This function is called exactly once whenever a provider is started,
+        and before self.run() is called. Override this function to do
+        initialization that it wouldn't be possible to to in self.run()
+        (which gets called repeatedly).
         """
         pass
-    
+
     def post_run(self):
         """
-        This function is called exactly once after the last iteratation of self.run() but before the
-        provider is destroyed. Override this to do de-initialization.
+        This function is called exactly once after the last iteratation of
+        self.run() but before the provider is destroyed. Override this to do
+        de-initialization.
         """
         pass
 
@@ -143,8 +148,8 @@ class Provider(object):
         q.close()
         try:
             while True:
-                item = q.get_nowait()
-        except:
+                _ = q.get_nowait()
+        except:  # noqa
             pass
         q.join_thread()
 
@@ -152,12 +157,13 @@ class Provider(object):
         if logger_name is None:
             logger_name = self.__class__.__name__
         self.logger = logging.getLogger(logger_name)
-        self.logger.addHandler(logging.FileHandler('logs/%s.log' % logger_name, mode='w'))
+        self.logger.addHandler(
+            logging.FileHandler('logs/%s.log' % logger_name, mode='w'))
         self.logger.setLevel(1)
         socket_handler = SocketHandler('127.0.0.1', 19996)
         self.logger.addHandler(socket_handler)
         self.logger.info("Created logger: %s" % logger_name)
-        
+
 
 class DisableSignals(object):
     """
@@ -175,6 +181,7 @@ class DisableSignals(object):
     def __exit__(self, type, value, traceback):
         signal.signal(signal.SIGINT, self.default_handler)
 
+
 class Coordinator(object):
     """
     A Coordinator object synchronises the entire game. It
@@ -182,8 +189,7 @@ class Coordinator(object):
     parties including vision, refbox data, XBEE processes and
     strategy processes.
     """
-    def __init__(self, 
-                 providers):
+    def __init__(self, providers):
         """
         Collects the objects to coordinate
         """
@@ -206,7 +212,8 @@ class Coordinator(object):
 
     def create_logger(self):
         self.logger = logging.getLogger('coordinator')
-        self.logger.addHandler(logging.FileHandler('coordinator.log', mode='a'))
+        self.logger.addHandler(
+            logging.FileHandler('coordinator.log', mode='a'))
         self.logger.info("Initializing Coordinator")
         self.logger.setLevel(1)
         socket_handler = SocketHandler('0.0.0.0', 19996)
@@ -216,11 +223,14 @@ class Coordinator(object):
     def start_game(self):
         """
         Starts all of the providers in their own processes..
-        This should be called from main.py once a Coordinator has been instantiated
+        This should be called from main.py once a Coordinator has been
+        instantiated
         """
         for provider in self.providers:
-            self.processes.append(Process(target=provider.start_providing, args=[self.stop_event], name=provider.__class__.__name__))
-            
+            self.processes.append(Process(target=provider.start_providing,
+                                          args=[self.stop_event],
+                                          name=provider.__class__.__name__))
+
         # Disable signals before fork so only parent process responds to SIGINT
         with DisableSignals():
             for proc in self.processes:
@@ -231,7 +241,7 @@ class Coordinator(object):
         # Start main game loop
         self.logger.info("Starting main game loop")
         self.game_loop()
-        
+
     def stop_game(self):
         """
         Sets the stop signal. Called from a signal handler in main.py.
@@ -241,7 +251,8 @@ class Coordinator(object):
 
     def game_loop(self):
         """
-        This is the main loop of the game that runs continuously in the main process.
+        This is the main loop of the game that runs continuously in the main
+        process.
         This should only be called from self.start_game()
         """
         while not self.stop_event.is_set():
@@ -252,7 +263,8 @@ class Coordinator(object):
 
     def get_data_from_provider(self, provider):
         """
-        Gets and integrates updated gamestate data from a provider's returned gamestate
+        Gets and integrates updated gamestate data from a provider's returned
+        gamestate
         """
         provider_gs = self.get_from_provider_ignore_exceptions(provider)
         if provider_gs:
@@ -261,16 +273,17 @@ class Coordinator(object):
 
     def publish_new_gamestate(self):
         """
-        Pushes the current gamestate to the data_in_q of the providers that need it
+        Pushes the current gamestate to the data_in_q of the providers that
+        need it
         """
         for provider in self.providers:
             self.push_to_provider_ignore_exceptions(provider, self.gamestate)
 
     def push_to_provider_ignore_exceptions(self, provider, item):
         """
-        A non-blocking helper method to .put() to a provider's 
+        A non-blocking helper method to .put() to a provider's
         data_in_q queue and ignore any exceptions.
-        
+
         Args:
             q (Provider): The provider in question
 
@@ -285,7 +298,7 @@ class Coordinator(object):
         except Full:
             # If the queue is full we try to remove the current item
             # in the queue and replace it with our new item.
-            # There are race conditions here, so if the final put ends up 
+            # There are race conditions here, so if the final put ends up
             # failing we just ignore the failure and move on.
             try:
                 q.get_nowait()
@@ -298,9 +311,9 @@ class Coordinator(object):
 
     def get_from_provider_ignore_exceptions(self, provider):
         """
-        A non-blocking helper method to .get() from a provider's 
+        A non-blocking helper method to .get() from a provider's
         commands_out_q queue and ignore any exceptions.
-        
+
         Args:
             q (Provider): The provider in question
 
@@ -316,5 +329,3 @@ class Coordinator(object):
             # self.logger.warning("Get from provider had empty queue")
             return None
         return item
-        
-        

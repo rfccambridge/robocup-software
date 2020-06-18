@@ -1,0 +1,6 @@
+{
+  "comms/tests/test_robot_commands.py": true, 
+  "gamestate/tests/test_field.py": true, 
+  "strategy/tests/test_actions.py": true, 
+  "strategy/tests/test_utils.py": true
+}

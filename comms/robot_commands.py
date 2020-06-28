@@ -160,6 +160,10 @@ class RobotCommands:
         self.append_waypoint(pos, current_position)
 
     def append_waypoint(self, waypoint, current_position):
+        """
+        Add a new waypoint to the end of the robot waypoint list.
+        If w is None, then use some convenient angle.
+        """
         if self.waypoints:
             initial_pos = self.waypoints[-1]
         else:
@@ -198,6 +202,7 @@ class RobotCommands:
         self._w = w
 
     # predict where the robot will be if it follows the current command
+    # command is in robot's perspective
     def predict_pos(self, current_position, delta_time):
         assert(len(current_position) == 3
                and type(current_position) == np.ndarray)
@@ -224,7 +229,6 @@ class RobotCommands:
         # if close enough to first waypoint, delete and move to next one
         while len(self.waypoints) > 1 and \
                 self.close_enough(current_position, self.waypoints[0]):
-            goal_pos = self.waypoints[0]
             self._prev_waypoint = self.waypoints.pop(0)
         goal_pos = self.waypoints[0]
         goal_x, goal_y, goal_w = goal_pos
@@ -295,7 +299,7 @@ class RobotCommands:
         return is_close or is_past
 
     # HELPER FUNCTIONS
-    # Transforms field x, y into a vector in the robot's perspective
+    # Transforms field dx, dy into a vector in the robot's perspective
     def field_to_robot_perspective(self, w_robot, vector):
         assert(len(vector) == 2 and type(vector) == np.ndarray)
         if not vector.any():
@@ -305,7 +309,7 @@ class RobotCommands:
         magnitude = self.magnitude(vector)
         return np.array([np.sin(w_rot) * magnitude, np.cos(w_rot) * magnitude])
 
-    # Transforms robot perspective x, y vector into field vector
+    # Transforms robot perspective dx, dy vector into field vector
     def robot_to_field_perspective(self, w_robot, vector):
         assert(len(vector) == 2 and type(vector) == np.ndarray)
         if not vector.any():
@@ -340,6 +344,7 @@ class RobotCommands:
     def trim_angle_90(self, angle):
         """Transforms angle into range -pi/2 to pi/2, for shortest turning
            Treats 180 degrees reflection as equivalent.
+           So resulting angle is facing same or direct opposite of original.
         """
         angle = self.trim_angle(angle)
         if angle > math.pi / 2:

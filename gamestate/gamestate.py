@@ -173,7 +173,7 @@ class GameState(Field, Analysis):
 
     # returns position robot was last seen at
     def get_robot_position(self, team, robot_id):
-        self.logger.debug("This shouldn't work")
+        self.logger.debug("This doesn't work currently")
         robot_positions = self.get_team_positions(team)
         if robot_id not in robot_positions:
             # is_robot_lost should be used to check if robot exists

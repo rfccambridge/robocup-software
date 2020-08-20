@@ -66,6 +66,7 @@ class Provider(object):
         # Get a new gamestate copy from the coordinator
         try:
             self.gs = self.data_in_q.get(timeout=1)
+            # Send logger messages from gs to the calling provider's logger
             self.gs.logger = self.logger
         except Empty:
             pass

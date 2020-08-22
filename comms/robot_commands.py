@@ -58,6 +58,8 @@ class RobotCommands:
         self.is_charging = False
         self.is_kicking = False
 
+        self.logger = None  # to be set dynamically when called from a provider
+
     # function for limiting robot speeds in the case of ref commands
     def set_speed_limit(self, speed=None):
         if speed is None:

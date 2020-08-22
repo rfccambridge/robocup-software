@@ -75,6 +75,8 @@ class GameState(Field, Analysis):
             "teleport_selected_robot": False
         }
 
+        self.logger = None  # to be set dynamically when called from a provider
+
         # Refbox - the latest message delivered from the refbox
         # Contains all? relevant game status information such as time, events,
         # goalie id, direction of play
@@ -255,12 +257,16 @@ class GameState(Field, Analysis):
         team_commands = self.get_team_commands(team)
         if robot_id not in team_commands:
             team_commands[robot_id] = RobotCommands()
+        # Assign logger from calling provider as the logger for robot commands
+        team_commands[robot_id].logger = self.logger
         return team_commands[robot_id]
 
     def get_robot_status(self, team, robot_id):
         team_status = self.get_team_status(team)
         if robot_id not in team_status:
             team_status[robot_id] = RobotStatus()
+        # Assign logger from calling provider as the logger for robot status
+        team_status[robot_id].logger = self.logger
         return team_status[robot_id]
 
     def robot_max_speed(self, team, robot_id):

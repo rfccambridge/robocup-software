@@ -13,6 +13,7 @@ class RobotStatus:
 
     def __init__(self):
         self.charge_level = 0
+        self.logger = None  # to be set dynamically when called from a provider
 
     # clears out charge as though we kicked
     def simulate_kick(self):

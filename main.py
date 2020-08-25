@@ -27,6 +27,8 @@ from comms import Comms
 from simulator import Simulator
 from coordinator import Coordinator
 
+print("Hello World")
+
 # Setup command line arg parsing
 parser = argparse.ArgumentParser(description='Runs our main codebase')
 parser.add_argument('-s', '--simulate',

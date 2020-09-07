@@ -31,7 +31,8 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         assert(team in ['blue', 'yellow'])
         self._team = team
         self._strategy_name = strategy_name
-        self._owned_fields = ['_blue_robot_commands', '_yellow_robot_commands']
+        self._owned_fields = ['_blue_robot_commands'] if team == 'blue' \
+            else ['_yellow_robot_commands']
 
         # state for reducing frequency of expensive calls
         # (this also helps reduce oscillation)

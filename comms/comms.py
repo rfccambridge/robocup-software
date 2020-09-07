@@ -20,10 +20,8 @@ class Comms(Provider):
         self._is_second_comms = is_second_comms
         self._radio = None
 
-        self._owned_fields = [
-            '_blue_robot_status',
-            '_yellow_robot_status',
-        ]
+        self._owned_fields = ['_blue_robot_status'] if team == 'blue' \
+            else ['_yellow_robot_status']
 
         # self._receive_loop_sleep = Radio.MESSAGE_DELAY
         # self._messages_received = []

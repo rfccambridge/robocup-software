@@ -24,7 +24,7 @@ class Coach(object):
         self._command_dict = {
             SSL_Referee.HALT: self.halt,
             SSL_Referee.STOP: self.stop,
-            SSL_Referee.NORMAL_START: self.force_start,
+            SSL_Referee.NORMAL_START: self.normal_start,
             SSL_Referee.FORCE_START: self.force_start,
             SSL_Referee.PREPARE_KICKOFF_YELLOW:
                 self.kickoff if self.is_yellow() else self.defend_kickoff,
@@ -88,6 +88,9 @@ class Coach(object):
     def stop(self):
         self.logger.info("STOP CALLED")
 
+    def normal_start(self):
+        self.logger.info("NORMAL START CALLED")
+    
     def force_start(self):
         self.logger.info("FORCE START CALLED")
 

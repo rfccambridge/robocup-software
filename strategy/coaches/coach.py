@@ -88,6 +88,7 @@ class Coach(object):
 
     def stop(self):
         self.logger.info("STOP CALLED")
+        self._strategy.avoid_ball()
 
     def normal_start(self):
         self.logger.info("NORMAL START CALLED")
@@ -96,6 +97,7 @@ class Coach(object):
 
     def force_start(self):
         self.logger.info("FORCE START CALLED")
+        self.open_play()
 
     def kickoff(self):
         self.logger.info("KICKOFF CALLED")

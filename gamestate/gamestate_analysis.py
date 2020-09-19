@@ -1,5 +1,6 @@
 # pylint: disable=no-member
 import numpy as np
+from refbox import SSL_Referee
 
 
 class Analysis(object):
@@ -15,6 +16,7 @@ class Analysis(object):
     # PHYSICS CONSTANTS
     # ball constant slowdown due to friction
     BALL_DECCELERATION = 350  # mm/s^2
+    IN_PLAY_DISTANCE = 50
 
     def overlap(self, pos1, pos2, radius_sum):
         """
@@ -204,6 +206,26 @@ class Analysis(object):
         # print("dt: {} PPC: {}".format(delta_time, predicted_pos_change))
         predicted_pos = predicted_pos_change + self.get_ball_position()
         return predicted_pos
+
+    def is_ball_in_play(self):
+        '''
+        Return whether the ball is in play (i.e. can be played by robots
+        of either team).
+        Approach borrowed from RobocupULaval/StrategyAI/auto_play.py.
+        '''
+        ref_msg = self.get_latest_refbox_message()
+        if ref_msg.command == SSL_Referee.FORCE_START:
+            return True
+        # TODO: Account for other possibilities
+        elif ref_msg.command in [SSL_Referee.NORMAL_START]:  # noqa
+            orig_pos = self.game_info["most_recent_start_pos"]
+            ball_pos = self.get_ball_position()
+            if np.linalg.norm(ball_pos - orig_pos) > self.IN_PLAY_DISTANCE:
+                return True
+            # TODO: Account for different time requirements for situations
+            elif self.game_info["most_recent_start_time"] is not None:
+                return self.game_info["most_recent_start_time"] - ref_msg.time > 10000000  # noqa
+        return False
 
     # TODO: move to strategy analysis
     def is_shot_coming(self, team):

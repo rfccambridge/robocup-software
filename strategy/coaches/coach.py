@@ -81,6 +81,7 @@ class Coach(object):
                 new_pos = self._strategy.find_legal_pos(robot_id, current_pos)
                 self._strategy.path_find(robot_id, new_pos, allow_illegal=True)
 
+    # Functions for dealing with ref commands
     def halt(self):
         self.logger.info("HALT CALLED")
         self._strategy.halt()
@@ -90,7 +91,9 @@ class Coach(object):
 
     def normal_start(self):
         self.logger.info("NORMAL START CALLED")
-    
+        if self.gs.is_ball_in_play():
+            self.open_play()
+
     def force_start(self):
         self.logger.info("FORCE START CALLED")
 
@@ -134,4 +137,12 @@ class Coach(object):
         raise NotImplementedError
 
     def defend_ball_placement(self):
+        raise NotImplementedError
+
+    # Functions for dealing with subsets of game situations
+    def open_play(self):
+        '''
+        Deals with cases where the game is running and we are not in a
+        special situation such as a free kick, penalty kick, etc.
+        '''
         raise NotImplementedError

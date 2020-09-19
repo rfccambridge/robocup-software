@@ -161,7 +161,7 @@ class Visualizer(Provider):
                 self.user_click_down = self.screen_to_field(
                     pygame.mouse.get_pos()
                 )
-                if self.gs.is_in_play(self.user_click_down):
+                if self.gs.is_in_field(self.user_click_down):
                     # trigger button clicks
                     for label, pos in self.buttons.items():
                         dims = (BUTTON_WIDTH, BUTTON_HEIGHT)

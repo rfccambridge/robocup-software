@@ -69,7 +69,7 @@ class Actions:
         commands = self.gs.get_robot_commands(self._team, robot_id)
         commands.set_speeds(0, 0, 0)
         commands.clear_waypoints()
-    
+
     def set_speed_limit(self, robot_id: int, speed: float):
         commands = self.gs.get_robot_commands(self._team, robot_id)
         # TODO: How do we unset the speed limit later?

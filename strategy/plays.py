@@ -1,5 +1,4 @@
 import numpy as np
-from typing import List
 
 
 class Plays:
@@ -21,8 +20,8 @@ class Plays:
         for robot_id in self.gs.get_robot_ids(self._team):
             self.stop(robot_id)
 
-    def avoid_ball(self, robot_ids: List(int) = None, distance: float = 500,
-                   speed_limit: float = 1500):
+    def avoid_ball(self, robot_ids=None, distance=500,
+                   speed_limit=1500):
         """Specified (all by default) robots stay at least the specified
         distance away from the ball."""
         ball_pos = self.gs.get_ball_position()

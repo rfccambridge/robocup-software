@@ -143,8 +143,9 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def attacker_test(self):
         # team = self._team
         ranked_dists = self.rank_intercept_distances()
-        self.attacker_on_ball(ranked_dists[0][0])
-        self.attacker_off_ball(ranked_dists[1][0])
+        if len(ranked_dists) > 0:
+            self.attacker_on_ball(ranked_dists[0][0])
+            self.attacker_off_ball(ranked_dists[1][0])
         # if self.gs.viz_inputs['user_selected_robot'] is not None:
         #     team, robot_id = self.gs.viz_inputs['user_selected_robot']
         #     if team == self._team:

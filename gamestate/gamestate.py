@@ -92,6 +92,11 @@ class GameState(Field, Analysis):
         # Game status/events
         self.game_clock = None
 
+        self.game_info = {
+            "most_recent_start_pos": None,
+            "most_recent_start_time": None,
+        }
+
     def other_team(self, team):
         if team == 'blue':
             return 'yellow'
@@ -128,8 +133,20 @@ class GameState(Field, Analysis):
         # print(f"{self._latest_refbox_message_string}\n")
         return refbox_message
 
+    def update_game_info_from_refbox_message(self, prev_msg_string):
+        msg = SSL_Referee()
+        msg.ParseFromString(self._latest_refbox_message_string)
+        prev_msg = SSL_Referee()
+        prev_msg.ParseFromString(prev_msg_string)
+        if msg.command == SSL_Referee.NORMAL_START \
+           and prev_msg.command != SSL_Referee.NORMAL_START:
+            self.game_info["most_recent_start_pos"] = self.get_ball_position()
+            self.game_info["most_recent_start_time"] = msg.stage_time_left
+
     def update_latest_refbox_message(self, message):
+        prev_msg_string = self._latest_refbox_message_string
         self._latest_refbox_message_string = message
+        self.update_game_info_from_refbox_message(prev_msg_string)
 
     # returns position ball was last seen at, or (0, 0) if unseen
     def get_ball_position(self):

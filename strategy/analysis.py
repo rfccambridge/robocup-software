@@ -27,7 +27,7 @@ class Analysis(object):
         delta_t = .1
         future_ball_array = []
         while (((ball_pos != new_ball_pos).any() or t == 0)
-                and self.gs.is_in_play(new_ball_pos)):
+                and self.gs.is_in_field(new_ball_pos)):
             # here we make the previously generated point the reference
             ball_pos = new_ball_pos
             new_ball_pos = self.gs.predict_ball_pos(t)
@@ -143,7 +143,7 @@ class Analysis(object):
             team = self._team
         if ball_pos is None:
             ball_pos = self.gs.get_ball_position()
-        if not self.gs.is_in_play(ball_pos):
+        if not self.gs.is_in_field(ball_pos):
             return np.array([])
         goal_top, goal_bottom = self.gs.get_defense_goal(team)
         goal_center = (goal_top + goal_bottom) / 2

@@ -44,7 +44,7 @@ class Field(object):
         in_y = dy_min <= pos[1] <= dy_max
         return in_x and in_y
 
-    def is_in_play(self, pos):
+    def is_in_field(self, pos):
         return ((self.FIELD_MIN_X <= pos[0] <= self.FIELD_MAX_X) and
                 (self.FIELD_MIN_Y <= pos[1] <= self.FIELD_MAX_Y))
 
@@ -63,7 +63,7 @@ class Field(object):
         ot = self.other_team(team)
         in_own_defense_area = in_d_area and not self.is_goalie(team, robot_id)
         in_other_defense_area = self.is_in_defense_area(pos, ot)
-        return (self.is_in_play(pos) and
+        return (self.is_in_field(pos) and
                 not in_own_defense_area and
                 not in_other_defense_area)
 

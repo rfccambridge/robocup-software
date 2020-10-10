@@ -31,7 +31,8 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
         assert(team in ['blue', 'yellow'])
         self._team = team
         self._strategy_name = strategy_name
-        self._owned_fields = ['_blue_robot_commands', '_yellow_robot_commands']
+        self._owned_fields = ['_blue_robot_commands'] if team == 'blue' \
+            else ['_yellow_robot_commands']
 
         # state for reducing frequency of expensive calls
         # (this also helps reduce oscillation)
@@ -142,9 +143,7 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
     def attacker_test(self):
         # team = self._team
         ranked_dists = self.rank_intercept_distances()
-
         if len(ranked_dists) > 0:
-            # print(ranked_dists)
             self.attacker_on_ball(ranked_dists[0][0])
             self.attacker_off_ball(ranked_dists[1][0])
         # if self.gs.viz_inputs['user_selected_robot'] is not None:

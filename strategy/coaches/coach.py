@@ -24,7 +24,7 @@ class Coach(object):
         self._command_dict = {
             SSL_Referee.HALT: self.halt,
             SSL_Referee.STOP: self.stop,
-            SSL_Referee.NORMAL_START: self.force_start,
+            SSL_Referee.NORMAL_START: self.normal_start,
             SSL_Referee.FORCE_START: self.force_start,
             SSL_Referee.PREPARE_KICKOFF_YELLOW:
                 self.kickoff if self.is_yellow() else self.defend_kickoff,
@@ -81,15 +81,23 @@ class Coach(object):
                 new_pos = self._strategy.find_legal_pos(robot_id, current_pos)
                 self._strategy.path_find(robot_id, new_pos, allow_illegal=True)
 
+    # Functions for dealing with ref commands
     def halt(self):
         self.logger.info("HALT CALLED")
         self._strategy.halt()
 
     def stop(self):
         self.logger.info("STOP CALLED")
+        self._strategy.avoid_ball()
+
+    def normal_start(self):
+        self.logger.info("NORMAL START CALLED")
+        if self.gs.is_ball_in_play():
+            self.open_play()
 
     def force_start(self):
         self.logger.info("FORCE START CALLED")
+        self.open_play()
 
     def kickoff(self):
         self.logger.info("KICKOFF CALLED")
@@ -131,4 +139,12 @@ class Coach(object):
         raise NotImplementedError
 
     def defend_ball_placement(self):
+        raise NotImplementedError
+
+    # Functions for dealing with subsets of game situations
+    def open_play(self):
+        '''
+        Deals with cases where the game is running and we are not in a
+        special situation such as a free kick, penalty kick, etc.
+        '''
         raise NotImplementedError

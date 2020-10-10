@@ -55,7 +55,7 @@ class Visualizer(Provider):
 
         self._owned_fields = ['viz_inputs']
 
-    def init_shit(self):
+    def initialize(self):
         self.gs = self.data_in_q.get()
 
         # derive screen dimentions from field dimensions
@@ -118,7 +118,7 @@ class Visualizer(Provider):
 
     def pre_run(self):
         pygame.init()
-        self.init_shit()
+        self.initialize()
 
     def post_run(self):
         self.logger.debug("Calling post_run in visualization")
@@ -161,7 +161,7 @@ class Visualizer(Provider):
                 self.user_click_down = self.screen_to_field(
                     pygame.mouse.get_pos()
                 )
-                if self.gs.is_in_play(self.user_click_down):
+                if self.gs.is_in_field(self.user_click_down):
                     # trigger button clicks
                     for label, pos in self.buttons.items():
                         dims = (BUTTON_WIDTH, BUTTON_HEIGHT)

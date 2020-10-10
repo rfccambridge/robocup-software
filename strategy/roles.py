@@ -70,15 +70,26 @@ class Roles:
             if self.within_shooting_range(team, robot_id):
                 self.prepare_and_kick(robot_id, center_of_goal, shoot_velocity)
             else:
-                for teammate_id in self.gs.get_robot_ids(team):
+                team_position_data = self.gs.get_team_positions(team)
+                team_posns = {}
+                for id, pos_data in team_position_data.items():
+                    team_posns[id] = pos_data[0][1]
+                best_teammates = sorted(
+                    team_posns.items(),
+                    key=lambda x: self.rate_attacker_pos(x[1], x[0]),
+                    reverse=True
+                )
+                for teammate in best_teammates:
+                    teammate_id, teammate_pos = teammate
                     if teammate_id == robot_id:
                         continue
                     this_robot_pos = self.gs.get_robot_position(team, robot_id)
-                    teammate_pos = self.gs.dribbler_pos(team, teammate_id)
-                    if self.is_straight_path_open(
-                        this_robot_pos, teammate_pos,
-                        ignore_ids=[robot_id, teammate_id]
-                    ):
+                    if self.rate_attacker_pos(this_robot_pos, robot_id) \
+                       > self.rate_attacker_pos(teammate_pos, teammate_id) \
+                       and self.is_straight_path_open(
+                            this_robot_pos, teammate_pos,
+                            ignore_ids=[robot_id, teammate_id]
+                       ):
                         self.pass_ball(robot_id, teammate_id)
                         break
         else:

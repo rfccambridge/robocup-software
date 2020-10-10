@@ -85,11 +85,12 @@ class Roles:
                         continue
                     this_robot_pos = self.gs.get_robot_position(team, robot_id)
                     if self.rate_attacker_pos(this_robot_pos, robot_id) \
-                       > self.rate_attacker_pos(teammate_pos, teammate_id) \
+                       < self.rate_attacker_pos(teammate_pos, teammate_id) \
                        and self.is_straight_path_open(
                             this_robot_pos, teammate_pos,
                             ignore_ids=[robot_id, teammate_id]
                        ):
+                        print(robot_id, "passing to", teammate_id)
                         self.pass_ball(robot_id, teammate_id)
                         break
         else:

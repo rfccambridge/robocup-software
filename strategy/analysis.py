@@ -238,8 +238,8 @@ class Analysis(object):
                 or not self.gs.is_position_open(pos, self._team, robot_id):
             return np.NINF
         # TODO: Handle cases where path is blocked
-        if not self.is_straight_path_open(ball_pos, pos):
-            return np.NINF
+        # if not self.is_straight_path_open(ball_pos, pos):
+        #     return np.NINF
         # Calculate the passing distance
         pass_dist = np.linalg.norm(ball_pos - pos[:2])
         # Calculate the distance to the center of the goal

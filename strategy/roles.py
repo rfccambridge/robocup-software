@@ -79,11 +79,17 @@ class Roles:
                     key=lambda x: self.rate_attacker_pos(x[1], x[0]),
                     reverse=True
                 )
+                print(best_teammates)
+                print([self.rate_attacker_pos(i[1], i[0]) for i in best_teammates])
                 for teammate in best_teammates:
                     teammate_id, teammate_pos = teammate
                     if teammate_id == robot_id:
                         continue
                     this_robot_pos = self.gs.get_robot_position(team, robot_id)
+                    print(self.is_straight_path_open(
+                            this_robot_pos, teammate_pos,
+                            ignore_ids=[robot_id, teammate_id]
+                       ))
                     if self.rate_attacker_pos(this_robot_pos, robot_id) \
                        < self.rate_attacker_pos(teammate_pos, teammate_id) \
                        and self.is_straight_path_open(

@@ -1,6 +1,7 @@
 # pylint: disable=maybe-no-member
 import numpy as np
 from random import random
+import time
 
 
 class Roles:
@@ -110,6 +111,7 @@ class Roles:
     def attacker_off_ball(self, robot_id):
         """Commands a given robot id to play as attacker without a ball"""
         self.path_find(robot_id, self.attacker_get_open(robot_id))
+        time.sleep(1)
 
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()

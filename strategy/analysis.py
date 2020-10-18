@@ -109,9 +109,13 @@ class Analysis(object):
         dists = {}
         team = self.gs.other_team(self._team) if other_team else self._team
         for robot_id in self.gs.get_robot_ids(team):
-            intercept_path = self.intercept_range(robot_id)[0] \
-                             - self.gs.get_robot_position(team, robot_id)[:2]
-            dists[robot_id] = np.linalg.norm(intercept_path)
+            intercept_range = self.intercept_range(robot_id)
+            if intercept_range:
+                intercept_path = intercept_range[0] \
+                    - self.gs.get_robot_position(team, robot_id)[:2]
+                dists[robot_id] = np.linalg.norm(intercept_path)
+            else:
+                dists[robot_id] = np.inf
         return dists
 
     def rank_intercept_distances(self, other_team=False):
@@ -238,8 +242,12 @@ class Analysis(object):
                 or not self.gs.is_position_open(pos, self._team, robot_id):
             return np.NINF
         # TODO: Handle cases where path is blocked
-        # if not self.is_straight_path_open(ball_pos, pos):
-        #     return np.NINF
+        if not self.is_straight_path_open(
+            ball_pos, pos,
+            ignore_ids=[robot_id, self.which_teammate_has_ball()],
+            buffer=0
+           ):
+            return np.NINF
         # Calculate the passing distance
         pass_dist = np.linalg.norm(ball_pos - pos[:2])
         # Calculate the distance to the center of the goal
@@ -263,9 +271,9 @@ class Analysis(object):
                                             teammate_dist)
         # Rate the position based on metrics
         # TODO: come up with a better metric to use
-        pass_rtg = -2 * pass_dist
+        pass_rtg = 3000 * np.exp(- (pass_dist / 2500) ** 2)
         goal_rtg = -3 * goal_dist
-        oppt_rtg = 2 * nearest_opponent_dist
+        oppt_rtg = -5000 * np.exp(- (nearest_opponent_dist / 800) ** 2)
         team_rtg = 2 * nearest_teammate_dist
         # also consider off-centeredness
         goal_offctr = abs((pos[1] - center_of_goal[1]) /
@@ -367,12 +375,14 @@ class Analysis(object):
                 is not None)
 
     def is_straight_path_open(self, s_pos, g_pos, ignore_ids=[],
-                              ignore_opp_ids=[]):
+                              ignore_opp_ids=[], buffer=None):
         """
         Checks if a straight path is open, without worrying
         about whether it is legal for robots.
         Should be used when finding a path to send the ball.
         """
+        if buffer is None:
+            buffer = 2 * self.gs.ROBOT_RADIUS
         robot_positions = self.gs.get_all_robot_positions()
         s_pos = s_pos[:2]
         g_pos = g_pos[:2]
@@ -537,16 +547,22 @@ class Analysis(object):
             g_pos = self.find_legal_pos(robot_id, obstacle, perpendicular=True)
         return False
 
-    def which_enemy_has_ball(self):
+    def which_robot_has_ball(self, teams=["blue", "yellow"]):
         # BUFFER = 2 * self.gs._BALL_RADIUS (TODO): var wasn't being  used
-        our_team = self._team
-        other_team = self.gs.other_team(our_team)
-        robot_ids = self.gs.get_robot_ids(other_team)
-        # ball_pos = self.gs.get_ball_position() (TODO): var wasn't being used
-        for id in robot_ids:
-            if self.ball_in_dribbler(other_team, id):
-                return id
+        for team in teams:
+            if team not in ["blue", "yellow"]:
+                continue
+            robot_ids = self.gs.get_robot_ids(team)
+            for id in robot_ids:
+                if self.ball_in_dribbler(team, id):
+                    return team, id
         return None
+
+    def which_teammate_has_ball(self):
+        return self.which_robot_has_ball(self._team)
+
+    def which_enemy_has_ball(self):
+        return self.which_robot_has_ball(self.gs.other_team(self._team))
 
     def identify_enemy_threat_level(self):
         our_team = self._team

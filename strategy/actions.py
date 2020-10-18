@@ -46,6 +46,18 @@ class Actions:
         else:
             return False
 
+    def turn_toward(self, robot_id, face_pos: Tuple[float, float]) -> bool:
+        """
+        Turn robot toward a position
+        without losing possession if it has the ball
+        """
+        if self.gs.ball_in_dribbler(self._team, robot_id):
+            self.set_dribbler(robot_id, True)
+        w = self.robot_face_pos(robot_id, face_pos)
+        x0, y0, w0 = self.gs.get_robot_position(self._team, robot_id)
+        self.set_waypoints(robot_id, [[x0, y0, w]])
+        return abs(w - w0) < 0.05
+
     def charge_up_to(self, robot_id, kick_speed: float) -> bool:
         """Charge kicker up to a power level that attains a specific kick_speed.
         Definition of kick speed is specified in the robot commands API/lib."""

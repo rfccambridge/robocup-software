@@ -65,10 +65,16 @@ class Roles:
         shoot_velocity = 1200
         goal = self.gs.get_attack_goal(team)
         center_of_goal = (goal[0] + goal[1]) / 2
+        robot_pos = self.gs.get_robot_position(team, robot_id)
         # TODO: Movement and receive ball
         # Shoots if has the ball
         if self.gs.ball_in_dribbler(team, robot_id):
-            if self.within_shooting_range(team, robot_id):
+            if self.within_shooting_range(team, robot_id) and \
+               self.is_straight_path_open(
+                    robot_pos, center_of_goal,
+                    ignore_ids=[robot_id],
+                    buffer=0
+               ):
                 self.prepare_and_kick(robot_id, center_of_goal, shoot_velocity)
             else:
                 team_position_data = self.gs.get_team_positions(team)
@@ -80,27 +86,23 @@ class Roles:
                     key=lambda x: self.rate_attacker_pos(x[1], x[0]),
                     reverse=True
                 )
-                print(best_teammates)
-                print([self.rate_attacker_pos(i[1], i[0]) for i in best_teammates])
                 for teammate in best_teammates:
                     teammate_id, teammate_pos = teammate
                     if teammate_id == robot_id:
                         continue
-                    this_robot_pos = self.gs.get_robot_position(team, robot_id)
-                    print(self.is_straight_path_open(
-                            this_robot_pos, teammate_pos,
-                            ignore_ids=[robot_id, teammate_id]
-                       ))
-                    if self.rate_attacker_pos(this_robot_pos, robot_id) \
+                    if self.rate_attacker_pos(robot_pos, robot_id) \
                        < self.rate_attacker_pos(teammate_pos, teammate_id) \
                        and self.is_straight_path_open(
-                            this_robot_pos, teammate_pos,
-                            ignore_ids=[robot_id, teammate_id]
+                            robot_pos, teammate_pos,
+                            ignore_ids=[robot_id, teammate_id],
+                            buffer=0
                        ):
                         print(robot_id, "passing to", teammate_id)
                         self.pass_ball(robot_id, teammate_id)
                         break
+                print(robot_id, "not passing", best_teammates[:2])
         else:
+            print(robot_id, "trying to get ball")
             ball_pos = self.gs.get_ball_position()
             if self.gs.is_pos_legal(ball_pos, team, robot_id):
                 self.get_ball(robot_id, charge_during=shoot_velocity)
@@ -110,8 +112,11 @@ class Roles:
 
     def attacker_off_ball(self, robot_id):
         """Commands a given robot id to play as attacker without a ball"""
-        self.path_find(robot_id, self.attacker_get_open(robot_id))
-        time.sleep(1)
+        MIN_REFRESH_INTERVAL = .1
+        if robot_id not in self._last_pathfind_times or \
+           time.time() - self._last_pathfind_times[robot_id] > MIN_REFRESH_INTERVAL:  # noqa
+            self.path_find(robot_id, self.attacker_get_open(robot_id))
+        # time.sleep(1)
 
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()

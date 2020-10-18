@@ -255,6 +255,10 @@ class RobotCommands:
                     # catch rounding errors
                     assert(inner_formula - 1 < .001)
                     inner_formula = 1
+                if inner_formula < -1:
+                    # catch rounding errors
+                    assert(inner_formula + 1 > -.001)
+                    inner_formula = -1
                 trimmed_angle = np.arccos(inner_formula)
                 if not (0 <= trimmed_angle <= np.pi):
                     # not sure why this was ever triggering?

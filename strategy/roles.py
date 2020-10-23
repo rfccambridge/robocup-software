@@ -89,18 +89,22 @@ class Roles:
                 for teammate in best_teammates:
                     teammate_id, teammate_pos = teammate
                     if teammate_id == robot_id:
-                        continue
-                    if self.rate_attacker_pos(robot_pos, robot_id) \
-                       < self.rate_attacker_pos(teammate_pos, teammate_id) \
-                       and self.is_straight_path_open(
-                            robot_pos, teammate_pos,
-                            ignore_ids=[robot_id, teammate_id],
-                            buffer=0
-                       ):
+                        break
+                    # if self.rate_attacker_pos(robot_pos, robot_id) \
+                    #    < self.rate_attacker_pos(teammate_pos, teammate_id):
+                    else:
+                        #    and self.is_straight_path_open(
+                        #         robot_pos, teammate_pos,
+                        #         ignore_ids=[robot_id, teammate_id],
+                        #         buffer=0
+                        #    ):
                         print(robot_id, "passing to", teammate_id)
                         self.pass_ball(robot_id, teammate_id)
                         break
                 print(robot_id, "not passing", best_teammates[:2])
+                # self.set_dribbler(robot_id, True)
+                # self.set_waypoints(robot_id,
+                #     [self.attacker_get_open(robot_id)])
         else:
             print(robot_id, "trying to get ball")
             ball_pos = self.gs.get_ball_position()

@@ -9,7 +9,7 @@ class Routines:
                          kick_pos: Tuple[float, float, float],
                          min_charge: float = 0) -> bool:
         """Command robot to get into position, charge to given level, & kick"""
-        done_pivoting = self.turn_toward(robot_id, kick_pos)
+        done_pivoting = self.pivot_with_ball(robot_id, kick_pos)
         done_charging = self.charge_up_to(robot_id, min_charge)
         if done_pivoting and done_charging:
             self.kick_ball(robot_id)

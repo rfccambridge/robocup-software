@@ -89,7 +89,7 @@ class Roles:
                 for teammate in best_teammates:
                     teammate_id, teammate_pos = teammate
                     if teammate_id == robot_id:
-                        self.logger.debug(robot_id + " not passing")
+                        self.logger.debug(f"{robot_id} not passing")
                         break
                     # if self.rate_attacker_pos(robot_pos, robot_id) \
                     #    < self.rate_attacker_pos(teammate_pos, teammate_id):
@@ -99,14 +99,14 @@ class Roles:
                         #         ignore_ids=[robot_id, teammate_id],
                         #         buffer=0
                         #    ):
-                        self.logger.debug(robot_id + " pass to " + teammate_id)
+                        self.logger.debug(f"{robot_id} pass to {teammate_id}")
                         self.pass_ball(robot_id, teammate_id)
                         break
                 # self.set_dribbler(robot_id, True)
                 # self.set_waypoints(robot_id,
                 #     [self.attacker_get_open(robot_id)])
         else:
-            self.logger.debug(robot_id + " trying to get ball")
+            self.logger.debug(f"{robot_id} trying to get ball")
             ball_pos = self.gs.get_ball_position()
             if self.gs.is_pos_legal(ball_pos, team, robot_id):
                 self.get_ball(robot_id, charge_during=shoot_velocity)
@@ -119,7 +119,10 @@ class Roles:
         MIN_REFRESH_INTERVAL = .1
         if robot_id not in self._last_pathfind_times or \
            time.time() - self._last_pathfind_times[robot_id] > MIN_REFRESH_INTERVAL:  # noqa
-            self.path_find(robot_id, self.attacker_get_open(robot_id))
+            pos_x, pos_y = self.attacker_get_open(robot_id)
+            ball_pos = self.gs.get_ball_position()
+            pos_w = self.face_pos([pos_x, pos_y], ball_pos)
+            self.path_find(robot_id, [pos_x, pos_y, pos_w])
         # time.sleep(1)
 
     def defender(self, robot_id):

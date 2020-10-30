@@ -125,6 +125,13 @@ class Roles:
             self.path_find(robot_id, [pos_x, pos_y, pos_w])
         # time.sleep(1)
 
+    def attacker_off_ball2(self, robot_id):
+        """Commands a given robot id to play as attacker without a ball"""
+        MIN_REFRESH_INTERVAL = .1
+        if robot_id not in self._last_pathfind_times or \
+           time.time() - self._last_pathfind_times[robot_id] > MIN_REFRESH_INTERVAL:  # noqa
+            self.path_find(robot_id, self.attacker_get_open(robot_id))
+
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()
         curr_pos = self.gs.get_robot_position(self._team, robot_id)[0:2]
@@ -139,7 +146,8 @@ class Roles:
             distance = self.distance_from_line(goal_center, ball_pos, curr_pos)
             if distance >= self.gs.ROBOT_RADIUS:
                 # self.logger.debug(f"{distance}")
-                self.move_straight(robot_id, interceptPos)
+                # Might want to make a faster path finder to stop ball
+                self.path_find(robot_id, interceptPos)
             else:
                 DEFENDER_OFFSET = min(500, np.linalg.norm(curr_pos - ball_pos))
                 curr_offset = np.linalg.norm(ball_pos - goal_center)

@@ -12,7 +12,37 @@ class Plays:
         '''
         # we tell robot 0 to follow our goalie function from roles.py
         self.goalie(1)
+
         # TODO: tell other robots to go to starting lineup
+        # TODO: below code needs to be tested
+        # ids = self.gs.get_robot_ids(self._team)
+        # self.goalie(ids[0])
+
+        # goal_top, _ = self.gs.get_defense_goal(self._team)
+        # goal_x = goal_top[0]
+        # circle_radius = self.gs.CENTER_CIRCLE_RADIUS
+
+        # # position depends on whether team is on left or right
+        # if goal_x == self.gs.FIELD_MIN_X:
+        #     attacker_x = - 1 * circle_radius
+        # else:
+        #     attacker_x = circle_radius
+
+        # # kick off positions (ordered by 'priority'):
+        # #   attacker in the center, defender slightly up,
+        # #   defender slightly down, attacker slightly up,
+        # #   attacker slightly down
+        # # if < 6 robots, their positions are deterimined by 'priority'
+        # kickoff_pos = [
+        #     (attacker_x, 0),
+        #     (goal_x / 2, circle_radius),
+        #     (goal_x / 2, -1 * circle_radius),
+        #     (attacker_x, self.gs.FIELD_MAX_Y / 2),
+        #     (attacker_x, self.gs.FIELD_MIN_Y / 2)
+        # ]
+
+        # for i in range(1, len(ids)):
+        #     self.move_straight(ids[i], kickoff_pos[i])
 
     def reset_game(self):
         raise NotImplementedError

@@ -79,3 +79,16 @@ class Plays:
         for i in range(len(ids)):
             # TODO: Use path finding
             self.move_straight(ids[i], wall_positions[i])
+
+    def prepare_penalty(self):
+        '''
+        Instructions to prepare for when our team takes a penalty
+        '''
+        penalty_taker_id = None
+        ranked_dists = self.rank_intercept_distances()
+        if len(ranked_dists):
+            penalty_taker_id = ranked_dists[0][0]
+        else:
+            self.logger.debug("No robot on the field to take penalty!?")
+            return
+        self.penalty_taker(penalty_taker_id)

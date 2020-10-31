@@ -154,3 +154,19 @@ class Roles:
                 total_offset = curr_offset - DEFENDER_OFFSET
                 defender_pos = self.block_goal_center_pos(total_offset)
                 self.move_straight(robot_id, defender_pos)
+
+    # Specialized roles (penalty taker, free kick taker, etc)
+
+    def penalty_taker(self, robot_id):
+        '''
+        Prepares to take a penalty kick when the penalty command is issued
+        '''
+        ball_pos = self.gs.get_ball_position()
+        blue_left = self.gs.is_blue_defense_side_left()
+        if (self.team == 'blue') == blue_left:
+            from_ball_vector = - [1.5 * self.gs.ROBOT_RADIUS, 0]
+        else:
+            from_ball_vector = - [1.5 * self.gs.ROBOT_RADIUS, 0]
+        dest_x, dest_y = ball_pos + from_ball_vector
+        dest_w = self.face_pos([dest_x, dest_y], ball_pos)
+        self.path_find(robot_id, [dest_x, dest_y, dest_w])

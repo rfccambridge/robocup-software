@@ -262,19 +262,22 @@ class Analysis(object):
             opponent_dist = np.linalg.norm(opponent_pos[:2] - pos[:2])
             nearest_opponent_dist = min(nearest_opponent_dist, opponent_dist)
         # Measure of the spread of a formation
-        nearest_teammate_dist = self.gs.FIELD_X_LENGTH + self.gs.FIELD_Y_LENGTH
+        teammate_sum = 0
+        # nearest_teammate_dist = self.gs.FIELD_X_LENGTH + self.gs.FIELD_Y_LENGTH  # noqa
         for teammate in self.gs.get_robot_ids(self._team):
             if teammate != robot_id:
                 teammate_pos = self.gs.get_robot_position(self._team, teammate)
                 teammate_dist = np.linalg.norm(teammate_pos[:2] - pos[:2])
-                nearest_teammate_dist = min(nearest_teammate_dist,
-                                            teammate_dist)
+                # nearest_teammate_dist = min(nearest_teammate_dist,
+                #                             teammate_dist)
+                teammate_sum += 1000 * np.exp(- (teammate_dist / 1200) ** 2)
         # Rate the position based on metrics
         # TODO: come up with a better metric to use
         pass_rtg = 3000 * np.exp(- (pass_dist / 2500) ** 2)
         goal_rtg = -3 * goal_dist
         oppt_rtg = -5000 * np.exp(- (nearest_opponent_dist / 800) ** 2)
-        team_rtg = 2 * nearest_teammate_dist
+        # team_rtg = 2 * nearest_teammate_dist
+        team_rtg = teammate_sum
         # also consider off-centeredness
         goal_offctr = abs((pos[1] - center_of_goal[1]) /
                           (pos[0] - center_of_goal[0]))

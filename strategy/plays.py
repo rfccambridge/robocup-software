@@ -134,4 +134,3 @@ class Plays:
     def defend_penalty(self):
         goalie_id = self.gs.get_goalie_id(self._team)
         self.penalty_goalie(goalie_id)
-

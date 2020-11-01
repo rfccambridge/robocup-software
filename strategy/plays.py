@@ -6,13 +6,51 @@ class Plays:
     """Full team role assignment for specific game cases. Used for very common
     plays that are called frequently no matter the game strategy."""
 
-    def kickoff(self):
+    def kickoff(self, defending=False):
         '''
         Preparation for kickoff instructions
         '''
         # we tell robot 0 to follow our goalie function from roles.py
         self.goalie(1)
+
         # TODO: tell other robots to go to starting lineup
+        # TODO: below code needs to be tested
+        ids = self.gs.get_robot_ids(self._team)
+        goalie_id = self.gs.get_goalie_id(self._team)
+        self.goalie(goalie_id)
+        ids.remove(goalie_id)
+
+        goal_top, _ = self.gs.get_defense_goal(self._team)
+        goal_x = goal_top[0]
+        circle_radius = self.gs.CENTER_CIRCLE_RADIUS
+
+        # position depends on whether team is on left or right
+        if goal_x == self.gs.FIELD_MIN_X:
+            attacker_x = - 1 * circle_radius
+        else:
+            attacker_x = circle_radius
+
+        # put first attacker outside radius if defending, otherwise in center
+        if defending:
+            attacker_y = circle_radius + self.gs.ROBOT_RADIUS
+        else:
+            attacker_y = 0
+
+        # kick off positions (ordered by 'priority'):
+        #   attacker in the center, defender slightly up,
+        #   defender slightly down, attacker slightly up,
+        #   attacker slightly down
+        # if < 6 robots, their positions are deterimined by 'priority'
+        kickoff_pos = [
+            (attacker_x, attacker_y),
+            (goal_x / 2, circle_radius),
+            (goal_x / 2, -1 * circle_radius),
+            (attacker_x, self.gs.FIELD_MAX_Y / 2),
+            (attacker_x, self.gs.FIELD_MIN_Y / 2)
+        ]
+
+        for i in range(len(ids)):
+            self.move_straight(ids[i], kickoff_pos[i])
 
     def reset_game(self):
         raise NotImplementedError
@@ -79,3 +117,20 @@ class Plays:
         for i in range(len(ids)):
             # TODO: Use path finding
             self.move_straight(ids[i], wall_positions[i])
+
+    def prepare_penalty(self):
+        '''
+        Instructions to prepare for when our team takes a penalty
+        '''
+        penalty_taker_id = None
+        ranked_dists = self.rank_intercept_distances()
+        if len(ranked_dists):
+            penalty_taker_id = ranked_dists[0][0]
+        else:
+            self.logger.debug("No robot on the field to take penalty!?")
+            return
+        self.penalty_taker(penalty_taker_id)
+
+    def defend_penalty(self):
+        goalie_id = self.gs.get_goalie_id(self._team)
+        self.penalty_goalie(goalie_id)

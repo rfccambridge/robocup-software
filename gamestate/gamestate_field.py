@@ -59,6 +59,18 @@ class Field(object):
             dist = np.linalg.norm(pos[:2] - self.get_ball_position())
             if dist <= 500 + self.ROBOT_RADIUS:
                 return False
+        if latest_refbox_message.command == SSL_Referee.PREPARE_PENALTY_BLUE:
+            penalty_range = 1000
+            if self.is_goalie(team, robot_id):
+                pass
+            if self.is_blue_defense_side_left():
+                ball_x, _ = self.get_ball_position()
+                if pos[0] < ball_x + penalty_range:
+                    return False
+            else:
+                ball_x, _ = self.get_ball_position()
+                if pos[0] > ball_x - penalty_range:
+                    return False
         in_d_area = self.is_in_defense_area(pos, team)
         ot = self.other_team(team)
         in_own_defense_area = in_d_area and not self.is_goalie(team, robot_id)

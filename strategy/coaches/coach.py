@@ -105,10 +105,11 @@ class Coach(object):
 
     def defend_kickoff(self):
         self.logger.info("DEFEND KICKOFF CALLED")
-        self._strategy.move_randomly()
+        self._strategy.kickoff(defending=True)
 
     def penalty(self):
         self.logger.info("PK CALLED")
+        self._strategy.prepare_penalty()
 
     def defend_penalty(self):
         self.logger.info("DEFEND PK CALLED")

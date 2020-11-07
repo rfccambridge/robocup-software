@@ -130,7 +130,10 @@ class Roles:
         MIN_REFRESH_INTERVAL = .1
         if robot_id not in self._last_pathfind_times or \
            time.time() - self._last_pathfind_times[robot_id] > MIN_REFRESH_INTERVAL:  # noqa
-            self.path_find(robot_id, self.attacker_get_open(robot_id))
+            pos_x, pos_y = self.attacker_get_open(robot_id)
+            ball_pos = self.gs.get_ball_position()
+            pos_w = self.face_pos([pos_x, pos_y], ball_pos)
+            self.path_find(robot_id, [pos_x, pos_y, pos_w])
 
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()
@@ -166,7 +169,28 @@ class Roles:
         if (self.team == 'blue') == blue_left:
             from_ball_vector = - [1.5 * self.gs.ROBOT_RADIUS, 0]
         else:
-            from_ball_vector = - [1.5 * self.gs.ROBOT_RADIUS, 0]
+            from_ball_vector = [1.5 * self.gs.ROBOT_RADIUS, 0]
         dest_x, dest_y = ball_pos + from_ball_vector
         dest_w = self.face_pos([dest_x, dest_y], ball_pos)
         self.path_find(robot_id, [dest_x, dest_y, dest_w])
+
+    def penalty_goalie(self, robot_id):
+        goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
+        goal_center = (goal_top + goal_bottom) / 2
+        ball_pos = self.gs.get_ball_position()
+        # Get player closest to ball for other team
+        ranked_dists = self.rank_intercept_distances(other_team=True)
+        penalty_kicker = ranked_dists[0][0]
+        penalty_kicker_pos = self.gs.get_robot_position(
+            self.gs.other_team(self._team), penalty_kicker)
+        # Calculate predicted trajectory of ball with trig
+        x_dist = goal_center[0] - ball_pos[0]
+        y_target = x_dist * np.tan(penalty_kicker_pos[2])
+        # Make sure that the goalie does not go too far to the sides
+        buffer = self.gs.ROBOT_RADIUS*2
+        if goal_center[1] + y_target > goal_top[1] - buffer:
+            y_target = goal_top[1] - buffer - goal_center[1]
+        if goal_center[1] + y_target < goal_bottom[1] + buffer:
+            y_target = goal_bottom[1] + buffer - goal_center[1]
+        goalie_target = [goal_center[0], goal_center[1] + y_target]
+        self.move_straight(robot_id, goalie_target)

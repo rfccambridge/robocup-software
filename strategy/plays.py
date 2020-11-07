@@ -6,7 +6,7 @@ class Plays:
     """Full team role assignment for specific game cases. Used for very common
     plays that are called frequently no matter the game strategy."""
 
-    def kickoff(self):
+    def kickoff(self, defending=False):
         '''
         Preparation for kickoff instructions
         '''
@@ -15,34 +15,42 @@ class Plays:
 
         # TODO: tell other robots to go to starting lineup
         # TODO: below code needs to be tested
-        # ids = self.gs.get_robot_ids(self._team)
-        # self.goalie(ids[0])
+        ids = self.gs.get_robot_ids(self._team)
+        goalie_id = self.gs.get_goalie_id(self._team)
+        self.goalie(goalie_id)
+        ids.remove(goalie_id)
 
-        # goal_top, _ = self.gs.get_defense_goal(self._team)
-        # goal_x = goal_top[0]
-        # circle_radius = self.gs.CENTER_CIRCLE_RADIUS
+        goal_top, _ = self.gs.get_defense_goal(self._team)
+        goal_x = goal_top[0]
+        circle_radius = self.gs.CENTER_CIRCLE_RADIUS
 
-        # # position depends on whether team is on left or right
-        # if goal_x == self.gs.FIELD_MIN_X:
-        #     attacker_x = - 1 * circle_radius
-        # else:
-        #     attacker_x = circle_radius
+        # position depends on whether team is on left or right
+        if goal_x == self.gs.FIELD_MIN_X:
+            attacker_x = - 1 * circle_radius
+        else:
+            attacker_x = circle_radius
 
-        # # kick off positions (ordered by 'priority'):
-        # #   attacker in the center, defender slightly up,
-        # #   defender slightly down, attacker slightly up,
-        # #   attacker slightly down
-        # # if < 6 robots, their positions are deterimined by 'priority'
-        # kickoff_pos = [
-        #     (attacker_x, 0),
-        #     (goal_x / 2, circle_radius),
-        #     (goal_x / 2, -1 * circle_radius),
-        #     (attacker_x, self.gs.FIELD_MAX_Y / 2),
-        #     (attacker_x, self.gs.FIELD_MIN_Y / 2)
-        # ]
+        # put first attacker outside radius if defending, otherwise in center
+        if defending:
+            attacker_y = circle_radius + self.gs.ROBOT_RADIUS
+        else:
+            attacker_y = 0
 
-        # for i in range(1, len(ids)):
-        #     self.move_straight(ids[i], kickoff_pos[i])
+        # kick off positions (ordered by 'priority'):
+        #   attacker in the center, defender slightly up,
+        #   defender slightly down, attacker slightly up,
+        #   attacker slightly down
+        # if < 6 robots, their positions are deterimined by 'priority'
+        kickoff_pos = [
+            (attacker_x, attacker_y),
+            (goal_x / 2, circle_radius),
+            (goal_x / 2, -1 * circle_radius),
+            (attacker_x, self.gs.FIELD_MAX_Y / 2),
+            (attacker_x, self.gs.FIELD_MIN_Y / 2)
+        ]
+
+        for i in range(len(ids)):
+            self.move_straight(ids[i], kickoff_pos[i])
 
     def reset_game(self):
         raise NotImplementedError
@@ -122,3 +130,7 @@ class Plays:
             self.logger.debug("No robot on the field to take penalty!?")
             return
         self.penalty_taker(penalty_taker_id)
+
+    def defend_penalty(self):
+        goalie_id = self.gs.get_goalie_id(self._team)
+        self.penalty_goalie(goalie_id)

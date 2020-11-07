@@ -270,11 +270,12 @@ class Analysis(object):
                 teammate_dist = np.linalg.norm(teammate_pos[:2] - pos[:2])
                 # nearest_teammate_dist = min(nearest_teammate_dist,
                 #                             teammate_dist)
-                teammate_sum += 1000 * np.exp(- (teammate_dist / 1200) ** 2)
+                teammate_sum -= 2000 * np.exp(- (teammate_dist / 1200) ** 2)
         # Rate the position based on metrics
         # TODO: come up with a better metric to use
         pass_rtg = 3000 * np.exp(- (pass_dist / 2500) ** 2)
-        goal_rtg = -3 * goal_dist
+        # goal_rtg = 5000 * np.exp(- (goal_dist / 2000) ** 2)
+        goal_rtg = - 3 * goal_dist
         oppt_rtg = -5000 * np.exp(- (nearest_opponent_dist / 800) ** 2)
         # team_rtg = 2 * nearest_teammate_dist
         team_rtg = teammate_sum

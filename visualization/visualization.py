@@ -27,7 +27,7 @@ WAYPOINT_RADIUS = 25
 
 
 # Scale for the display window, or else it gets too large... (pixels/mm)
-SCALE = 0.11  # below .1 messes stuff up
+SCALE = 0.13  # below .1 messes stuff up
 
 # EVERYTHING IS IN FIELD DIMENSIONS!!! (real world mm, 0,0 is center)
 UI_BUFFER = 300  # how much space above the field for UI

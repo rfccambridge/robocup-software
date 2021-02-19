@@ -104,11 +104,16 @@ class Analysis(object):
             safest_pos = robot_pos
         return safest_pos
 
-    def intercept_distances(self, other_team=False):
+    def defending_on_left(self):
+        return self.gs.is_blue_defense_side_left() == (self._team == "blue")
+
+    def intercept_distances(self, other_team=False, ids=None):
         """Returns intercept distances for a team as a dictionary"""
         dists = {}
         team = self.gs.other_team(self._team) if other_team else self._team
-        for robot_id in self.gs.get_robot_ids(team):
+        if ids is None:
+            ids = self.gs.get_robot_ids(team)
+        for robot_id in ids:
             intercept_range = self.intercept_range(robot_id)
             if intercept_range:
                 intercept_path = intercept_range[0] \
@@ -118,12 +123,12 @@ class Analysis(object):
                 dists[robot_id] = np.inf
         return dists
 
-    def rank_intercept_distances(self, other_team=False):
+    def rank_intercept_distances(self, other_team=False, ids=None):
         """
         Returns ids and intercept distances as a
         dictionary sorted in increasing order
         """
-        dists = self.intercept_distances(other_team)
+        dists = self.intercept_distances(other_team, ids)
         return sorted(dists.items(), key=lambda x: x[1])
 
     def best_kick_pos(self, from_pos: Tuple[float, float],
@@ -242,12 +247,13 @@ class Analysis(object):
                 or not self.gs.is_position_open(pos, self._team, robot_id):
             return np.NINF
         # TODO: Handle cases where path is blocked
+        blocked_rtg = 0
         if not self.is_straight_path_open(
             ball_pos, pos,
             ignore_ids=[robot_id, self.which_teammate_has_ball()],
             buffer=0
            ):
-            return np.NINF
+            blocked_rtg = -10000
         # Calculate the passing distance
         pass_dist = np.linalg.norm(ball_pos - pos[:2])
         # Calculate the distance to the center of the goal
@@ -270,11 +276,12 @@ class Analysis(object):
                 teammate_dist = np.linalg.norm(teammate_pos[:2] - pos[:2])
                 # nearest_teammate_dist = min(nearest_teammate_dist,
                 #                             teammate_dist)
-                teammate_sum += 1000 * np.exp(- (teammate_dist / 1200) ** 2)
+                teammate_sum -= 2000 * np.exp(- abs(teammate_dist / 1200))
         # Rate the position based on metrics
         # TODO: come up with a better metric to use
         pass_rtg = 3000 * np.exp(- (pass_dist / 2500) ** 2)
-        goal_rtg = -3 * goal_dist
+        # goal_rtg = 5000 * np.exp(- (goal_dist / 2000) ** 2)
+        goal_rtg = - 3 * goal_dist
         oppt_rtg = -5000 * np.exp(- (nearest_opponent_dist / 800) ** 2)
         # team_rtg = 2 * nearest_teammate_dist
         team_rtg = teammate_sum
@@ -283,19 +290,123 @@ class Analysis(object):
                           (pos[0] - center_of_goal[0]))
         ctr_rtg = -50 * goal_offctr
         # Add together considerations
-        parameters = [pass_rtg, goal_rtg, oppt_rtg, team_rtg, ctr_rtg]
+        parameters = [blocked_rtg, pass_rtg, goal_rtg,
+                      oppt_rtg, team_rtg, ctr_rtg]
         return (sum(parameters))
 
-    def attacker_get_open(self, robot_id: int) -> Tuple[float, float, float]:
-        """Sends the attacker to a locally optimal position."""
+    def rate_deep_attacker_pos(self, pos: Tuple[float, float, float],
+                               robot_id: int) -> float:
+        """ Function that scores how good a position is for the attacker to
+        get open for a pass while staying deep if necessary. This attacker
+        does not approach the other team's goal, and it just tries to get into
+        a safe position. Higher ratings should indicate better positions.
+        Written in a separate function to make changing easier.
+        """
+        ball_pos = self.gs.get_ball_position()
+        if not self.gs.is_pos_legal(pos, self._team, robot_id) \
+                or not self.gs.is_position_open(pos, self._team, robot_id):
+            return np.NINF
+        # TODO: Handle cases where path is blocked
+        blocked_rtg = 0
+        if not self.is_straight_path_open(
+            ball_pos, pos,
+            ignore_ids=[robot_id, self.which_teammate_has_ball()],
+            buffer=0
+           ):
+            blocked_rtg = -10000
+        # Calculate the passing distance
+        pass_dist = np.linalg.norm(ball_pos - pos[:2])
+        # Calculate the distance to the center of the goal
+        # goal = self.gs.get_attack_goal(self._team)
+        # center_of_goal = (goal[0] + goal[1]) / 2
+        # Measure of proximity to opposing robots
+        nearest_opponent_dist = self.gs.FIELD_X_LENGTH + self.gs.FIELD_Y_LENGTH
+        for opponent in self.gs.get_robot_ids(self.gs.other_team(self._team)):
+            opponent_pos = self.gs.get_robot_position(self.gs.other_team(
+                self._team), opponent)
+            opponent_dist = np.linalg.norm(opponent_pos[:2] - pos[:2])
+            nearest_opponent_dist = min(nearest_opponent_dist, opponent_dist)
+        # Measure of the spread of a formation
+        teammate_sum = 0
+        # nearest_teammate_dist = self.gs.FIELD_X_LENGTH + self.gs.FIELD_Y_LENGTH  # noqa
+        for teammate in self.gs.get_robot_ids(self._team):
+            if teammate != robot_id:
+                teammate_pos = self.gs.get_robot_position(self._team, teammate)
+                teammate_dist = np.linalg.norm(teammate_pos[:2] - pos[:2])
+                # nearest_teammate_dist = min(nearest_teammate_dist,
+                #                             teammate_dist)
+                teammate_sum -= 2000 * np.exp(- abs(teammate_dist / 1200))
+        # Rate the position based on metrics
+        # TODO: come up with a better metric to use
+        pass_rtg = 3000 * np.exp(- (pass_dist / 2500) ** 2)
+        oppt_rtg = -5000 * np.exp(- (nearest_opponent_dist / 800) ** 2)
+        # team_rtg = 2 * nearest_teammate_dist
+        team_rtg = teammate_sum
+        # also consider off-centeredness
+        # goal_offctr = abs((pos[1] - center_of_goal[1]) /
+        #                   (pos[0] - center_of_goal[0]))
+        # ctr_rtg = -50 * goal_offctr
+        # Add together considerations
+        parameters = [blocked_rtg, pass_rtg, oppt_rtg, team_rtg]
+        return (sum(parameters))
+
+    def rate_pass_pos(self, pos: Tuple[float, float, float],
+                      robot_id: int) -> float:
+        """ Function that scores how good a position is for the attacker to
+        get open for a pass. Higher ratings should indicate better positions.
+        """
+        ball_pos = self.gs.get_ball_position()
+        if not self.gs.is_pos_legal(pos, self._team, robot_id) \
+                or not self.gs.is_position_open(pos, self._team, robot_id):
+            return np.NINF
+        # TODO: Handle cases where path is blocked
+        if not self.is_straight_path_open(
+            ball_pos, pos,
+            ignore_ids=[robot_id, self.which_teammate_has_ball()],
+            buffer=0
+           ):
+            return np.NINF
+        # Calculate the passing distance
+        pass_dist = np.linalg.norm(ball_pos - pos[:2])
+        # Calculate the distance to the center of the goal
+        goal = self.gs.get_attack_goal(self._team)
+        center_of_goal = (goal[0] + goal[1]) / 2
+        goal_dist = np.linalg.norm(center_of_goal - pos[:2])
+        # Measure of proximity to opposing robots
+        nearest_opponent_dist = self.gs.FIELD_X_LENGTH + self.gs.FIELD_Y_LENGTH
+        for opponent in self.gs.get_robot_ids(self.gs.other_team(self._team)):
+            opponent_pos = self.gs.get_robot_position(self.gs.other_team(
+                self._team), opponent)
+            opponent_dist = np.linalg.norm(opponent_pos[:2] - pos[:2])
+            nearest_opponent_dist = min(nearest_opponent_dist, opponent_dist)
+        # Rate the position based on metrics
+        # TODO: come up with a better metric to use
+        pass_rtg = 3000 * np.exp(- (pass_dist / 2500) ** 2)
+        # goal_rtg = 5000 * np.exp(- (goal_dist / 2000) ** 2)
+        goal_rtg = - 3 * goal_dist
+        oppt_rtg = -5000 * np.exp(- (nearest_opponent_dist / 800) ** 2)
+        # team_rtg = 2 * nearest_teammate_dist
+        # also consider off-centeredness
+        goal_offctr = abs((pos[1] - center_of_goal[1]) /
+                          (pos[0] - center_of_goal[0]))
+        ctr_rtg = -50 * goal_offctr
+        # Add together considerations
+        parameters = [pass_rtg, goal_rtg, oppt_rtg, ctr_rtg]
+        return (sum(parameters))
+
+    def attacker_get_open(self, robot_id: int,
+                          pos_rating=None) -> Tuple[float, float, float]:
+        """Sends the attacker to a locally optimal position. Uses pos_rating
+        (rate_attacker_pos by default) to rate positions."""
+        if pos_rating is None:
+            pos_rating = self.rate_attacker_pos
         STEP_SIZE = 300
         steps = range(-3, 4)
         robot_x, robot_y, _ = self.gs.get_robot_position(self._team, robot_id)
         test_posns = [(robot_x + dx * STEP_SIZE,
                        robot_y + dy * STEP_SIZE)
                       for dx in steps for dy in steps]
-        return max(test_posns, key=lambda p: self.rate_attacker_pos(p,
-                                                                    robot_id))
+        return max(test_posns, key=lambda p: pos_rating(p, robot_id))
 
     def find_attacker_pos(self, robot_id: int) -> Tuple[float, float, float]:
         """
@@ -557,9 +668,9 @@ class Analysis(object):
                 continue
             robot_ids = self.gs.get_robot_ids(team)
             for id in robot_ids:
-                if self.ball_in_dribbler(team, id):
+                if self.gs.ball_in_dribbler(team, id):
                     return team, id
-        return None
+        return (None, None)
 
     def which_teammate_has_ball(self):
         return self.which_robot_has_ball(self._team)
@@ -575,8 +686,35 @@ class Analysis(object):
         goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
         goal_center = (goal_top + goal_bottom) / 2
         for id in enemy_robot_ids:
-            distance = np.linalg.norm(self.gs.get_robot_position(id)
-                                      - goal_center)
+            distance = np.linalg.norm(
+                self.gs.get_robot_position(other_team, id)[:2]
+                - goal_center)
             enemy_robot_distances.append((id, distance))
-        threats = enemy_robot_distances.sort(key=lambda x: x[-1])
+        threats = sorted(enemy_robot_distances, key=lambda x: x[-1])
+        return threats
+
+    def identify_enemy_threat_level_advanced(self, defender_id):
+        '''
+        Seeks to identify enemy threat using distance, openness, and other
+        factors, and returns ids ranked by decreasing level of threat
+        '''
+        our_team = self._team
+        other_team = self.gs.other_team(our_team)
+        enemy_robot_ids = self.gs.get_robot_ids(other_team)
+        enemy_robot_distances = []
+        goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
+        goal_center = (goal_top + goal_bottom) / 2
+        for id in enemy_robot_ids:
+            enemy_pos = self.gs.get_robot_position(other_team, id)[:2]
+            # Use distance from goal to assess threat
+            distance = np.linalg.norm(enemy_pos - goal_center)
+            threat = 1 / distance
+            # Change threat to 0 if a teammate is already defending this enemy
+            if not self.is_straight_path_open(enemy_pos, goal_center,
+               ignore_ids=[defender_id], ignore_opp_ids=[id], buffer=0):
+                threat = 0
+            enemy_robot_distances.append((id, threat))
+        threats = sorted(
+            enemy_robot_distances, key=lambda x: x[-1], reverse=True
+        )
         return threats

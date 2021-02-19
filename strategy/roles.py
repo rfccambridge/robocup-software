@@ -47,10 +47,13 @@ class Roles:
             is_ball_behind = (x < ball_x < goal_x) or (x > ball_x > goal_x)
             is_avoiding_ball = (y > ball_y + self.gs.ROBOT_RADIUS) or \
                                (y < ball_y - self.gs.ROBOT_RADIUS)
-            if is_ball_behind and is_avoiding_ball:
+            # get ball and clear it (ie kick the ball somewhere sensible)
+            if self.gs.ball_in_dribbler(team, robot_id):
+                self.clear_ball(robot_id)
+            elif is_ball_behind and is_avoiding_ball:
                 self.move_straight(robot_id, np.array([goal_x, y, w]))
-            self.get_ball(robot_id)
-            # TODO: clear ball (ie kick the ball somewhere sensible)
+            else:
+                self.get_ball(robot_id)
         else:
             goalie_pos = self.block_goal_center_pos(
                 GOALIE_OFFSET, ball_pos=None, team=team
@@ -83,7 +86,7 @@ class Roles:
                     team_posns[id] = pos_data[0][1]
                 best_teammates = sorted(
                     team_posns.items(),
-                    key=lambda x: self.rate_attacker_pos(x[1], x[0]),
+                    key=lambda x: self.rate_pass_pos(x[1], x[0]),
                     reverse=True
                 )
                 for teammate in best_teammates:
@@ -91,8 +94,8 @@ class Roles:
                     if teammate_id == robot_id:
                         self.logger.debug(f"{robot_id} not passing")
                         break
-                    # if self.rate_attacker_pos(robot_pos, robot_id) \
-                    #    < self.rate_attacker_pos(teammate_pos, teammate_id):
+                    # if self.rate_pass_pos(robot_pos, robot_id) \
+                    #    < self.rate_pass_pos(teammate_pos, teammate_id):
                     else:
                         #    and self.is_straight_path_open(
                         #         robot_pos, teammate_pos,
@@ -135,6 +138,19 @@ class Roles:
             pos_w = self.face_pos([pos_x, pos_y], ball_pos)
             self.path_find(robot_id, [pos_x, pos_y, pos_w])
 
+    def deep_attacker(self, robot_id):
+        """Commands a given robot id to play as attacker without a ball"""
+        MIN_REFRESH_INTERVAL = .1
+        if robot_id not in self._last_pathfind_times or \
+           time.time() - self._last_pathfind_times[robot_id] > MIN_REFRESH_INTERVAL:  # noqa
+            pos_x, pos_y = self.attacker_get_open(
+                robot_id,
+                pos_rating=self.rate_deep_attacker_pos
+            )
+            ball_pos = self.gs.get_ball_position()
+            pos_w = self.face_pos([pos_x, pos_y], ball_pos)
+            self.path_find(robot_id, [pos_x, pos_y, pos_w])
+
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()
         curr_pos = self.gs.get_robot_position(self._team, robot_id)[0:2]
@@ -147,7 +163,10 @@ class Roles:
         if len(interceptPos) != 0 and \
            self.gs.is_pos_legal(interceptPos, self._team, robot_id):
             distance = self.distance_from_line(goal_center, ball_pos, curr_pos)
-            if distance >= self.gs.ROBOT_RADIUS:
+            offense_team, _ = self.which_robot_has_ball()
+            if offense_team is None:
+                self.get_ball(robot_id)
+            elif distance >= self.gs.ROBOT_RADIUS:
                 # self.logger.debug(f"{distance}")
                 # Might want to make a faster path finder to stop ball
                 self.path_find(robot_id, interceptPos)
@@ -158,6 +177,25 @@ class Roles:
                 defender_pos = self.block_goal_center_pos(total_offset)
                 self.move_straight(robot_id, defender_pos)
 
+    def defender2(self, robot_id):
+        '''
+        Defender that stays back and blocks enemies that might be a threat
+        '''
+        threats = self.identify_enemy_threat_level_advanced(robot_id)
+        if len(threats) == 0:
+            return
+        enemy_id = threats[0][0]
+        enemy_pos = self.gs.get_robot_position(self.gs.other_team(self._team),
+                                               enemy_id)
+        curr_pos = self.gs.get_robot_position(self._team, robot_id)[0:2]
+        goal_top, goal_bottom = self.gs.get_defense_goal(self._team)
+        goal_center = (goal_top + goal_bottom) / 2
+        max_distance = max(np.linalg.norm(curr_pos - goal_center), 2000)
+        intercept_pos = self.block_goal_center_pos(
+            max_distance, enemy_pos[:2], team=self._team
+        )
+        self.path_find(robot_id, intercept_pos)
+
     # Specialized roles (penalty taker, free kick taker, etc)
 
     def penalty_taker(self, robot_id):
@@ -165,8 +203,7 @@ class Roles:
         Prepares to take a penalty kick when the penalty command is issued
         '''
         ball_pos = self.gs.get_ball_position()
-        blue_left = self.gs.is_blue_defense_side_left()
-        if (self.team == 'blue') == blue_left:
+        if self.defending_on_left():
             from_ball_vector = - [1.5 * self.gs.ROBOT_RADIUS, 0]
         else:
             from_ball_vector = [1.5 * self.gs.ROBOT_RADIUS, 0]

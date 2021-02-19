@@ -1,5 +1,6 @@
 # pylint: disable=maybe-no-member
 from typing import Tuple
+import numpy as np
 
 
 class Routines:
@@ -50,3 +51,11 @@ class Routines:
             self.logger.debug("Robot %s successfully passed to robot %s",
                               passer_id, receiver_id)
         return pass_complete
+
+    def clear_ball(self, robot_id):
+        goal = self.gs.get_attack_goal(self._team)
+        center_of_goal = (goal[0] + goal[1]) / 2
+        w = self.face_pos(center_of_goal, self.gs.get_ball_position())
+        clear_distance = 1000
+        clear_pos = clear_distance * np.array([np.cos(w), np.sin(w)])
+        self.prepare_and_kick(robot_id, clear_pos, 600)

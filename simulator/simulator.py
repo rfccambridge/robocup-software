@@ -68,8 +68,8 @@ class Simulator(Provider):
                 else:
                     blue_pos = right_pos
                     yellow_pos = left_pos
-                self.put_fake_robot('blue', i, blue_pos)
-                self.put_fake_robot('yellow', i, yellow_pos)
+                self.put_fake_robot('blue', i - 1, blue_pos)
+                self.put_fake_robot('yellow', i - 1, yellow_pos)
             self.put_fake_ball(np.array([0, 0]))
         elif self._initial_setup == "moving_ball":
             self.put_fake_robot('blue', 1, np.array([-3000, 0, 0]))

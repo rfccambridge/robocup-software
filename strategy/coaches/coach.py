@@ -116,16 +116,21 @@ class Coach(object):
 
     def direct_free(self):
         self.logger.info("FREE KICK CALLED")
+        if self.gs.is_ball_in_play():
+            self.open_play()
 
     def defend_direct_free(self):
         self.logger.info("DEFEND FREE KICK CALLED")
         self._strategy.form_wall([1, 2, 3])
 
     def indirect_free(self):
-        raise NotImplementedError
+        self.logger.info("INDIRECT FREE KICK CALLED")
+        if self.gs.is_ball_in_play():
+            self.open_play()
 
     def defend_indirect_free(self):
-        raise NotImplementedError
+        self.logger.info("DEFEND INDIRECT FREE KICK CALLED")
+        self._strategy.avoid_ball()
 
     def timeout(self):
         self.logger.info("TIMEOUT CALLED")

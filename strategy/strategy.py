@@ -65,6 +65,8 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             self._attacker_id = None
         if self._strategy_name == "defender_test":
             self._defender_id = None
+        if self._strategy_name == "full_team_test":
+            pass
         if self._strategy_name == "full_game":
             self.logger.info("default strategy for playing a full game")
 
@@ -81,6 +83,8 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
             self.attacker_test()
         elif self._strategy_name == "defender_test":
             self.defender_test()
+        elif self._strategy_name == "full_team_test":
+            self.full_team_test()
         elif self._strategy_name == "entry_video":
             self.entry_video()
         elif self._strategy_name == "random_robot":
@@ -156,15 +160,136 @@ class Strategy(Provider, Utils, Analysis, Actions, Routines, Roles, Plays):
 
     def defender_test(self):
 
-        if self.gs.viz_inputs['user_selected_robot'] is not None:
-            team, robot_id = self.gs.viz_inputs['user_selected_robot']
-            if team == self._team:
-                self._defender_id = robot_id
-        if self._defender_id is not None:
-            self.defender(self._defender_id)
-
+        # if self.gs.viz_inputs['user_selected_robot'] is not None:
+        #     team, robot_id = self.gs.viz_inputs['user_selected_robot']
+        #     if team == self._team:
+        #         self._defender_id = robot_id
+        # if self._defender_id is not None:
+        #     self.defender(self._defender_id)
+        ranked_dists = self.rank_intercept_distances()
+        if len(ranked_dists) > 0:
+            self.defender(ranked_dists[0][0])
+            self.defender2(ranked_dists[1][0])
+        goalie_id = self.gs.get_goalie_id(self._team)
+        # TODO: Fix this part
+        if goalie_id not in self.gs.get_robot_ids(self._team):
+            goalie_id = 1
+        self.goalie(goalie_id)
         # for robot_id in self.gs.get_robot_ids(self._team):
         #     self.defender(robot_id)
+
+    def full_team_test(self):
+        '''
+        Test of a full team setup
+        '''
+        team = self._team
+        unassigned_ids = list(self.gs.get_robot_ids(team))
+
+        # Assign goalie
+        if len(unassigned_ids) > 0:
+            goalie_id = self.gs.get_goalie_id(self._team)
+            # TODO: Fix this part
+            if goalie_id not in self.gs.get_robot_ids(self._team):
+                goalie_id = 1
+            unassigned_ids.remove(goalie_id)
+            self.goalie(goalie_id)
+
+        # Figure out whether we are on attack or defense
+        offense_team, robot_id = self.which_robot_has_ball()
+        ranked_dists = self.rank_intercept_distances(ids=unassigned_ids)
+        if offense_team is not None and offense_team == team:
+            # Play offense
+            # Assign the robot closest to the ball to get the ball
+            if len(ranked_dists) > 0:
+                attacker_on_ball_id = ranked_dists[0][0]
+                unassigned_ids.remove(attacker_on_ball_id)
+                self.attacker_on_ball(attacker_on_ball_id)
+
+            # Find the furthest back unassigned robot and have it play defense
+            team_posns = {}
+            for id in unassigned_ids:
+                team_posns[id] = self.gs.get_robot_position(team, id)
+            best_defenders = sorted(
+                team_posns.items(),
+                key=lambda x: x[1][0],
+                reverse=(not self.defending_on_left())
+            )
+            if len(best_defenders) > 0:
+                defender2_id = best_defenders[0][0]
+                unassigned_ids.remove(defender2_id)
+                self.defender2(defender2_id)
+
+            # Assign two robots to go forward
+            team_posns = {}
+            for id in unassigned_ids:
+                team_posns[id] = self.gs.get_robot_position(team, id)
+            best_attackers = sorted(
+                team_posns.items(),
+                key=lambda x: self.rate_attacker_pos(x[1], x[0]),
+                reverse=True
+            )
+            if len(best_attackers) > 0:
+                attacker_off_ball_id = best_attackers[0][0]
+                unassigned_ids.remove(attacker_off_ball_id)
+                self.attacker_off_ball(attacker_off_ball_id)
+            if len(best_attackers) > 1:
+                attacker_off_ball2_id = best_attackers[1][0]
+                unassigned_ids.remove(attacker_off_ball2_id)
+                self.attacker_off_ball2(attacker_off_ball2_id)
+
+            # Assign one robot to stay back as a safe passing option
+            if len(best_attackers) > 2:
+                deep_attacker_id = best_attackers[2][0]
+                unassigned_ids.remove(deep_attacker_id)
+                self.deep_attacker(deep_attacker_id)
+        else:
+            # Play defense
+            ranked_dists = self.rank_intercept_distances(ids=unassigned_ids)
+            # Assign nearest-to-ball robot to press the other team
+            if len(ranked_dists) > 0:
+                defender_id = ranked_dists[0][0]
+                unassigned_ids.remove(defender_id)
+                self.defender(defender_id)
+
+            # Find two furthest back unassigned robots and have them stay back
+            team_posns = {}
+            for id in unassigned_ids:
+                team_posns[id] = self.gs.get_robot_position(team, id)
+            best_defenders = sorted(
+                team_posns.items(),
+                key=lambda x: x[1][0],
+                reverse=(not self.defending_on_left())
+            )
+            if len(best_defenders) > 0:
+                defender2_id = best_defenders[0][0]
+                unassigned_ids.remove(defender2_id)
+                self.defender2(defender2_id)
+            if len(best_defenders) > 1:
+                defender3_id = best_defenders[1][0]
+                unassigned_ids.remove(defender3_id)
+                self.defender2(defender3_id)
+
+            # Have up to two robots stay in attacking positions
+            team_posns = {}
+            for id in unassigned_ids:
+                team_posns[id] = self.gs.get_robot_position(team, id)
+            best_attackers = sorted(
+                team_posns.items(),
+                key=lambda x: self.rate_attacker_pos(x[1], x[0]),
+                reverse=True
+            )
+            # One goes forward
+            if len(best_attackers) > 0:
+                attacker_off_ball_id = best_attackers[0][0]
+                unassigned_ids.remove(attacker_off_ball_id)
+                self.attacker_off_ball(attacker_off_ball_id)
+            # One gets into a safe passing position in case a teammate
+            # suddenly gets the ball and needs to pass
+            if len(best_attackers) > 1:
+                deep_attacker_id = best_attackers[1][0]
+                unassigned_ids.remove(deep_attacker_id)
+                self.deep_attacker(deep_attacker_id)
+        return
 
     def entry_video(self):
         robot_id_0 = 4

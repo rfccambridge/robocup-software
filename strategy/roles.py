@@ -151,6 +151,9 @@ class Roles:
             pos_w = self.face_pos([pos_x, pos_y], ball_pos)
             self.path_find(robot_id, [pos_x, pos_y, pos_w])
 
+    def free_kicker(self, robot_id):
+        raise NotImplementedError
+
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()
         curr_pos = self.gs.get_robot_position(self._team, robot_id)[0:2]

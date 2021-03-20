@@ -152,7 +152,19 @@ class Roles:
             self.path_find(robot_id, [pos_x, pos_y, pos_w])
 
     def free_kicker(self, robot_id):
-        raise NotImplementedError
+        team = self._team
+        shoot_velocity = 1200
+        goal = self.gs.get_attack_goal(team)
+        goalie_pos = self.get_enemy_goalie_position()
+        center_of_goal = (goal[0] + goal[1]) / 2
+        target = center_of_goal
+        
+        if goalie_pos[1] > center_of_goal[1]:
+            target[1] = goal[1][1] + 1.5 * self.gs._BALL_RADIUS
+        else:
+            target[1] = goal[0][1] - 1.5 * self.gs._BALL_RADIUS
+        self.prepare_and_kick(robot_id, target, shoot_velocity)
+
 
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()

@@ -121,9 +121,8 @@ class Plays:
     def prepare_freekick(self):
         free_kicker_id = self.rank_intercept_distances()[0][0]
         other_bots = self.gs.get_robot_ids(self._team).remove(free_kicker_id)
-        self.free_kicker(free_kicker_id)
-        
         self.avoid_ball(other_bots)
+        self.free_kicker(free_kicker_id)
 
     def prepare_penalty(self):
         '''

@@ -678,6 +678,14 @@ class Analysis(object):
     def which_enemy_has_ball(self):
         return self.which_robot_has_ball(self.gs.other_team(self._team))
 
+    def get_enemy_goalie_position(self):
+        other_team = self.gs.other_team(self._team)
+        goalie_id = self.gs.get_goalie_id(other_team)
+        return self.gs.get_robot_position(other_team, goalie_id)
+
+    def find_best_shot(self):
+        raise NotImplementedError
+        
     def identify_enemy_threat_level(self):
         our_team = self._team
         other_team = self.gs.other_team(our_team)

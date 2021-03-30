@@ -158,13 +158,12 @@ class Roles:
         goalie_pos = self.get_enemy_goalie_position()
         center_of_goal = (goal[0] + goal[1]) / 2
         target = center_of_goal
-        
+
         if goalie_pos[1] > center_of_goal[1]:
             target[1] = goal[1][1] + 1.5 * self.gs._BALL_RADIUS
         else:
             target[1] = goal[0][1] - 1.5 * self.gs._BALL_RADIUS
         self.prepare_and_kick(robot_id, target, shoot_velocity)
-
 
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()

@@ -685,7 +685,7 @@ class Analysis(object):
 
     def find_best_shot(self):
         raise NotImplementedError
-        
+
     def identify_enemy_threat_level(self):
         our_team = self._team
         other_team = self.gs.other_team(our_team)

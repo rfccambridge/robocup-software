@@ -165,7 +165,6 @@ class Roles:
             target[1] = goal[0][1] - 1.5 * self.gs._BALL_RADIUS
         self.prepare_and_kick(robot_id, target, shoot_velocity)
 
-
     def defender(self, robot_id):
         ball_pos = self.gs.get_ball_position()
         curr_pos = self.gs.get_robot_position(self._team, robot_id)[0:2]

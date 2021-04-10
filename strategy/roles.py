@@ -158,7 +158,7 @@ class Roles:
         goalie_pos = self.get_enemy_goalie_position()
         center_of_goal = (goal[0] + goal[1]) / 2
         target = center_of_goal
-        
+
         if goalie_pos[1] > center_of_goal[1]:
             target[1] = goal[1][1] + 1.5 * self.gs._BALL_RADIUS
         else:
@@ -246,3 +246,31 @@ class Roles:
             y_target = goal_bottom[1] + buffer - goal_center[1]
         goalie_target = [goal_center[0], goal_center[1] + y_target]
         self.move_straight(robot_id, goalie_target)
+
+    def indirect_freekicker(self, robot_id):
+        if self.gs.ball_in_dribbler(team, robot_id):
+            team_position_data = self.gs.get_team_positions(team)
+            team_posns = {}
+            for id, pos_data in team_position_data.items():
+                team_posns[id] = pos_data[0][1]
+            best_teammates = sorted(
+                team_posns.items(),
+                key=lambda x: self.rate_pass_pos(x[1], x[0]),
+                reverse=True
+            )
+            for teammate in best_teammates:
+                teammate_id, teammate_pos = teammate
+                if teammate_id == robot_id:
+                    continue
+                else:
+                    #    and self.is_straight_path_open(
+                    #         robot_pos, teammate_pos,
+                    #         ignore_ids=[robot_id, teammate_id],
+                    #         buffer=0
+                    #    ):
+                    self.logger.debug(f"{robot_id} pass to {teammate_id}")
+                    self.pass_ball(robot_id, teammate_id)
+                    break
+        else:
+            pass_velocity = 600
+            self.get_ball(robot_id, charge_during = pass_velocity)

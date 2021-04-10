@@ -118,6 +118,8 @@ class Coach(object):
         self.logger.info("FREE KICK CALLED")
         if self.gs.is_ball_in_play():
             self.open_play()
+        else:
+            self._strategy.prepare_freekick(True)
 
     def defend_direct_free(self):
         self.logger.info("DEFEND FREE KICK CALLED")
@@ -127,6 +129,8 @@ class Coach(object):
         self.logger.info("INDIRECT FREE KICK CALLED")
         if self.gs.is_ball_in_play():
             self.open_play()
+        else:
+            self._strategy.prepare_freekick(False)
 
     def defend_indirect_free(self):
         self.logger.info("DEFEND INDIRECT FREE KICK CALLED")

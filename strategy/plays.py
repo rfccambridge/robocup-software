@@ -118,11 +118,14 @@ class Plays:
             # TODO: Use path finding
             self.move_straight(ids[i], wall_positions[i])
 
-    def prepare_freekick(self):
+    def prepare_freekick(self, is_direct):
         free_kicker_id = self.rank_intercept_distances()[0][0]
         other_bots = self.gs.get_robot_ids(self._team).remove(free_kicker_id)
         self.avoid_ball(other_bots)
-        self.free_kicker(free_kicker_id)
+        if is_direct:
+            self.free_kicker(free_kicker_id)
+        else:
+            self.indirect_freekicker(free_kicker_id)
 
     def prepare_penalty(self):
         '''

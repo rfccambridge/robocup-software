@@ -73,6 +73,22 @@ class Plays:
             if np.linalg.norm(a) < distance:
                 self.path_find(robot_id, self.find_legal_pos(robot_id))
 
+    def avoid_ball_penalty(self, robot_ids=None, distance=1000,
+                           speed_limit=1500):
+        """Specified robots (all by default) stay at least the specified
+        distance behind the ball for a penalty."""
+        ball_pos = self.gs.get_ball_position()
+        team = self._team
+        if robot_ids is None:
+            robot_ids = self.gs.get_robot_ids(team)
+        for robot_id in robot_ids:
+            self.set_speed_limit(robot_id, speed_limit)
+            a = self.gs.get_robot_position(team, robot_id)[:2] - ball_pos
+            if abs(a[0]) < distance:
+                self.path_find(robot_id,
+                               self.find_legal_pos(robot_id,
+                                                   position=[0, 0, 0]))
+
     def move_randomly(self):
         for robot_id in self.gs.get_robot_ids(self._team):
             self.random_robot(robot_id)
@@ -143,3 +159,5 @@ class Plays:
     def defend_penalty(self):
         goalie_id = self.gs.get_goalie_id(self._team)
         self.penalty_goalie(goalie_id)
+        other_bots = self.gs.get_robot_ids(self._team).remove(goalie_id)
+        self.avoid_ball_penalty(other_bots)

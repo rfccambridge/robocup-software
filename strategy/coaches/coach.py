@@ -113,6 +113,7 @@ class Coach(object):
 
     def defend_penalty(self):
         self.logger.info("DEFEND PK CALLED")
+        self._strategy.defend_penalty()
 
     def direct_free(self):
         self.logger.info("FREE KICK CALLED")
@@ -149,7 +150,7 @@ class Coach(object):
         raise NotImplementedError
 
     def defend_ball_placement(self):
-        raise NotImplementedError
+        self._strategy.avoid_ball()
 
     # Functions for dealing with subsets of game situations
     def open_play(self):

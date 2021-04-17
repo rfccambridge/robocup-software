@@ -247,6 +247,7 @@ class Roles:
         self.move_straight(robot_id, goalie_target)
 
     def indirect_freekicker(self, robot_id):
+        team = self._team
         if self.gs.ball_in_dribbler(team, robot_id):
             team_position_data = self.gs.get_team_positions(team)
             team_posns = {}
@@ -272,4 +273,4 @@ class Roles:
                     break
         else:
             pass_velocity = 600
-            self.get_ball(robot_id, charge_during = pass_velocity)
+            self.get_ball(robot_id, charge_during=pass_velocity)
